@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>P7 共写工作台高保真原型</title>
+    <style>
+      :root {
+        --bg: #f4efe6;
+        --paper: #fffdf9;
+        --paper-2: #fff8ef;
+        --line: #d8cdbd;
+        --line-strong: #b8a68d;
+        --ink: #231f1a;
+        --muted: #72695d;
+        --accent: #9f4f2c;
+        --accent-soft: #f4dacb;
+        --olive: #5c7552;
+        --olive-soft: #edf4ea;
+        --gold: #9a6a1d;
+        --gold-soft: #fff1d7;
+        --red: #9f4638;
+        --red-soft: #fde7e2;
+        --shadow: 0 18px 40px rgba(74, 57, 36, 0.08);
+        --radius-xl: 24px;
+        --radius-lg: 18px;
+        --radius-md: 14px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at top left, rgba(159, 79, 44, 0.08), transparent 22%),
+          linear-gradient(180deg, #f8f4ec 0%, #f2ece2 100%);
+      }
+
+      .page {
+        min-height: 100vh;
+        padding: 28px;
+      }
+
+      .shell {
+        max-width: 1600px;
+        margin: 0 auto;
+      }
+
+      .topbar {
+        display: grid;
+        grid-template-columns: 1.6fr 1fr auto;
+        gap: 18px;
+        margin-bottom: 20px;
+      }
+
+      .card {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-xl);
+        box-shadow: var(--shadow);
+      }
+
+      .hero-card {
+        padding: 22px 24px;
+        background: linear-gradient(135deg, #fffaf2 0%, #fffdf9 100%);
+      }
+
+      .hero-card h1 {
+        margin: 0 0 10px;
+        font-size: 28px;
+        line-height: 1.2;
+      }
+
+      .hero-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 11px;
+        border-radius: 999px;
+        border: 1px solid;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      .badge.muted {
+        color: var(--muted);
+        background: #f8f3eb;
+        border-color: #e2d8ca;
+      }
+
+      .badge.ok {
+        color: var(--olive);
+        background: var(--olive-soft);
+        border-color: #bfd0b9;
+      }
+
+      .badge.warn {
+        color: var(--gold);
+        background: var(--gold-soft);
+        border-color: #e6c88d;
+      }
+
+      .badge.danger {
+        color: var(--red);
+        background: var(--red-soft);
+        border-color: #e1b2a9;
+      }
+
+      .snapshot-card,
+      .actions-card {
+        padding: 18px 20px;
+      }
+
+      .section-label {
+        margin: 0 0 10px;
+        font-size: 12px;
+        color: var(--muted);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .snapshot-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+
+      .snapshot-item {
+        padding: 10px 12px;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--line);
+        background: #fffaf4;
+      }
+
+      .snapshot-item strong {
+        display: block;
+        font-size: 12px;
+        color: var(--muted);
+        margin-bottom: 4px;
+      }
+
+      .snapshot-item span {
+        font-size: 14px;
+      }
+
+      .top-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      button {
+        appearance: none;
+        border: none;
+        cursor: pointer;
+        font: inherit;
+      }
+
+      .btn {
+        padding: 12px 14px;
+        border-radius: 14px;
+        font-size: 14px;
+        border: 1px solid var(--line);
+        background: #fff;
+        color: var(--ink);
+      }
+
+      .btn.primary {
+        background: var(--accent);
+        color: #fffdf9;
+        border-color: #8b4626;
+      }
+
+      .btn.soft {
+        background: var(--accent-soft);
+        color: #6d3014;
+        border-color: #ebba9e;
+      }
+
+      .workspace-grid {
+        display: grid;
+        grid-template-columns: 290px minmax(620px, 1fr) 340px;
+        gap: 18px;
+      }
+
+      .panel {
+        min-height: 760px;
+        overflow: hidden;
+      }
+
+      .panel-header {
+        padding: 18px 20px 14px;
+        border-bottom: 1px solid var(--line);
+        background: rgba(255, 249, 241, 0.75);
+      }
+
+      .panel-header h2,
+      .panel-header h3 {
+        margin: 0;
+        font-size: 18px;
+      }
+
+      .panel-header p {
+        margin: 6px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      .panel-body {
+        padding: 16px;
+      }
+
+      .tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 14px;
+      }
+
+      .tab {
+        padding: 8px 12px;
+        font-size: 13px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: #fff;
+      }
+
+      .tab.active {
+        background: var(--accent-soft);
+        border-color: #e9b89f;
+        color: #6e2f14;
+      }
+
+      .task-list,
+      .review-list,
+      .activity-list,
+      .version-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .task-card,
+      .review-card,
+      .version-card,
+      .activity-card {
+        border: 1px solid var(--line);
+        border-radius: var(--radius-md);
+        background: #fff;
+        padding: 12px 13px;
+      }
+
+      .task-card h4,
+      .review-card h4,
+      .version-card h4,
+      .activity-card h4 {
+        margin: 0 0 6px;
+        font-size: 14px;
+      }
+
+      .task-card p,
+      .review-card p,
+      .version-card p,
+      .activity-card p,
+      .task-card li {
+        margin: 0;
+        font-size: 13px;
+        line-height: 1.6;
+        color: var(--muted);
+      }
+
+      .task-card ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+
+      .mini-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+      }
+
+      .mini-btn {
+        padding: 7px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: #fffaf4;
+        font-size: 12px;
+      }
+
+      .editor-shell {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+
+      .editor-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--line);
+        background: #fffaf3;
+      }
+
+      .pill {
+        padding: 8px 11px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        font-size: 12px;
+        background: white;
+      }
+
+      .editor-area {
+        padding: 20px 24px;
+        min-height: 520px;
+        background:
+          linear-gradient(#fffdf9, #fffdf9) padding-box,
+          linear-gradient(transparent 31px, rgba(215, 207, 194, 0.55) 32px) border-box;
+        background-size: 100% 32px;
+      }
+
+      .editor-area h3 {
+        margin: 0 0 16px;
+        font-size: 24px;
+      }
+
+      .editor-area p {
+        margin: 0 0 18px;
+        font-size: 15px;
+        line-height: 2.05;
+        color: #3d362e;
+      }
+
+      .inline-mark {
+        padding: 0 4px;
+        border-radius: 6px;
+        background: #fff3db;
+        box-shadow: inset 0 0 0 1px #eed49f;
+      }
+
+      .selection-float {
+        margin: 0 24px 16px;
+        padding: 12px 14px;
+        border-radius: 16px;
+        border: 1px solid #e2c4b6;
+        background: #fff7f2;
+      }
+
+      .selection-float strong {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 13px;
+      }
+
+      .selection-float p {
+        margin: 0;
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      .editor-footer {
+        display: grid;
+        grid-template-columns: 1.2fr 1fr;
+        gap: 14px;
+        padding: 16px;
+        border-top: 1px solid var(--line);
+        background: #fffaf3;
+      }
+
+      .subpanel {
+        border: 1px solid var(--line);
+        border-radius: var(--radius-md);
+        padding: 12px;
+        background: white;
+      }
+
+      .subpanel h4 {
+        margin: 0 0 8px;
+        font-size: 14px;
+      }
+
+      .subpanel p {
+        margin: 0;
+        font-size: 13px;
+        line-height: 1.6;
+        color: var(--muted);
+      }
+
+      .action-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+
+      .action-card {
+        border: 1px solid var(--line);
+        border-radius: var(--radius-md);
+        background: #fff;
+        padding: 12px;
+      }
+
+      .action-card strong {
+        display: block;
+        font-size: 13px;
+        margin-bottom: 6px;
+      }
+
+      .action-card span {
+        font-size: 12px;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .prompt-box {
+        border: 1px solid var(--line);
+        border-radius: var(--radius-md);
+        background: #fff;
+        padding: 12px;
+        margin-bottom: 12px;
+      }
+
+      .prompt-box p {
+        margin: 0;
+        font-size: 13px;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .result-card {
+        border: 1px solid #e0d0ba;
+        border-radius: var(--radius-md);
+        background: #fff7ee;
+        padding: 12px;
+        margin-bottom: 12px;
+      }
+
+      .result-card h4 {
+        margin: 0 0 6px;
+        font-size: 14px;
+      }
+
+      .result-card p {
+        margin: 0;
+        font-size: 13px;
+        line-height: 1.6;
+        color: var(--muted);
+      }
+
+      .version-strip {
+        margin-top: 18px;
+      }
+
+      .version-strip .card {
+        padding: 18px 20px;
+      }
+
+      .version-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 14px;
+      }
+
+      .version-top h3 {
+        margin: 0;
+        font-size: 18px;
+      }
+
+      .version-grid {
+        display: grid;
+        grid-template-columns: 340px 1fr;
+        gap: 16px;
+      }
+
+      .diff-box {
+        border: 1px solid var(--line);
+        border-radius: var(--radius-lg);
+        background: #fffaf4;
+        padding: 14px;
+        min-height: 180px;
+      }
+
+      .diff-box h4 {
+        margin: 0 0 10px;
+        font-size: 14px;
+      }
+
+      .diff-box p {
+        margin: 0 0 8px;
+        font-size: 13px;
+        line-height: 1.6;
+        color: var(--muted);
+      }
+
+      @media (max-width: 1360px) {
+        .workspace-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .topbar,
+        .version-grid,
+        .editor-footer {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="shell">
+        <div class="topbar">
+          <section class="card hero-card">
+            <h1>人工智能对大学生学习方式的影响研究</h1>
+            <div class="hero-meta">
+              <span class="badge ok">当前版本 v4 已生成</span>
+              <span class="badge muted">最后编辑于 10:32</span>
+              <span class="badge muted">当前模式：共写模式</span>
+              <span class="badge warn">1 项必须确认</span>
+            </div>
+          </section>
+
+          <section class="card snapshot-card">
+            <p class="section-label">Requirement Snapshot</p>
+            <div class="snapshot-grid">
+              <div class="snapshot-item">
+                <strong>字数要求</strong>
+                <span>3000 字</span>
+              </div>
+              <div class="snapshot-item">
+                <strong>引用格式</strong>
+                <span>APA</span>
+              </div>
+              <div class="snapshot-item">
+                <strong>截止时间</strong>
+                <span>2026-06-10</span>
+              </div>
+              <div class="snapshot-item">
+                <strong>最小参考文献</strong>
+                <span>5 篇</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="card actions-card">
+            <p class="section-label">顶部操作</p>
+            <div class="top-actions">
+              <button class="btn primary">导出定稿</button>
+              <button class="btn">查看资料库</button>
+              <button class="btn soft">打开审查抽屉</button>
+            </div>
+          </section>
+        </div>
+
+        <div class="workspace-grid">
+          <aside class="card panel">
+            <div class="panel-header">
+              <h2>推荐任务与审查区</h2>
+              <p>这是可选辅助层，不锁死流程，但帮助用户在共写后快速补关键缺口。</p>
+            </div>
+            <div class="panel-body">
+              <div class="tabs">
+                <button class="tab active">推荐任务</button>
+                <button class="tab">审查结果</button>
+                <button class="tab">活动记录</button>
+              </div>
+
+              <div class="task-list">
+                <div class="task-card">
+                  <h4>推荐任务 1：补充文献来源</h4>
+                  <ul>
+                    <li>当前至少缺少 2 条核心引用</li>
+                    <li>优先补第 3 段和结论段</li>
+                  </ul>
+                  <div class="mini-actions">
+                    <button class="mini-btn">立即补证据</button>
+                    <button class="mini-btn">稍后处理</button>
+                  </div>
+                </div>
+
+                <div class="task-card">
+                  <h4>推荐任务 2：确认老师格式要求</h4>
+                  <p>当前 Requirement Snapshot 中“参考文献数量”来自课程讲义，不是老师原文通知。</p>
+                  <div class="mini-actions">
+                    <button class="mini-btn">去确认</button>
+                    <button class="mini-btn">暂时忽略</button>
+                  </div>
+                </div>
+              </div>
+
+              <div style="height: 16px;"></div>
+
+              <div class="review-list">
+                <div class="review-card">
+                  <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:6px;">
+                    <h4>第 3 段缺少来源支撑</h4>
+                    <span class="badge warn">局部修正</span>
+                  </div>
+                  <p>当前论点“AI 工具显著提升作业效率”缺少可引用来源，建议补 1 条课程材料或 1 篇论文。</p>
+                  <div class="mini-actions">
+                    <button class="mini-btn">定位到正文</button>
+                    <button class="mini-btn">接受建议</button>
+                    <button class="mini-btn">申诉</button>
+                  </div>
+                </div>
+
+                <div class="review-card">
+                  <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:6px;">
+                    <h4>引用格式尚未完全确认</h4>
+                    <span class="badge danger">必须确认</span>
+                  </div>
+                  <p>若继续生成，后续导出格式可能与老师要求不一致，会影响整篇论文的提交准确性。</p>
+                  <div class="mini-actions">
+                    <button class="mini-btn">立即确认</button>
+                    <button class="mini-btn">带风险继续</button>
+                  </div>
+                </div>
+
+                <div class="review-card">
+                  <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:6px;">
+                    <h4>结论段可更简洁</h4>
+                    <span class="badge muted">仅提示</span>
+                  </div>
+                  <p>结论段目前重复了引言中的两句背景说明，可以考虑收束得更干净。</p>
+                </div>
+              </div>
+
+              <div style="height: 16px;"></div>
+
+              <div class="activity-list">
+                <div class="activity-card">
+                  <h4>最近活动</h4>
+                  <p>10:22 ｜ AI 已生成版本 v4，并自动补充 2 条来源绑定。</p>
+                </div>
+                <div class="activity-card">
+                  <h4>最近活动</h4>
+                  <p>10:18 ｜ 用户手动修改了第二段，并发起“改表达”操作。</p>
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          <section class="card panel">
+            <div class="panel-header">
+              <h2>正文编辑区</h2>
+              <p>中间始终是主战场。推荐任务与 AI 面板都服务于这里，不应压过正文本身。</p>
+            </div>
+
+            <div class="editor-shell">
+              <div class="editor-toolbar">
+                <span class="pill">标题建议：人工智能对大学生学习方式的影响研究</span>
+                <span class="pill">当前光标：第 3 段</span>
+                <span class="pill">内联来源提示：开启</span>
+                <span class="pill">对比模式：关闭</span>
+              </div>
+
+              <div class="selection-float">
+                <strong>当前选区工具条</strong>
+                <p>选中了第 3 段。可执行：重写选中内容 / 补证据 / 调结构 / 压重复 / 改表达。</p>
+              </div>
+
+              <div class="editor-area">
+                <h3>人工智能对大学生学习方式的影响研究</h3>
+                <p>
+                  随着生成式人工智能工具的普及，大学生在日常学习过程中 increasingly 依赖智能辅助完成信息检索、文本整理以及初步写作构思。与传统学习方式相比，这类工具不仅改变了学生获取信息的速度，也在一定程度上重构了他们组织知识与完成作业的路径。
+                </p>
+                <p>
+                  从学习效率的角度来看，人工智能工具最直接的影响在于减少了学生在资料整理与表达组织上的初始成本。根据课程讲义中关于数字学习工具使用情况的统计，学生在使用智能工具后，完成基础性文本任务的时间出现了明显压缩。<span class="inline-mark">这里已绑定来源 1 条</span> 这说明 AI 工具并不只是替代某个单点动作，而是在整个作业准备阶段改变了时间分配结构。
+                </p>
+                <p>
+                  然而，这种效率提升并不必然意味着学习质量同步提高。部分学生在依赖 AI 工具生成初步内容时，容易忽略对原始文献和课程要求的深入理解，进而出现内容表述看似完整、实际论证不足的问题。<span class="inline-mark">这里缺少来源，左侧已有“局部修正”提醒</span> 因此，在讨论人工智能对学习方式的影响时，不能只强调其效率优势，还需要同时考察其对独立思考和学术规范的潜在影响。
+                </p>
+              </div>
+
+              <div class="editor-footer">
+                <div class="subpanel">
+                  <h4>内联来源与段落提示</h4>
+                  <p>第 2 段已绑定：课程讲义第 2 页、参考文献 A。第 3 段当前缺 1 条来源支撑，建议补课程材料或论文引用。</p>
+                </div>
+                <div class="subpanel">
+                  <h4>本次编辑影响范围</h4>
+                  <p>当前修改主要影响第 3 段与结论段。不会触发整篇返工，但会影响 1 条审查项的等级。</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <aside class="card panel">
+            <div class="panel-header">
+              <h2>AI 共写面板</h2>
+              <p>右侧面板不是聊天陪衬，而是明确的写作操作台，尽量减少开放式低效对话。</p>
+            </div>
+            <div class="panel-body">
+              <div class="action-grid">
+                <div class="action-card">
+                  <strong>重写选中内容</strong>
+                  <span>保持原意，改善逻辑或表达方式。</span>
+                </div>
+                <div class="action-card">
+                  <strong>补证据</strong>
+                  <span>为选中论点寻找并插入合适来源。</span>
+                </div>
+                <div class="action-card">
+                  <strong>调结构</strong>
+                  <span>优化段落顺序、层次和承接关系。</span>
+                </div>
+                <div class="action-card">
+                  <strong>压重复</strong>
+                  <span>只压信息重复，不误伤结构性回顾。</span>
+                </div>
+                <div class="action-card">
+                  <strong>改表达</strong>
+                  <span>减少模板感，让表述更自然、更贴材料。</span>
+                </div>
+                <div class="action-card">
+                  <strong>补框架</strong>
+                  <span>扩展某一小节的段落骨架与论证方向。</span>
+                </div>
+              </div>
+
+              <div class="prompt-box">
+                <p><strong>自定义指令输入区</strong></p>
+                <p>示例：请保留这段的核心判断，但减少空泛表达，并补充 1 条课程材料作为来源。</p>
+              </div>
+
+              <button class="btn primary" style="width:100%; margin-bottom: 12px;">执行 AI 共写</button>
+
+              <div class="result-card">
+                <h4>最近一次 AI 共写结果</h4>
+                <p>已根据第 3 段的选中内容生成版本 v4：补充了 2 条来源绑定，压缩了 1 处重复表述，并保留了用户原有的结论判断。</p>
+              </div>
+
+              <div class="result-card">
+                <h4>当前操作建议</h4>
+                <p>优先执行“补证据”，因为第 3 段当前的局部修正会直接影响这一部分内容的可信度；处理后再考虑“改表达”。</p>
+              </div>
+
+              <div class="result-card">
+                <h4>失败兜底示意</h4>
+                <p>若 AI 调用失败，这里应显示：AI 暂时不可用，请稍后重试。保留当前输入与最后成功版本，不做本地伪生成。</p>
+              </div>
+            </div>
+          </aside>
+        </div>
+
+        <section class="version-strip">
+          <div class="card">
+            <div class="version-top">
+              <h3>版本记录与差异区</h3>
+              <span class="badge muted">每次共写生成独立版本，不覆盖旧稿</span>
+            </div>
+
+            <div class="version-grid">
+              <div class="version-list">
+                <div class="version-card">
+                  <h4>v4 当前版本</h4>
+                  <p>10:22 ｜ 由 AI 共写生成 ｜ 动作：补证据 + 改表达</p>
+                </div>
+                <div class="version-card">
+                  <h4>v3</h4>
+                  <p>10:10 ｜ 用户手改后保存 ｜ 动作：手动修改正文</p>
+                </div>
+                <div class="version-card">
+                  <h4>v2</h4>
+                  <p>09:56 ｜ AI 生成 ｜ 动作：初稿扩展</p>
+                </div>
+              </div>
+
+              <div class="diff-box">
+                <h4>当前差异摘要</h4>
+                <p>与 v3 相比，v4 主要新增了第 2 段末尾的证据支撑，缩短了结论段背景复述，并在第 3 段中弱化了模板化表达。</p>
+                <p>用户下一步可以选择继续迭代，或直接导出；如果对某条审查判断有异议，可进入申诉复审页。</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </body>
+</html>

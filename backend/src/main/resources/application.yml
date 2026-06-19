@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: cowriting-backend
+  config:
+    import: optional:file:.env[.properties]
+  datasource:
+    url: jdbc:postgresql://${SUPABASE_DB_HOST}:${SUPABASE_DB_PORT}/${SUPABASE_DB_NAME}?sslmode=require&currentSchema=public
+    username: ${SUPABASE_DB_USER}
+    password: ${SUPABASE_DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    open-in-view: false
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+
+server:
+  port: 8080
+
+logging:
+  level:
+    org.springframework.web: INFO
+    org.hibernate.SQL: INFO
+
+openai:
+  api-key: ${OPENAI_API_KEY}
+  base-url: ${OPENAI_BASE_URL}
+  model: ${OPENAI_MODEL}
+  timeout-seconds: ${OPENAI_TIMEOUT_SECONDS}

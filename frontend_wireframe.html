@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI 论文共写工作台 v1 - 前端页面原型</title>
+    <style>
+      :root {
+        --bg: #f5f2ea;
+        --paper: #fffdf8;
+        --ink: #1f1d1a;
+        --muted: #7a7266;
+        --line: #d7cfc2;
+        --accent: #b95c37;
+        --accent-soft: #f3d9cf;
+        --ok: #487d57;
+        --warn: #b77a1f;
+        --danger: #a13f33;
+        --shadow: 0 10px 30px rgba(52, 43, 31, 0.08);
+        --radius: 18px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
+        background:
+          radial-gradient(circle at top left, rgba(185, 92, 55, 0.08), transparent 24%),
+          linear-gradient(180deg, #f8f5ee 0%, #f3efe7 100%);
+        color: var(--ink);
+      }
+
+      .app {
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        min-height: 100vh;
+      }
+
+      .sidebar {
+        padding: 28px 22px;
+        border-right: 1px solid var(--line);
+        background: rgba(255, 251, 244, 0.9);
+        position: sticky;
+        top: 0;
+        height: 100vh;
+      }
+
+      .brand {
+        margin-bottom: 24px;
+      }
+
+      .brand h1 {
+        font-size: 22px;
+        line-height: 1.2;
+        margin: 0 0 8px;
+      }
+
+      .brand p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      .nav {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .nav a {
+        text-decoration: none;
+        color: var(--ink);
+        background: transparent;
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px solid transparent;
+        font-size: 14px;
+      }
+
+      .nav a:hover,
+      .nav a:focus {
+        background: var(--accent-soft);
+        border-color: #e8b8a5;
+      }
+
+      .content {
+        padding: 28px 34px 72px;
+      }
+
+      .hero {
+        margin-bottom: 28px;
+        padding: 24px 28px;
+        background: linear-gradient(135deg, #fffaf2 0%, #fffdf8 100%);
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        box-shadow: var(--shadow);
+      }
+
+      .hero h2 {
+        margin: 0 0 8px;
+        font-size: 28px;
+      }
+
+      .hero p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.6;
+        max-width: 900px;
+      }
+
+      .section {
+        margin-bottom: 34px;
+      }
+
+      .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 14px;
+      }
+
+      .section-header h3 {
+        margin: 0;
+        font-size: 22px;
+      }
+
+      .section-header span {
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      .page-card {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        box-shadow: var(--shadow);
+        padding: 20px;
+        margin-bottom: 18px;
+      }
+
+      .page-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+      }
+
+      .page-title h4 {
+        margin: 0;
+        font-size: 19px;
+      }
+
+      .tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        border: 1px solid;
+        white-space: nowrap;
+      }
+
+      .tag.notice {
+        color: var(--muted);
+        background: #f7f3ec;
+        border-color: #e1d8cc;
+      }
+
+      .tag.ok {
+        color: var(--ok);
+        background: #edf7ef;
+        border-color: #bfd8c6;
+      }
+
+      .tag.warn {
+        color: var(--warn);
+        background: #fff3dc;
+        border-color: #ecd2a0;
+      }
+
+      .tag.danger {
+        color: var(--danger);
+        background: #fce8e3;
+        border-color: #e2b5aa;
+      }
+
+      .wire {
+        border: 1.5px dashed #c9bba8;
+        background: #fffaf4;
+        border-radius: 20px;
+        padding: 16px;
+      }
+
+      .row {
+        display: grid;
+        gap: 14px;
+      }
+
+      .row.cols-2 {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .row.cols-3 {
+        grid-template-columns: 1.1fr 2fr 1.2fr;
+      }
+
+      .block {
+        background: white;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 14px;
+        min-height: 78px;
+      }
+
+      .block h5 {
+        margin: 0 0 8px;
+        font-size: 14px;
+        letter-spacing: 0.02em;
+      }
+
+      .block p,
+      .block li {
+        margin: 0;
+        font-size: 13px;
+        line-height: 1.6;
+        color: var(--muted);
+      }
+
+      .block ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+
+      .chip {
+        padding: 8px 12px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        font-size: 12px;
+        background: white;
+      }
+
+      .editor {
+        min-height: 220px;
+        border: 1px solid var(--line);
+        background: #fffdf9;
+        border-radius: 18px;
+        padding: 16px;
+      }
+
+      .editor p {
+        font-size: 14px;
+        color: #433d34;
+        line-height: 1.8;
+      }
+
+      .mini-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .mini-item {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 10px 12px;
+        background: #fff;
+      }
+
+      .mini-item strong {
+        display: block;
+        font-size: 13px;
+        margin-bottom: 4px;
+      }
+
+      .footer-note {
+        margin-top: 10px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      @media (max-width: 1100px) {
+        .app {
+          grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+          position: static;
+          height: auto;
+          border-right: none;
+          border-bottom: 1px solid var(--line);
+        }
+
+        .row.cols-2,
+        .row.cols-3 {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar">
+        <div class="brand">
+          <h1>AI 论文共写工作台</h1>
+          <p>v1 低保真前端页面原型。用于先确定主线页面、信息结构与主操作布局。</p>
+        </div>
+        <nav class="nav">
+          <a href="#home">P1 项目首页</a>
+          <a href="#upload">P2 上传页</a>
+          <a href="#parsing">P3 解析状态页</a>
+          <a href="#supplement">P4 解析补全页</a>
+          <a href="#insufficient">P5 材料不足页</a>
+          <a href="#generating">P6 生成中页</a>
+          <a href="#workspace">P7 共写工作台</a>
+          <a href="#review">P8 审查详情抽屉</a>
+          <a href="#appeal">P9 申诉复审页</a>
+          <a href="#export">P10 导出页</a>
+          <a href="#error">P11 统一错误态</a>
+        </nav>
+      </aside>
+
+      <main class="content">
+        <section class="hero">
+          <h2>前端页面原型总览</h2>
+          <p>
+            这版原型重点定三件事：用户从上传到共写的主线页面、每页的信息密度与主次、以及共写工作台的三栏结构。它不是视觉定稿，而是研发和产品对齐页面骨架的基线。
+          </p>
+        </section>
+
+        <section class="section" id="home">
+          <div class="section-header">
+            <h3>P1 项目首页</h3>
+            <span>目标：创建项目、查看历史项目</span>
+          </div>
+          <div class="page-card">
+            <div class="page-title">
+              <h4>我的论文项目</h4>
+              <span class="tag notice">项目列表页</span>
+            </div>
+            <div class="wire">
+              <div class="toolbar">
+                <div class="chip">搜索项目</div>
+                <div class="chip">状态筛选</div>
+                <div class="chip">新建论文项目</div>
+              </div>
+              <div class="row cols-2">
+                <div class="mini-item">
+                  <strong>人工智能对大学生学习方式的影响</strong>
+                  <p>状态：ready ｜ 最近更新时间：2 小时前 ｜ 最近版本：v3 初稿已生成</p>
+                </div>
+                <div class="mini-item">
+                  <strong>短视频平台对注意力分配的影响</strong>
+                  <p>状态：processing ｜ 最近更新时间：10 分钟前 ｜ 最近版本：解析中</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="upload">
+          <div class="section-header">
+            <h3>P2 上传页</h3>
+            <span>目标：接收待解析的写作输入</span>
+          </div>
+          <div class="page-card">
+            <div class="page-title">
+              <h4>上传写作输入</h4>
+              <span class="tag notice">多文件 / 粘贴 / 链接</span>
+            </div>
+            <div class="wire">
+              <div class="row cols-2">
+                <div class="block">
+                  <h5>上传面板</h5>
+                  <ul>
+                    <li>拖拽多文件</li>
+                    <li>选择 Word / PDF / 图片 / 表格 / PPT</li>
+                    <li>粘贴文本</li>
+                    <li>录入 DOI / 链接</li>
+                    <li>标记关键材料</li>
+                  </ul>
+                </div>
+                <div class="block">
+                  <h5>上传队列</h5>
+                  <div class="mini-list">
+                    <div class="mini-item"><strong>assignment.pdf</strong><p>关键材料 ｜ 上传完成</p></div>
+                    <div class="mini-item"><strong>research-notes.docx</strong><p>普通材料 ｜ 上传中 72%</p></div>
+                    <div class="mini-item"><strong>chart-1.png</strong><p>关键材料 ｜ 待提交</p></div>
+                  </div>
+                </div>
+              </div>
+              <div class="footer-note">说明：上传的是“待解析的写作输入”，不是纯存档附件。</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="parsing">
+          <div class="section-header">
+            <h3>P3 解析状态页</h3>
+            <span>目标：展示预处理与 AI 语义解析状态</span>
+          </div>
+          <div class="page-card">
+            <div class="page-title">
+              <h4>正在解析输入内容</h4>
+              <span class="tag warn">AI 处理中</span>
+            </div>
+            <div class="wire">
+              <div class="block">
+                <h5>总体状态</h5>
+                <p>本地预处理完成 3/3 ｜ AI 语义解析完成 2/3 ｜ 关键材料已完成 1/2</p>
+              </div>
+              <div class="row cols-2" style="margin-top: 12px;">
+                <div class="mini-item"><strong>assignment.pdf</strong><p>状态：AI 已解析 ｜ 置信度 0.96</p></div>
+                <div class="mini-item"><strong>research-notes.docx</strong><p>状态：AI 部分解析 ｜ 置信度 0.63</p></div>
+                <div class="mini-item"><strong>chart-1.png</strong><p>状态：本地预处理完成 ｜ 等待 AI 解析</p></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="supplement">
+          <div class="section-header">
+            <h3>P4 解析补全页</h3>
+            <span>目标：只补缺口，不重做全部</span>
+          </div>
+          <div class="page-card">
+            <div class="page-title">
+              <h4>补充解析缺口</h4>
+              <span class="tag warn">关键材料待补全</span>
+            </div>
+            <div class="wire">
+              <div class="row cols-2">
+                <div class="block">
+                  <h5>缺口卡片</h5>
+                  <p>材料：research-notes.docx</p>
+                  <p>位置：第 2 页第 3 段</p>
+                  <p>缺口：AI 无法确认这段是“研究结论”还是“背景摘要”</p>
+                </div>
+                <div class="block">
+                  <h5>用户补充</h5>
+                  <p>文本框：这段内容是我自己的研究结论，说明 AI 工具对作业效率有正面影响。</p>
+                  <p>按钮：保存补充 / 重新解析</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="insufficient">
+          <div class="section-header">
+            <h3>P5 材料不足页</h3>
+            <span>目标：明确阻断生成并提示补充</span>
+          </div>
+          <div class="page-card">
+            <div class="page-title">
+              <h4>当前材料不足，暂时无法生成</h4>
+              <span class="tag danger">阻断生成</span>
+            </div>
+            <div class="wire">
+              <div class="row cols-2">
+                <div class="block">
+                  <h5>缺失项</h5>
+                  <ul>
+                    <li>缺少 3-5 篇核心参考文献</li>
+                    <li>缺少明确的老师格式要求</li>
+                    <li>缺少至少 1 份研究结果/笔记</li>
+                  </ul>
+                </div>
+                <div class="block">
+                  <h5>补充建议</h5>
+                  <ul>
+                    <li>上传课程要求截图或老师通知</li>
+                    <li>补充 3-5 篇论文 / 课程材料</li>
+                    <li>补充 1-2 份自己的研究记录</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="generating">
+          <div class="section-header">
+            <h3>P6 生成中页</h3>
+            <span>目标：让用户知道 AI 正在生成什么</span>
+          </div>
+          <div class="page-card">
+            <div class="page-title">
+              <h4>AI 正在生成初稿</h4>
+              <span class="tag warn">后台异步任务</span>
+            </div>
+            <div class="wire">
+              <div class="mini-list">
+                <div class="mini-item"><strong>题目建议</strong><p>已完成</p></div>
+                <div class="mini-item"><strong>全文框架</strong><p>已完成</p></div>
+                <div class="mini-item"><strong>段落骨架</strong><p>生成中</p></div>
+                <div class="mini-item"><strong>可编辑初稿</strong><p>等待中</p></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="workspace">
+          <div class="section-header">
+            <h3>P7 共写工作台主页面</h3>
+            <span>目标：正文编辑、AI 共写、推荐任务、版本记录四位一体</span>
+          </div>
+          <div class="page-card">
+            <div class="page-title">
+              <h4>共写工作台</h4>
+              <span class="tag ok">核心页面</span>
+            </div>
+            <div class="wire">
+              <div class="block" style="margin-bottom: 14px;">
+                <h5>顶部信息</h5>
+                <p>项目标题 ｜ 当前版本 v3 ｜ Requirement Snapshot 摘要 ｜ 生成状态 ｜ 导出按钮</p>
+              </div>
+              <div class="row cols-3">
+                <div class="block">
+                  <h5>左侧：推荐任务与审查区</h5>
+                  <div class="mini-list">
+                    <div class="mini-item"><strong>推荐任务</strong><p>补充 2 条引用来源</p></div>
+                    <div class="mini-item"><strong>仅提示</strong><p>结论段可以更简洁</p></div>
+                    <div class="mini-item"><strong>局部修正</strong><p>第 3 段缺少来源</p></div>
+                    <div class="mini-item"><strong>必须确认</strong><p>老师要求中的引用格式尚未确认</p></div>
+                  </div>
+                </div>
+                <div class="block">
+                  <h5>中间：正文编辑区</h5>
+                  <div class="toolbar">
+                    <div class="chip">标题建议</div>
+                    <div class="chip">选区工具条</div>
+                    <div class="chip">内联引用提示</div>
+                  </div>
+                  <div class="editor">
+                    <p>
+                      近年来，人工智能工具逐渐渗透到大学生的日常学习场景中，尤其在信息检索、文本整理与写作辅助方面表现出明显影响……
+                    </p>
+                  </div>
+                </div>
+                <div class="block">
+                  <h5>右侧：AI 共写面板</h5>
+                  <div class="mini-list">
+                    <div class="mini-item"><strong>快捷操作</strong><p>重写选中内容 / 补证据 / 调结构 / 压重复 / 改表达</p></div>
+                    <div class="mini-item"><strong>自定义指令</strong><p>“请把这一段写得更具体，并补充课程材料引用。”</p></div>
+                    <div class="mini-item"><strong>最近一次结果</strong><p>已补充 2 条来源，新增版本 v4</p></div>
+                  </div>
+                </div>
+              </div>
+              <div class="block" style="margin-top: 14px;">
+                <h5>底部：版本记录</h5>
+                <p>v1 初稿生成 ｜ v2 结构调整 ｜ v3 补证据 ｜ 差异对比</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="review">
+          <div class="section-header">
+            <h3>P8 审查详情抽屉</h3>
+            <span>目标：对单条审查项做处理</span>
+          </div>
+          <div class="page-card">
+            <div class="page-title">
+              <h4>审查详情</h4>
+              <span class="tag warn">局部修正</span>
+            </div>
+            <div class="wire">
+              <div class="row cols-2">
+                <div class="block">
+                  <h5>审查信息</h5>
+                  <p>类型：missing_evidence</p>
+                  <p>范围：第 3 段第 2 句</p>
+                  <p>说明：该段关键论点缺少可引用来源支撑。</p>
+                </div>
+                <div class="block">
+                  <h5>操作区</h5>
+                  <p>接受建议 ｜ 暂时忽略 ｜ 稍后处理 ｜ 发起申诉 ｜ 带风险继续</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="appeal">
+          <div class="section-header">
+            <h3>P9 申诉复审页</h3>
+            <span>目标：用户认为 AI 判断不准确时提交申诉</span>
+          </div>
+          <div class="page-card">
+            <div class="page-title">
+              <h4>申诉与复审</h4>
+              <span class="tag notice">AI 评审不是终审</span>
+            </div>
+            <div class="wire">
+              <div class="row cols-2">
+                <div class="block">
+                  <h5>原审查项</h5>
+                  <p>缺少来源支撑 ｜ 影响等级：局部修正 ｜ 范围：第 3 段</p>
+                </div>
+                <div class="block">
+                  <h5>申诉表单</h5>
+                  <p>理由输入框：这段内容已在课程讲义第 2 页给出支持。</p>
+                  <p>证据选择：选择 materials</p>
+                  <p>提交复审按钮</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="export">
+          <div class="section-header">
+            <h3>P10 导出页</h3>
+            <span>目标：导出最终稿与变体版本</span>
+          </div>
+          <div class="page-card">
+            <div class="page-title">
+              <h4>导出定稿</h4>
+              <span class="tag ok">docx / pdf</span>
+            </div>
+            <div class="wire">
+              <div class="row cols-2">
+                <div class="block">
+                  <h5>导出选项</h5>
+                  <p>格式：docx / pdf</p>
+                  <p>是否包含批注</p>
+                  <p>导出版本选择</p>
+                </div>
+                <div class="block">
+                  <h5>导出状态</h5>
+                  <p>任务状态：已完成</p>
+                  <p>下载链接</p>
+                  <p>重新导出按钮</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="error">
+          <div class="section-header">
+            <h3>P11 统一错误态</h3>
+            <span>目标：失败可恢复，不伪成功</span>
+          </div>
+          <div class="page-card">
+            <div class="page-title">
+              <h4>错误与重试</h4>
+              <span class="tag danger">AI 调用失败</span>
+            </div>
+            <div class="wire">
+              <div class="row cols-2">
+                <div class="block">
+                  <h5>错误信息</h5>
+                  <p>AI 暂时不可用，请稍后重试。</p>
+                  <p>最近一次成功版本：v3</p>
+                </div>
+                <div class="block">
+                  <h5>恢复操作</h5>
+                  <p>重试 ｜ 返回上一步 ｜ 回退到最后成功版本</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,14 @@
+package com.aipm.cowriting.domain.model;
+
+public enum JobType {
+    SEMANTIC_PARSE,
+    REQUIREMENT_EXTRACT,
+    MATERIAL_SUFFICIENCY_EVAL,
+    DRAFT_GENERATE,
+    OUTLINE_REFINE,
+    EVIDENCE_BIND,
+    REVIEW_PASS,
+    APPEAL_RECHECK,
+    EXPORT_DOCX,
+    EXPORT_PDF
+}

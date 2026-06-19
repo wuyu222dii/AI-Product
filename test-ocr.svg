@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="320" viewBox="0 0 900 320">
+  <rect width="900" height="320" fill="#ffffff"/>
+  <text x="40" y="90" font-size="42" font-family="PingFang SC, Noto Sans CJK SC, Arial, sans-serif" fill="#111111">
+    课程论文要求
+  </text>
+  <text x="40" y="150" font-size="30" font-family="PingFang SC, Noto Sans CJK SC, Arial, sans-serif" fill="#222222">
+    人工智能对大学生学习方式的影响
+  </text>
+  <text x="40" y="205" font-size="26" font-family="PingFang SC, Noto Sans CJK SC, Arial, sans-serif" fill="#333333">
+    字数 3000 字，APA 格式，至少引用 5 篇参考资料
+  </text>
+  <text x="40" y="255" font-size="24" font-family="PingFang SC, Noto Sans CJK SC, Arial, sans-serif" fill="#333333">
+    调研结果：72% 学生认为 AI 提升资料整理效率
+  </text>
+</svg>
