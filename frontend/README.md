@@ -111,7 +111,7 @@ frontend/
 ### 前端启动
 
 ```bash
-cd /Users/harry/Documents/AIPM/frontend
+cd frontend
 npm install
 npm run dev
 ```

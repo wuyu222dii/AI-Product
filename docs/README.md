@@ -1,6 +1,12 @@
 # 文档目录索引
 
-本目录集中存放项目 Markdown 文档，按用途分类。根目录 [README.md](../README.md) 仍为项目总入口。
+本目录集中存放项目 Markdown 文档，按用途分类。根目录 [README.md](../README.md) 是项目总入口。
+
+当前正式口径：
+
+- 当前完成度：[PRODUCT_COMPLETION_STATUS-6-16.md](project/PRODUCT_COMPLETION_STATUS-6-16.md)
+- 当前交付清单：[FINAL_DELIVERY_CHECKLIST.md](project/FINAL_DELIVERY_CHECKLIST.md)
+- Demo 跑通指南：[DEMO_GUIDE.md](guides/DEMO_GUIDE.md)
 
 ## 产品规格
 
@@ -21,9 +27,11 @@
 | 文档 | 说明 |
 | --- | --- |
 | [backend_service_spec.md](engineering/backend_service_spec.md) | 后端服务与状态机 |
-| [api_field_spec.md](engineering/api_field_spec.md) | 接口字段定义 |
-| [openapi_contract_draft.md](engineering/openapi_contract_draft.md) | OpenAPI 草案 |
+| [api_field_spec.md](engineering/api_field_spec.md) | 当前实现的接口字段定义 |
+| [openapi_contract_draft.md](engineering/openapi_contract_draft.md) | OpenAPI 风格后端接口契约 |
 | [engineering_tasks.md](engineering/engineering_tasks.md) | 前后端任务拆分 |
+| [postgresql_schema.sql](../postgresql_schema.sql) | PostgreSQL 基础建表草案 |
+| [v1_4_trust_chain.sql](../backend/db/v1_4_trust_chain.sql) | v1.4 可信链迁移 |
 
 ## 使用与部署
 
@@ -37,23 +45,22 @@
 
 | 文档 | 说明 |
 | --- | --- |
-| [FINAL_DELIVERY_CHECKLIST.md](project/FINAL_DELIVERY_CHECKLIST.md) | 最终交付清单 |
 | [PRODUCT_COMPLETION_STATUS-6-16.md](project/PRODUCT_COMPLETION_STATUS-6-16.md) | 产品完成度快照 |
-| [current_progress_status.md](project/current_progress_status.md) | 当前进度状态 |
+| [FINAL_DELIVERY_CHECKLIST.md](project/FINAL_DELIVERY_CHECKLIST.md) | 最终交付清单 |
 
 ## 个人与样例
 
 | 文档 | 说明 |
 | --- | --- |
 | [resume_project_experience.md](personal/resume_project_experience.md) | 简历项目经历描述 |
-| [samples/](samples/) | Demo 上传用的样例材料（作业要求、参考文献等） |
+| [samples/](samples/) | Demo 上传用的样例材料 |
 
 ## 推荐阅读顺序
 
-**产品 / 设计：** PRD → frontend_page_spec → P7 工作台设计/视觉稿
+**产品 / 设计：** PRD -> frontend_page_spec -> P7 工作台设计/视觉稿
 
-**前端：** PRD → frontend_page_spec → api_field_spec → engineering_tasks
+**前端：** PRD -> frontend_page_spec -> api_field_spec -> DEMO_GUIDE
 
-**后端：** PRD → backend_service_spec → api_field_spec → supabase-setup → engineering_tasks
+**后端：** PRD -> backend_service_spec -> api_field_spec -> supabase-setup
 
-**快速跑 Demo：** DEMO_GUIDE
+**快速跑 Demo：** DEMO_GUIDE -> FINAL_DELIVERY_CHECKLIST

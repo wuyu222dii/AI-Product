@@ -1,555 +1,186 @@
-# AI 论文共写工作台 v1 OpenAPI 风格后端接口契约补完稿
+# AI 论文共写工作台 v1.5 OpenAPI 风格接口契约
 
-## 1. 文档目标
+本文档是当前实现的 OpenAPI 风格契约说明，不是可直接导入的 YAML 文件。字段级细节以 [api_field_spec.md](api_field_spec.md) 为准。
 
-本文档用于在已有接口字段说明基础上，补齐工程实现层真正需要的接口契约约束。  
-重点补齐以下内容：
+## 1. 基础信息
 
-- 统一响应协议
-- 鉴权与权限要求
-- 字段校验规则
-- 错误码规范
-- 异步任务接口约束
-- 幂等与时序限制
+- Base URL：`http://localhost:8080/api/v1`
+- 当前认证：MVP 暂无登录态、令牌鉴权、权限隔离和 RLS 强制策略。
+- 后续生产化：需要补用户体系、资源归属校验、Supabase RLS、审计日志和限流。
+- 响应封装：所有成功响应统一为 `ApiResponse<T>`。
 
-上位文档：
-
-- [PRD.md](../product/PRD.md)
-- [api_field_spec.md](api_field_spec.md)
-- [backend_service_spec.md](backend_service_spec.md)
-
----
-
-## 2. OpenAPI 风格约定
-
-### 2.1 基础信息
-
-- `Base URL`: `/api/v1`
-- `Content-Type`: `application/json`
-- 文件上传接口使用：`multipart/form-data`
-- 时间字段：`ISO 8601 UTC`
-- ID 字段：`UUID`
-
-### 2.2 鉴权方式
-
-默认所有接口都要求登录态，采用：
-
-- `Authorization: Bearer <token>`
-
-例外情况：
-
-- 无公开接口
-- 导出文件下载链接可使用短期签名 URL
-
-### 2.3 权限规则
-
-每个 `workspace` 都必须做归属校验：
-
-- 只能访问自己的 `workspace`
-- 只能访问属于该 workspace 的：
-  - materials
-  - drafts
-  - review items
-  - appeals
-  - exports
-
-若不满足权限：
-
-- 返回 `403 FORBIDDEN`
-
----
-
-## 3. 统一响应协议
-
-## 3.1 成功响应
-
-统一格式：
+成功响应：
 
 ```json
 {
   "success": true,
   "data": {},
   "meta": {
-    "requestId": "uuid"
+    "path": "/api/v1/workspaces",
+    "method": "POST",
+    "timestamp": "2026-06-20T00:00:00Z"
   }
 }
 ```
 
-说明：
-- `success`: boolean
-- `data`: 业务数据
-- `meta.requestId`: 用于追踪日志和排查问题
-
-## 3.2 列表响应
-
-统一格式：
-
-```json
-{
-  "success": true,
-  "data": {
-    "items": [],
-    "pagination": {
-      "page": 1,
-      "pageSize": 20,
-      "total": 100
-    }
-  },
-  "meta": {
-    "requestId": "uuid"
-  }
-}
-```
-
-## 3.3 异步任务响应
-
-统一格式：
-
-```json
-{
-  "success": true,
-  "data": {
-    "jobId": "uuid",
-    "status": "queued"
-  },
-  "meta": {
-    "requestId": "uuid"
-  }
-}
-```
-
-## 3.4 错误响应
-
-统一格式：
+失败响应：
 
 ```json
 {
   "success": false,
   "error": {
-    "code": "INSUFFICIENT_MATERIAL",
-    "message": "根据当前上传内容，暂时无法生成正文框架或初稿。",
-    "details": {
-      "missingItems": [
-        {
-          "type": "reference_material",
-          "message": "缺少 3-5 篇核心参考文献"
-        }
-      ]
-    }
+    "code": "VALIDATION_ERROR",
+    "message": "title 不能为空"
   },
-  "meta": {
-    "requestId": "uuid"
-  }
+  "meta": {}
 }
 ```
 
-说明：
-- `error.code`: 机器可读错误码
-- `error.message`: 面向前端展示的简明说明
-- `error.details`: 结构化错误上下文
+## 2. 当前端点总览
 
----
+### Workspace
 
-## 4. HTTP 状态码约定
+| Method | Path | 状态码 | 说明 |
+| --- | --- | --- | --- |
+| `POST` | `/workspaces` | `201` | 创建项目 |
+| `GET` | `/workspaces` | `200` | 获取项目列表 |
+| `GET` | `/workspaces/{id}` | `200` | 获取项目详情 |
 
-- `200 OK`
-  成功读取、成功执行同步操作
-- `201 CREATED`
-  成功创建资源
-- `202 ACCEPTED`
-  异步任务已入队
-- `400 BAD REQUEST`
-  请求体不合法、参数校验失败
-- `401 UNAUTHORIZED`
-  未登录或 token 无效
-- `403 FORBIDDEN`
-  无权限访问资源
-- `404 NOT FOUND`
-  资源不存在
-- `409 CONFLICT`
-  资源状态冲突、版本冲突、幂等冲突
-- `422 UNPROCESSABLE ENTITY`
-  业务条件不满足，如材料不足、关键材料未解析完成
-- `429 TOO MANY REQUESTS`
-  频率限制
-- `500 INTERNAL SERVER ERROR`
-  服务内部错误
-- `503 SERVICE UNAVAILABLE`
-  AI 服务暂时不可用
+### Materials
 
----
+| Method | Path | 状态码 | 说明 |
+| --- | --- | --- | --- |
+| `POST` | `/workspaces/{id}/materials` | `201` | 上传或创建材料 |
+| `GET` | `/workspaces/{id}/materials` | `200` | 获取材料列表，包含 `parseQuality` |
+| `POST` | `/materials/{id}/preprocess` | `202` | 预处理材料 |
+| `POST` | `/materials/{id}/ai-parse` | `202` | AI 语义解析 |
+| `POST` | `/materials/{id}/supplement` | `200` | 补充说明并重新解析 |
+| `PATCH` | `/materials/{id}/category` | `200` | 用户纠正材料类型 |
+| `PATCH` | `/materials/{id}/bibliographic-metadata` | `200` | 补全文献信息 |
 
-## 5. 统一字段约束
+### Requirement
 
-## 5.1 Workspace 字段
+| Method | Path | 状态码 | 说明 |
+| --- | --- | --- | --- |
+| `POST` | `/workspaces/{id}/requirement-snapshot` | `201` | 创建或更新老师要求快照 |
+| `GET` | `/workspaces/{id}/requirement-snapshot` | `200` | 获取老师要求快照 |
 
-- `title`
-  - type: string
-  - required: true
-  - minLength: 1
-  - maxLength: 120
-  - trim: true
+### Material Sufficiency
 
-## 5.2 Material 上传字段
+| Method | Path | 状态码 | 说明 |
+| --- | --- | --- | --- |
+| `POST` | `/workspaces/{id}/material-sufficiency-check` | `201` | 检查材料是否足够生成 |
 
-- `files[]`
-  - type: binary[]
-  - required: false
-- `plainText`
-  - type: string
-  - required: false
-  - maxLength: 50000
-- `externalLink`
-  - type: string
-  - required: false
-  - maxLength: 2000
-  - format: uri
-- `sourceType`
-  - type: enum
-  - required: true
-  - allowed:
-    - `upload`
-    - `pasted_text`
-    - `external_link`
-- `isKeyMaterial`
-  - type: boolean
-  - required: false
-  - default: false
+### Draft
 
-约束：
-- `files[] / plainText / externalLink` 至少传一个
+| Method | Path | 状态码 | 说明 |
+| --- | --- | --- | --- |
+| `POST` | `/workspaces/{id}/generate-draft` | `202` | 生成初稿 |
+| `GET` | `/workspaces/{id}/drafts` | `200` | 获取草稿版本列表 |
+| `GET` | `/drafts/{id}` | `200` | 获取草稿详情 |
+| `PATCH` | `/drafts/{id}` | `200` | 保存用户手动编辑 |
+| `POST` | `/drafts/{id}/restore` | `200` | 恢复历史版本 |
 
-## 5.3 Requirement Snapshot 字段
+### Co-write
 
-- `topic`
-  - type: string
-  - required: false
-  - maxLength: 300
-- `wordCount`
-  - type: integer
-  - required: false
-  - minimum: 100
-  - maximum: 50000
-- `deadline`
-  - type: string
-  - required: false
-  - format: date-time
-- `citationStyle`
-  - type: string
-  - required: false
-  - maxLength: 50
-- `specialRequirements`
-  - type: object
-  - required: false
+| Method | Path | 状态码 | 说明 |
+| --- | --- | --- | --- |
+| `POST` | `/workspaces/{id}/co-write` | `202` | 兼容旧流程：直接共写并创建新版本 |
+| `POST` | `/workspaces/{id}/co-write/preview` | `201` | 生成共写预览，不创建新版本 |
+| `POST` | `/co-write-previews/{id}/apply` | `200` | 应用预览并创建新版本 |
+| `POST` | `/co-write-previews/{id}/discard` | `200` | 放弃预览 |
 
-## 5.4 共写接口字段
+### Evidence Bindings
 
-- `action`
-  - type: enum
-  - required: true
-  - allowed:
-    - `rewrite_selection`
-    - `add_evidence`
-    - `adjust_structure`
-    - `reduce_repetition`
-    - `improve_expression`
-- `targetRange`
-  - type: object
-  - required: false
-  - fields:
-    - `start`: integer >= 0
-    - `end`: integer > start
-- `instruction`
-  - type: string
-  - required: false
-  - maxLength: 2000
+| Method | Path | 状态码 | 说明 |
+| --- | --- | --- | --- |
+| `GET` | `/drafts/{id}/evidence-bindings` | `200` | 获取段落级可信链 |
+| `POST` | `/drafts/{id}/evidence-bindings/rebuild` | `202` | 异步重建可信链 |
+| `PATCH` | `/evidence-bindings/{id}/status` | `200` | 用户确认或调整绑定状态 |
 
-## 5.5 Appeal 字段
+### Review
 
-- `userReason`
-  - type: string
-  - required: true
-  - minLength: 1
-  - maxLength: 2000
-- `evidence`
-  - type: object
-  - required: false
+| Method | Path | 状态码 | 说明 |
+| --- | --- | --- | --- |
+| `GET` | `/drafts/{id}/review-items` | `200` | 获取审查项 |
+| `PATCH` | `/review-items/{id}/status` | `200` | 更新审查项状态 |
+| `POST` | `/review-items/{id}/appeal` | `201` | 发起申诉 / 复审 |
+| `POST` | `/review-items/{id}/recheck` | `200` | 手动复查单条审查项 |
+| `GET` | `/appeals/{id}` | `200` | 获取申诉结果 |
 
----
+### Knowledge Base
 
-## 6. 错误码字典
+| Method | Path | 状态码 | 说明 |
+| --- | --- | --- | --- |
+| `POST` | `/workspaces/{id}/knowledge-base/build` | `201` | 构建或重建项目知识库 |
+| `GET` | `/workspaces/{id}/knowledge-base/chunks` | `200` | 获取知识库片段 |
+| `POST` | `/workspaces/{id}/knowledge-base/search` | `200` | 关键词检索知识片段 |
 
-## 6.1 通用错误
+### Export
 
-- `INVALID_REQUEST_BODY`
-- `INVALID_QUERY_PARAM`
-- `UNAUTHORIZED`
-- `FORBIDDEN`
-- `RESOURCE_NOT_FOUND`
-- `INTERNAL_ERROR`
-- `RATE_LIMITED`
+| Method | Path | 状态码 | 说明 |
+| --- | --- | --- | --- |
+| `POST` | `/drafts/{id}/export` | `202` | 导出 docx / pdf |
+| `GET` | `/exports/{jobId}/download` | `200` | 获取导出下载信息 |
 
-## 6.2 Workspace 错误
+### Jobs
 
-- `WORKSPACE_NOT_FOUND`
-- `WORKSPACE_TITLE_INVALID`
-- `WORKSPACE_STATUS_CONFLICT`
+| Method | Path | 状态码 | 说明 |
+| --- | --- | --- | --- |
+| `GET` | `/jobs/{id}` | `200` | 获取任务状态 |
 
-## 6.3 Material 错误
+## 3. 关键请求契约
 
-- `MATERIAL_NOT_FOUND`
-- `MATERIAL_UPLOAD_EMPTY`
-- `MATERIAL_FORMAT_UNSUPPORTED`
-- `MATERIAL_PARSE_FAILED`
-- `MATERIAL_PARSE_INCOMPLETE`
-- `KEY_MATERIAL_NOT_PARSED`
+### 创建项目
 
-## 6.4 Requirement 错误
-
-- `REQUIREMENT_SNAPSHOT_MISSING`
-- `REQUIREMENT_CONFLICT`
-- `REQUIREMENT_INVALID`
-
-## 6.5 生成错误
-
-- `INSUFFICIENT_MATERIAL`
-- `GENERATION_NOT_ELIGIBLE`
-- `DRAFT_NOT_FOUND`
-- `AI_SERVICE_UNAVAILABLE`
-- `GENERATION_FAILED`
-- `PARTIAL_GENERATION_ONLY`
-
-## 6.6 审查与申诉错误
-
-- `REVIEW_ITEM_NOT_FOUND`
-- `APPEAL_NOT_FOUND`
-- `APPEAL_ALREADY_RESOLVED`
-
-## 6.7 导出错误
-
-- `EXPORT_FAILED`
-- `EXPORT_FORMAT_UNSUPPORTED`
-
----
-
-## 7. 幂等与调用约束
-
-## 7.1 幂等要求
-
-以下接口建议支持幂等：
-
-- `POST /workspaces`
-  - 可通过前端传 `Idempotency-Key`
-- `POST /workspaces/{id}/materials`
-  - 同一提交批次建议带 `Idempotency-Key`
-- `POST /workspaces/{id}/generate-draft`
-  - 同一版本上下文下重复请求不应重复生成多份相同草稿
-- `POST /drafts/{id}/export`
-  - 同一参数下重复调用可复用已有导出任务
-
-## 7.2 不可幂等接口
-
-- `POST /review-items/{id}/appeal`
-  - 默认一个审查项允许多次申诉历史记录，但同一未关闭申诉不能重复创建
-
-## 7.3 状态前置约束
-
-### 生成草稿前
-必须满足：
-- 关键材料已 `ai_parsed`
-- Requirement Snapshot 存在
-- 材料充足性检查通过
-
-否则返回：
-- `422`
-- `GENERATION_NOT_ELIGIBLE` 或相关业务错误
-
-### 共写前
-必须满足：
-- 对应 `draftVersion` 存在
-- draft 状态可编辑
-
-### 导出前
-必须满足：
-- draft 存在
-- draft 不是空文本
-
----
-
-## 8. 异步任务接口约束
-
-## 8.1 统一 job 查询接口
-
-建议补充：
-
-- `GET /jobs/{id}`
-
-响应字段：
+`POST /workspaces`
 
 ```json
 {
-  "success": true,
-  "data": {
-    "id": "uuid",
-    "workspaceId": "uuid",
-    "jobType": "draft_generate",
-    "status": "running",
-    "progress": 60,
-    "inputRef": {},
-    "outputRef": {},
-    "errorMessage": null,
-    "createdAt": "2026-05-28T08:00:00Z",
-    "updatedAt": "2026-05-28T08:01:00Z"
-  },
-  "meta": {
-    "requestId": "uuid"
-  }
+  "title": "论文题目"
 }
 ```
 
-字段说明：
-- `progress`: integer, 0-100
-- `status`: `queued | running | success | partial | failed`
+### 上传材料
 
-## 8.2 前端轮询建议
+`POST /workspaces/{id}/materials`
 
-- 解析类任务：`2s - 3s`
-- 生成类任务：`2s`
-- 导出类任务：`3s`
+请求类型：`multipart/form-data`
 
-停止轮询条件：
-- `status = success`
-- `status = partial`
-- `status = failed`
+```text
+files=<binary>
+plainText=课程论文要求...
+externalLink=https://example.com
+sourceType=pasted_text
+isKeyMaterial=true
+```
 
-## 8.3 partial 约束
+### AI 解析
 
-当任务结果为 `partial`：
-- 前端必须明确展示“部分完成”
-- 后端不得将其视为 `success`
-- 返回结果中必须说明哪些部分已完成、哪些未完成
+`POST /materials/{id}/ai-parse`
 
-建议 `error.details` 或 `outputRef` 中包含：
+请求体可为空；前端可保留兼容字段：
 
 ```json
 {
-  "completedParts": ["titleSuggestion", "outline"],
-  "missingParts": ["draftText"]
+  "forceRetry": true
 }
 ```
 
----
+### 补充说明
 
-## 9. OpenAPI 风格接口补完
+`POST /materials/{id}/supplement`
 
-## 9.1 `POST /api/v1/workspaces`
+请求类型：`multipart/form-data`
 
-鉴权：
-- Bearer Token
-
-请求头：
-- `Authorization`
-- `Idempotency-Key` 可选
-
-请求体：
-
-```json
-{
-  "title": "人工智能对大学生学习方式的影响"
-}
+```text
+supplementText=这份材料的样本量为 200，数据来自 2025 年问卷。
+pageRef=3
 ```
 
-成功响应：
-- `201 CREATED`
+### 生成初稿
 
-错误响应：
-- `400 INVALID_REQUEST_BODY`
-- `401 UNAUTHORIZED`
-
----
-
-## 9.2 `POST /api/v1/workspaces/{id}/materials`
-
-鉴权：
-- Bearer Token
-
-请求类型：
-- `multipart/form-data`
-
-请求字段：
-- `files[]`
-- `plainText`
-- `externalLink`
-- `sourceType`
-- `isKeyMaterial`
-
-成功响应：
-- `201 CREATED`
-
-错误响应：
-- `400 MATERIAL_UPLOAD_EMPTY`
-- `400 MATERIAL_FORMAT_UNSUPPORTED`
-- `401 UNAUTHORIZED`
-- `403 FORBIDDEN`
-- `404 WORKSPACE_NOT_FOUND`
-
----
-
-## 9.3 `POST /api/v1/materials/{id}/ai-parse`
-
-鉴权：
-- Bearer Token
-
-请求体：
-
-```json
-{
-  "forceRetry": false
-}
-```
-
-成功响应：
-- `202 ACCEPTED`
-
-错误响应：
-- `401 UNAUTHORIZED`
-- `403 FORBIDDEN`
-- `404 MATERIAL_NOT_FOUND`
-
----
-
-## 9.4 `POST /api/v1/workspaces/{id}/material-sufficiency-check`
-
-鉴权：
-- Bearer Token
-
-请求体：
-
-```json
-{
-  "requirementSnapshotId": "uuid"
-}
-```
-
-成功响应：
-- `200 OK`
-
-错误响应：
-- `404 WORKSPACE_NOT_FOUND`
-- `404 REQUIREMENT_SNAPSHOT_MISSING`
-- `422 KEY_MATERIAL_NOT_PARSED`
-
----
-
-## 9.5 `POST /api/v1/workspaces/{id}/generate-draft`
-
-鉴权：
-- Bearer Token
-
-请求头：
-- `Idempotency-Key` 推荐
-
-请求体：
+`POST /workspaces/{id}/generate-draft`
 
 ```json
 {
@@ -558,24 +189,9 @@
 }
 ```
 
-成功响应：
-- `202 ACCEPTED`
+### 共写预览
 
-错误响应：
-- `404 WORKSPACE_NOT_FOUND`
-- `404 REQUIREMENT_SNAPSHOT_MISSING`
-- `422 INSUFFICIENT_MATERIAL`
-- `422 KEY_MATERIAL_NOT_PARSED`
-- `503 AI_SERVICE_UNAVAILABLE`
-
----
-
-## 9.6 `POST /api/v1/workspaces/{id}/co-write`
-
-鉴权：
-- Bearer Token
-
-请求体：
+`POST /workspaces/{id}/co-write/preview`
 
 ```json
 {
@@ -585,97 +201,226 @@
     "start": 120,
     "end": 260
   },
-  "instruction": "请把这一段写得更具体，并补充来源。"
-}
-```
-
-成功响应：
-- `202 ACCEPTED`
-
-错误响应：
-- `404 DRAFT_NOT_FOUND`
-- `409 WORKSPACE_STATUS_CONFLICT`
-- `503 AI_SERVICE_UNAVAILABLE`
-
----
-
-## 9.7 `GET /api/v1/drafts/{id}/review-items`
-
-鉴权：
-- Bearer Token
-
-成功响应：
-- `200 OK`
-
-错误响应：
-- `404 DRAFT_NOT_FOUND`
-
----
-
-## 9.8 `POST /api/v1/review-items/{id}/appeal`
-
-鉴权：
-- Bearer Token
-
-请求体：
-
-```json
-{
-  "userReason": "这段内容已在课程讲义第2页给出支持。",
-  "evidence": {
-    "materialIds": ["uuid-1"],
-    "note": "请查看课程讲义第2页"
+  "instruction": "请增强论证，但不要新增来源。",
+  "controls": {
+    "rewriteDepth": "medium",
+    "keepCitations": true,
+    "keepData": true,
+    "noNewSources": true,
+    "keepStudentVoice": true
   }
 }
 ```
 
-成功响应：
-- `201 CREATED`
+### 更新证据绑定状态
 
-错误响应：
-- `404 REVIEW_ITEM_NOT_FOUND`
-- `409 APPEAL_ALREADY_RESOLVED`
+`PATCH /evidence-bindings/{id}/status`
 
----
+```json
+{
+  "status": "USER_CONFIRMED"
+}
+```
 
-## 9.9 `POST /api/v1/drafts/{id}/export`
+### 手动复查审查项
 
-鉴权：
-- Bearer Token
+`POST /review-items/{id}/recheck`
 
-请求头：
-- `Idempotency-Key` 推荐
+请求体为空。
 
-请求体：
+### 知识库检索
+
+`POST /workspaces/{id}/knowledge-base/search`
+
+```json
+{
+  "query": "预测精度受哪些因素影响",
+  "limit": 5
+}
+```
+
+### 导出
+
+`POST /drafts/{id}/export`
 
 ```json
 {
   "format": "docx",
-  "includeComments": false
+  "includeReferences": true,
+  "citationStyle": "APA"
 }
 ```
 
-成功响应：
-- `202 ACCEPTED`
+## 4. 关键响应契约
 
-错误响应：
-- `404 DRAFT_NOT_FOUND`
-- `400 EXPORT_FORMAT_UNSUPPORTED`
-- `503 AI_SERVICE_UNAVAILABLE`
+### MaterialResponse 追加 v1.5 解析质量
 
----
+`GET /workspaces/{id}/materials` 的每个材料包含：
 
-## 10. 推荐后续动作
+```json
+{
+  "id": "uuid",
+  "filename": "论文共写平台测试.md",
+  "parseStage": "AI_PARSED",
+  "effectiveMaterialCategory": "REFERENCE_MATERIAL",
+  "summary": "材料摘要",
+  "bibliographicMetadata": {
+    "authors": ["Smith, J."],
+    "year": "2024",
+    "title": "AI-supported writing",
+    "venue": "Journal",
+    "publisher": "Example Press",
+    "link": "https://example.com"
+  },
+  "parseQuality": {
+    "status": "READY",
+    "score": 0.86,
+    "nextAction": "当前解析结果可用于后续材料检查。",
+    "completeness": {
+      "summary": true,
+      "topicRelation": true,
+      "category": true,
+      "claims": true,
+      "evidence": true,
+      "requirements": false,
+      "bibliographicMetadata": true
+    },
+    "issues": []
+  }
+}
+```
 
-如果要把这份契约进一步变成真正可导入工具链的文件，下一步建议：
+### EvidenceBindingSummaryResponse
 
-1. 把本文转成 `openapi.yaml`
-2. 补齐：
-   - `components.schemas`
-   - `components.responses`
-   - `components.parameters`
-   - `securitySchemes`
-3. 用它生成：
-   - 前端类型
-   - 后端接口 stub
-   - API Mock
+```json
+{
+  "draftVersionId": "uuid",
+  "paragraphs": [
+    {
+      "paragraphId": "p1",
+      "paragraphText": "正文段落...",
+      "bindingStatus": "WEAK",
+      "bindings": [
+        {
+          "id": "uuid",
+          "materialId": "uuid",
+          "knowledgeChunkId": "uuid",
+          "materialTitle": "参考资料",
+          "claimText": "正文观点",
+          "sourceExcerpt": "原始证据片段",
+          "sourceLocation": {
+            "page": 3,
+            "hint": "用户补充说明"
+          },
+          "confidenceScore": 0.72,
+          "supportType": "DIRECT",
+          "bindingStatus": "WEAK",
+          "citationText": "(Smith, 2024)"
+        }
+      ]
+    }
+  ],
+  "missingParagraphIds": ["p3"],
+  "usedMaterials": [],
+  "unusedMaterials": []
+}
+```
+
+### CoWritePreviewResponse
+
+```json
+{
+  "id": "uuid",
+  "workspaceId": "uuid",
+  "draftVersionId": "uuid",
+  "action": "rewrite_selection",
+  "candidateDraftText": "AI 修改后的候选正文",
+  "candidateSourceTraceMap": {},
+  "diffSummary": {
+    "summary": "增强了论证表达",
+    "reasons": ["保留原有引用", "未新增来源"],
+    "relatedReviewItemIds": ["uuid"]
+  },
+  "status": "PENDING",
+  "createdAt": "2026-06-20T00:00:00Z",
+  "appliedAt": null
+}
+```
+
+### ReviewItemResponse 追加 v1.4 复查字段
+
+```json
+{
+  "id": "uuid",
+  "reviewType": "EVIDENCE_WEAK",
+  "reviewImpactLevel": "MUST_CONFIRM",
+  "message": "该段证据支撑偏弱",
+  "suggestedFix": "补充更直接的材料来源",
+  "reviewStatus": "OPEN",
+  "lastRecheckedAt": "2026-06-20T00:00:00Z",
+  "recheckNote": "复查结果：仍需补充证据",
+  "recheckHistory": []
+}
+```
+
+## 5. 状态约束
+
+### 解析质量状态
+
+| 状态 | 含义 | 前端处理 |
+| --- | --- | --- |
+| `READY` | 可用于生成 | 允许继续 |
+| `NEEDS_CONFIRMATION` | 建议确认 | 允许继续但提示 |
+| `NEEDS_SUPPLEMENT` | 需要补充 | 关键材料阻断 |
+| `FAILED` | 解析失败 | 关键材料阻断 |
+
+### 证据绑定状态
+
+| 状态 | 含义 |
+| --- | --- |
+| `CONFIRMED` | 系统认为可信 |
+| `WEAK` | 弱绑定，需要用户注意 |
+| `MISSING` | 缺来源 |
+| `USER_CONFIRMED` | 用户确认可信 |
+
+### 审查项状态
+
+| 状态 | 含义 |
+| --- | --- |
+| `OPEN` | 待处理 |
+| `RESOLVED` | 已解决 |
+| `IGNORED` | 用户忽略 |
+
+### 复查结果
+
+| 结果 | 处理 |
+| --- | --- |
+| `RESOLVED` | 自动关闭审查项 |
+| `STILL_OPEN` | 保持待处理 |
+| `DOWNGRADED` | 降低影响等级 |
+| `NEEDS_MORE_EVIDENCE` | 保持待处理并提示补证据 |
+
+## 6. 错误处理约定
+
+| HTTP 状态 | 使用场景 |
+| --- | --- |
+| `400` | 参数错误、状态不允许 |
+| `404` | 资源不存在 |
+| `409` | 状态冲突，例如材料不足却生成 |
+| `500` | 服务端异常 |
+| `502` | 外部 AI 网关调用失败 |
+
+前端提示原则：
+
+- AI 调用失败：提示“AI 服务调用失败，请稍后重试”，不做本地伪解释。
+- 材料不足：提示“根据目前内容无法生成”，并列出建议补充内容和数量。
+- 解析质量不足：提示具体问题，并允许一键填入补充说明。
+
+## 7. 当前不包含的契约
+
+以下能力不是当前 API 已实现契约：
+
+- 独立的旧版“改写 / 补证据 / 降重复”草稿端点；当前统一走 `co-write` 与 `co-write/preview`。
+- 用户登录、注册、刷新令牌。
+- 多用户权限隔离。
+- 生产级异步队列回调。

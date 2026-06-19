@@ -152,8 +152,9 @@
 | 2026-06-18 | 审查复查依据化 | 审查详情抽屉新增复查依据清单和复查后的下一步建议，减少用户只看到结论、不知道怎么处理的问题 | `npm run build` 通过 |
 | 2026-06-18 | 重要缺陷收口 | 补齐可信链原文定位与证据强弱解释、共写局部接受、审查复查历史持久化与历史展示，并完成 Supabase 表迁移 | `mvn test` 通过；`npm run build` 通过；Supabase 验证通过 |
 | 2026-06-18 | v1.4 P0 三主线二轮打磨 | 可信链新增原始材料位置 / 页码线索；共写预览新增高亮差异和修改理由；预览阶段自动提示可能关联的待处理审查项 | `mvn test` 通过；`npm run build` 通过 |
-| 2026-06-18 | MVP 100% 收口 | 导出页新增交付确认；新增前端 `npm run test` smoke check；新增后端导出 / job controller 测试；交付清单改为已验证状态 | `mvn clean test` 40 个测试通过；`npm run test` 通过 |
+| 2026-06-18 | MVP 100% 收口 | 导出页新增交付确认；新增前端 `npm run test` smoke check；新增后端导出 / job controller 测试；交付清单改为已验证状态 | 当时后端回归测试通过；`npm run test` 通过 |
 | 2026-06-18 | v1.5 AI 解析质量清单 | 后端新增实时派生 `parseQuality`，覆盖低置信、分类不确定、文献信息缺失、老师要求缺失、研究结论 / 证据缺失、解析失败；前端解析页新增质量徽标、问题清单、一键填入补充说明和关键材料继续拦截规则 | `mvn clean test` 47 个测试通过；`npm run test` 通过 |
+| 2026-06-20 | 交付文档口径收口 | 删除过期的当前进度旧档，重写 README、文档索引、交付清单、Demo 指南、接口字段定义和 OpenAPI 风格契约，并同步 PRD 当前接口清单 | Markdown 本地链接检查通过，无缺失链接；旧进度、旧绝对路径、旧测试数和旧接口口径已清理 |
 
 ### 5.1 材料可信链
 
@@ -378,34 +379,34 @@ MVP 完成度：100%
 后端：
 
 ```bash
-cd /Users/harry/Documents/AIPM/backend
+cd backend
 mvn spring-boot:run
 ```
 
 前端：
 
 ```bash
-cd /Users/harry/Documents/AIPM/frontend
+cd frontend
 npm run dev
 ```
 
 后端测试：
 
 ```bash
-cd /Users/harry/Documents/AIPM/backend
+cd backend
 mvn test
 ```
 
 前端构建：
 
 ```bash
-cd /Users/harry/Documents/AIPM/frontend
+cd frontend
 npm run build
 ```
 
 ## 13. 最终判断
 
-当前产品已经完成了 `本科课程论文 AI 强辅助平台` 的核心 MVP，并完成 v1.4 的关键深化。
+当前产品已经完成了 `本科课程论文 AI 强辅助平台` 的核心 MVP，并完成 v1.5 的解析质量清单优化与 v1.4 三条主线深化。
 
 它具备：
 

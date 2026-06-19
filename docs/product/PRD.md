@@ -694,18 +694,34 @@ AI 评审不是终审。
 
 ### 19.4 生成与共写
 - `POST /workspaces/{id}/generate-draft`
+- `GET /workspaces/{id}/drafts`
+- `GET /drafts/{id}`
+- `PATCH /drafts/{id}`
+- `POST /drafts/{id}/restore`
 - `POST /workspaces/{id}/co-write`
-- `POST /drafts/{id}/rewrite`
-- `POST /drafts/{id}/add-evidence`
-- `POST /drafts/{id}/reduce-repetition`
+- `POST /workspaces/{id}/co-write/preview`
+- `POST /co-write-previews/{id}/apply`
+- `POST /co-write-previews/{id}/discard`
 
 ### 19.5 审查与申诉
 - `GET /drafts/{id}/review-items`
+- `PATCH /review-items/{id}/status`
 - `POST /review-items/{id}/appeal`
+- `POST /review-items/{id}/recheck`
 - `GET /appeals/{id}`
 
-### 19.6 导出
+### 19.6 材料可信链与知识库
+- `GET /drafts/{id}/evidence-bindings`
+- `POST /drafts/{id}/evidence-bindings/rebuild`
+- `PATCH /evidence-bindings/{id}/status`
+- `POST /workspaces/{id}/knowledge-base/build`
+- `GET /workspaces/{id}/knowledge-base/chunks`
+- `POST /workspaces/{id}/knowledge-base/search`
+
+### 19.7 导出与任务
 - `POST /drafts/{id}/export`
+- `GET /exports/{jobId}/download`
+- `GET /jobs/{id}`
 
 ---
 
