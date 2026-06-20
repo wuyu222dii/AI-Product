@@ -100,6 +100,7 @@ psql "postgresql://${SUPABASE_DB_USER}:${SUPABASE_DB_PASSWORD}@${SUPABASE_DB_HOS
 | `The connection attempt failed`（直连 `db.*.supabase.co`） | 改用 Session pooler Host |
 | 启动报找不到 `SUPABASE_DB_*` | 在 `backend` 目录启动，并确认存在 `backend/.env` |
 | `psql: command not found` | 安装 `libpq` 并把其 `bin` 加入 `PATH`（见第四节） |
+| `max clients reached in session mode` / `EMAXCONNSESSION` | Session pooler 总连接数有限（常见 15）。先结束多余的 `mvn spring-boot:run` / Java 进程；`application.yml` 已把 Hikari 池设为 5，勿再调大 |
 
 ## 七、检查清单
 

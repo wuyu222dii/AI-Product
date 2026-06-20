@@ -76,6 +76,42 @@ class KnowledgeBaseApplicationServiceTest {
         assertThat(response.chunkCount()).isGreaterThan(0);
         assertThat(savedChunks).isNotEmpty();
         assertThat(savedChunks.get(0).getChunkText()).contains("资料整理效率");
+        assertThat(savedChunks.get(0).getChunkText())
+                .contains("张三、李四，2024，AI 学习工具研究，教育技术")
+                .doesNotContain("\"title\"");
+        assertThat(savedChunks)
+                .allSatisfy(chunk -> assertThat(chunk.getChunkText())
+                        .doesNotContain("|")
+                        .doesNotContain("####")
+                        .doesNotContain("======"));
+    }
+
+    @Test
+    void buildShouldPreferSemanticChunksAndFilterUnreadableRawNoise() {
+        UUID workspaceId = UUID.randomUUID();
+        MaterialEntity material = parsedMaterial(workspaceId);
+        material.setPlainTextContent("||||||||||||\n======\n##_#_#_#_#\n~~~~~~~");
+        material.setSupplementText(null);
+        AiSemanticParseResultEntity parseResult = parseResult(material.getId());
+        List<KnowledgeChunkEntity> savedChunks = new ArrayList<>();
+
+        when(workspaceRepository.existsById(workspaceId)).thenReturn(true);
+        when(materialRepository.findByWorkspaceIdOrderByCreatedAtDesc(workspaceId)).thenReturn(List.of(material));
+        when(aiSemanticParseResultRepository.findByMaterialIdIn(List.of(material.getId()))).thenReturn(List.of(parseResult));
+        when(knowledgeChunkRepository.saveAll(any())).thenAnswer(invocation -> {
+            savedChunks.addAll(invocation.getArgument(0));
+            return invocation.getArgument(0);
+        });
+
+        KnowledgeBuildResponse response = knowledgeBaseApplicationService.build(workspaceId);
+
+        assertThat(response.status()).isEqualTo("LEXICAL_READY");
+        assertThat(savedChunks).hasSize(1);
+        assertThat(savedChunks.get(0).getChunkText())
+                .contains("解析摘要")
+                .contains("AI 工具对大学生学习方式有双重影响")
+                .doesNotContain("||||")
+                .doesNotContain("~~~~");
     }
 
     @Test
@@ -121,7 +157,14 @@ class KnowledgeBaseApplicationServiceTest {
         material.setKeyMaterial(false);
         material.setParseStage(ParseStage.AI_PARSED);
         material.setConfidenceScore(BigDecimal.valueOf(0.90));
-        material.setPlainTextContent("研究笔记显示，人工智能工具提升了资料整理效率，但也可能削弱独立思考深度。");
+        material.setPlainTextContent("""
+                #### OCR page
+                | 指标 | 数值 |
+                |---|---|
+                | 效率提升 | 30% |
+                ======
+                研究笔记显示，人工智能工具提升了资料整理效率，但也可能削弱独立思考深度。
+                """);
         material.setCreatedAt(OffsetDateTime.now());
         return material;
     }
@@ -136,7 +179,9 @@ class KnowledgeBaseApplicationServiceTest {
         parseResult.setDetectedClaimsJson("[\"AI 工具提升资料整理效率\"]");
         parseResult.setDetectedEvidenceJson("[\"研究笔记显示资料整理效率提高\"]");
         parseResult.setDetectedRequirementsJson("[]");
-        parseResult.setBibliographicMetadataJson("{}");
+        parseResult.setBibliographicMetadataJson("""
+                {"authors":["张三","李四"],"year":"2024","title":"AI 学习工具研究","sourceTitle":"教育技术","publisher":null,"url":"https://example.com","doi":null,"publicationType":"JOURNAL_ARTICLE"}
+                """);
         parseResult.setConfidenceScore(BigDecimal.valueOf(0.90));
         parseResult.setCreatedAt(OffsetDateTime.now());
         return parseResult;

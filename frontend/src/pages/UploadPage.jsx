@@ -19,6 +19,13 @@ export function UploadPage({ workspace, onContinue, onError }) {
     if (externalLink.trim()) count += 1;
     return count;
   }, [pendingFiles, plainText, externalLink]);
+  const keyMaterialCount = useMemo(() => {
+    let count = pendingFiles.filter((item) => item.isKeyMaterial).length;
+    if (plainText.trim() && textIsKey) count += 1;
+    if (externalLink.trim() && linkIsKey) count += 1;
+    return count;
+  }, [pendingFiles, plainText, textIsKey, externalLink, linkIsKey]);
+  const hasAnyInput = totalPendingCount > 0;
 
   function handleFilesSelected(event) {
     const selected = Array.from(event.target.files ?? []);
@@ -179,142 +186,212 @@ export function UploadPage({ workspace, onContinue, onError }) {
   }
 
   return (
-    <section className="page-card">
-      <h3 className="page-section-title">上传待解析的写作输入</h3>
-      <p className="section-help">
-        这里上传的是会进入解析、充足性检查和正文生成的写作输入。你可以一次补文本、链接和多个文件。
-      </p>
-
-      <form className="grid-2" onSubmit={handleSubmit}>
-        <div className="card-block">
-          <div
-            className={`upload-dropzone ${draggingFiles ? "is-dragging" : ""}`}
-            role="button"
-            tabIndex={0}
-            onClick={() => fileInputRef.current?.click()}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                fileInputRef.current?.click();
-              }
-            }}
-            onDragEnter={handleDragEnter}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-          >
-            <strong>拖入或选择文件</strong>
-            <p className="muted">
-              {draggingFiles
-                ? "松开鼠标即可加入文件队列。"
-                : "支持 PDF / DOCX / TXT / Markdown / 图片 / XLSX / CSV / PPTX / ZIP。用于真实解析、OCR 与后续初稿生成。"}
-            </p>
-            <button type="button" className="secondary-btn">
-              选择文件
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              hidden
-              onChange={handleFilesSelected}
-              accept=".pdf,.docx,.txt,.md,.png,.jpg,.jpeg,.webp,.heic,.gif,.xlsx,.csv,.ppt,.pptx,.zip"
-            />
-          </div>
-          <div className="upload-queue">
-            <div className="queue-header">
-              <h4>文件队列</h4>
-              <span className="muted">共 {pendingFiles.length} 个文件</span>
-            </div>
-            {pendingFiles.length === 0 ? (
-              <div className="mini-card">
-                <p className="muted">当前还没有选择文件。可以先上传文本，也可以补充一个或多个文件。</p>
-              </div>
-            ) : (
-              <div className="list-stack">
-                {pendingFiles.map((item) => (
-                  <div className="mini-card" key={item.localId}>
-                    <strong>{item.file.name}</strong>
-                    <p className="muted">
-                      类型：{item.file.name.split(".").pop()?.toLowerCase() || "unknown"} ｜ 大小：{formatBytes(item.file.size)}
-                    </p>
-                    <div className="button-row" style={{ marginTop: 10 }}>
-                      <label className="inline-check">
-                        <input
-                          type="checkbox"
-                          checked={item.isKeyMaterial}
-                          onChange={(event) =>
-                            updateFile(item.localId, (current) => ({
-                              ...current,
-                              isKeyMaterial: event.target.checked
-                            }))
-                          }
-                        />
-                        关键材料
-                      </label>
-                      <span className={`status-pill ${item.status}`}>{renderFileStatus(item.status)}</span>
-                      <button type="button" className="ghost-btn" onClick={() => removeFile(item.localId)}>
-                        移除
-                      </button>
-                    </div>
-                    {item.error && <p className="review-fix">上传失败：{item.error}</p>}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+    <section className="page-card upload-workbench">
+      <div className="upload-page-head">
+        <div>
+          <span className="eyebrow">Step 1 · 写作输入</span>
+          <h3 className="page-section-title">把会影响论文生成的资料放进来</h3>
+          <p className="section-help">
+            可以只上传一种，也可以混合上传。提交后系统会自动做文字抽取、OCR、AI 语义解析和解析质量检查。
+          </p>
         </div>
+        <div className="upload-next-card">
+          <strong>下一步</strong>
+          <span>进入解析质量检查</span>
+        </div>
+      </div>
 
-        <div className="card-block">
-          <div className="field">
-            <label>粘贴研究内容 / 草稿 / 作业要求</label>
-            <textarea
-              value={plainText}
-              onChange={(event) => setPlainText(event.target.value)}
-              placeholder="粘贴作业要求、研究笔记、已有草稿等"
-            />
-          </div>
-          <div className="field">
-            <label className="inline-check">
+      <div className="upload-step-strip" aria-label="上传流程">
+        <div className="upload-step active">
+          <span>1</span>
+          <strong>选择输入</strong>
+          <small>文件 / 文本 / 链接任选</small>
+        </div>
+        <div className="upload-step">
+          <span>2</span>
+          <strong>标记关键依据</strong>
+          <small>影响后续生成权重</small>
+        </div>
+        <div className="upload-step">
+          <span>3</span>
+          <strong>提交解析</strong>
+          <small>自动进入质量清单</small>
+        </div>
+      </div>
+
+      <form className="upload-flow" onSubmit={handleSubmit}>
+        <div className="upload-source-grid">
+          <article className="upload-source-card upload-source-card--file">
+            <div className="upload-source-head">
+              <span className="source-index">A</span>
+              <div>
+                <h4>上传文件</h4>
+                <p>适合论文 PDF、Word、图片、表格、PPT、压缩包等。</p>
+              </div>
+            </div>
+            <div
+              className={`upload-dropzone ${draggingFiles ? "is-dragging" : ""}`}
+              role="button"
+              tabIndex={0}
+              onClick={() => fileInputRef.current?.click()}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  fileInputRef.current?.click();
+                }
+              }}
+              onDragEnter={handleDragEnter}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
+              <strong>{draggingFiles ? "松开即可加入文件队列" : "拖入文件，或点击选择"}</strong>
+              <p className="muted">支持 PDF / DOCX / TXT / Markdown / 图片 / XLSX / CSV / PPTX / ZIP。</p>
+              <button type="button" className="secondary-btn">
+                选择文件
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                hidden
+                onChange={handleFilesSelected}
+                accept=".pdf,.docx,.txt,.md,.png,.jpg,.jpeg,.webp,.heic,.gif,.xlsx,.csv,.ppt,.pptx,.zip"
+              />
+            </div>
+          </article>
+
+          <article className="upload-source-card">
+            <div className="upload-source-head">
+              <span className="source-index">B</span>
+              <div>
+                <h4>粘贴文字</h4>
+                <p>适合作业要求、研究笔记、已有草稿或老师口头要求整理。</p>
+              </div>
+            </div>
+            <div className="field">
+              <label>文本内容</label>
+              <textarea
+                value={plainText}
+                onChange={(event) => setPlainText(event.target.value)}
+                placeholder="例如：课程论文要求、研究结论、问卷结果、已有草稿片段..."
+              />
+            </div>
+            <label className="key-toggle">
               <input
                 type="checkbox"
                 checked={textIsKey}
                 onChange={(event) => setTextIsKey(event.target.checked)}
               />
-              将这段文本作为关键材料
+              <span>
+                <strong>作为生成正文的重要依据</strong>
+                <small>建议作业要求、研究成果、核心数据勾选</small>
+              </span>
             </label>
-          </div>
-          <div className="field">
-            <label>外部链接 / DOI</label>
-            <input
-              value={externalLink}
-              onChange={(event) => setExternalLink(event.target.value)}
-              placeholder="https://..."
-            />
-          </div>
-          <div className="field">
-            <label className="inline-check">
+          </article>
+
+          <article className="upload-source-card">
+            <div className="upload-source-head">
+              <span className="source-index">C</span>
+              <div>
+                <h4>添加链接 / DOI</h4>
+                <p>适合在线文章、数据来源、参考文献链接或 DOI。</p>
+              </div>
+            </div>
+            <div className="field">
+              <label>外部链接 / DOI</label>
+              <input
+                value={externalLink}
+                onChange={(event) => setExternalLink(event.target.value)}
+                placeholder="https://... 或 DOI"
+              />
+            </div>
+            <label className="key-toggle">
               <input
                 type="checkbox"
                 checked={linkIsKey}
                 onChange={(event) => setLinkIsKey(event.target.checked)}
               />
-              将链接作为关键材料
+              <span>
+                <strong>作为关键来源处理</strong>
+                <small>如果链接会支撑正文观点，建议勾选</small>
+              </span>
             </label>
-          </div>
-          {uploadSummary && (
-            <div className="mini-card">
-              <strong>上传结果</strong>
-              <p className="muted">
-                成功 {uploadSummary.successCount} 项 ｜ 失败 {uploadSummary.failedCount} 项
-              </p>
+          </article>
+        </div>
+
+        <div className="upload-bottom-grid">
+          <section className="upload-queue-panel">
+            <div className="queue-header">
+              <div>
+                <h4>文件队列</h4>
+                <p className="muted">文件会逐个上传，失败项会保留在这里方便重试。</p>
+              </div>
+              <span className="meta-chip">共 {pendingFiles.length} 个文件</span>
             </div>
-          )}
-          <div className="button-row">
-            <button className="primary-btn" disabled={submitting}>
+            {pendingFiles.length === 0 ? (
+              <div className="empty-upload-card">
+                <strong>还没有文件</strong>
+                <p className="muted">如果暂时只有文字，也可以直接提交文本进入解析。</p>
+              </div>
+            ) : (
+              <div className="list-stack">
+                {pendingFiles.map((item) => (
+                  <div className="upload-file-row" key={item.localId}>
+                    <div className="upload-file-main">
+                      <strong>{item.file.name}</strong>
+                      <p className="muted">
+                        {item.file.name.split(".").pop()?.toLowerCase() || "unknown"} · {formatBytes(item.file.size)}
+                      </p>
+                    </div>
+                    <label className="inline-check">
+                      <input
+                        type="checkbox"
+                        checked={item.isKeyMaterial}
+                        onChange={(event) =>
+                          updateFile(item.localId, (current) => ({
+                            ...current,
+                            isKeyMaterial: event.target.checked
+                          }))
+                        }
+                      />
+                      重要依据
+                    </label>
+                    <span className={`status-pill ${item.status}`}>{renderFileStatus(item.status)}</span>
+                    <button type="button" className="ghost-btn" onClick={() => removeFile(item.localId)}>
+                      移除
+                    </button>
+                    {item.error && <p className="review-fix">上传失败：{item.error}</p>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <aside className="upload-submit-panel">
+            <span className="eyebrow">准备提交</span>
+            <h4>{hasAnyInput ? `已准备 ${totalPendingCount} 项输入` : "先添加至少一项输入"}</h4>
+            <div className="upload-submit-stats">
+              <span>文件 {pendingFiles.length}</span>
+              <span>文本 {plainText.trim() ? 1 : 0}</span>
+              <span>链接 {externalLink.trim() ? 1 : 0}</span>
+              <span>重要依据 {keyMaterialCount}</span>
+            </div>
+            <p className="muted">
+              提交后不会直接生成正文，会先进入“解析质量清单”，让你确认 AI 是否理解正确。
+            </p>
+            {uploadSummary && (
+              <div className="mini-card">
+                <strong>上传结果</strong>
+                <p className="muted">
+                  成功 {uploadSummary.successCount} 项 ｜ 失败 {uploadSummary.failedCount} 项
+                </p>
+              </div>
+            )}
+            <button className="primary-btn" disabled={submitting || !hasAnyInput}>
               {submitting ? "上传中..." : "提交并进入解析"}
             </button>
-          </div>
+          </aside>
         </div>
       </form>
     </section>

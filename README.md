@@ -58,6 +58,15 @@ cd backend
 mvn spring-boot:run
 ```
 
+后端热部署开发模式：
+
+```bash
+cd backend
+./scripts/dev-hot.sh
+```
+
+说明：该模式会启动 Spring Boot DevTools，并监听 `src/main/java` 与 `src/main/resources`。保存 Java / 配置文件后脚本会自动编译，随后 DevTools 自动重启后端应用。
+
 前端：
 
 ```bash
@@ -65,6 +74,8 @@ cd frontend
 npm install
 npm run dev
 ```
+
+说明：前端基于 Vite，`npm run dev` 已支持保存后自动热更新。
 
 默认地址：
 
@@ -89,7 +100,7 @@ npm run test
 
 当前验证口径：
 
-- 后端 `49` 个 service / controller 测试通过。
+- 后端 `51` 个 service / controller 测试通过。
 - 前端 `npm run test` 通过，包含生产构建与 MVP smoke check。
 
 ## 当前边界

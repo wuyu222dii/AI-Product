@@ -4,6 +4,7 @@ import com.aipm.cowriting.application.dto.knowledge.KnowledgeBuildResponse;
 import com.aipm.cowriting.application.dto.knowledge.KnowledgeChunkResponse;
 import com.aipm.cowriting.application.dto.knowledge.KnowledgeSearchRequest;
 import com.aipm.cowriting.application.dto.knowledge.KnowledgeSearchResponse;
+import com.aipm.cowriting.application.dto.reference.BibliographicMetadata;
 import com.aipm.cowriting.common.api.PagedResponse;
 import com.aipm.cowriting.common.api.Pagination;
 import com.aipm.cowriting.common.error.BusinessException;
@@ -18,6 +19,7 @@ import com.aipm.cowriting.domain.repository.MaterialRepository;
 import com.aipm.cowriting.domain.repository.WorkspaceRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.text.Normalizer;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -40,7 +42,10 @@ public class KnowledgeBaseApplicationService {
     private static final int CHUNK_SIZE = 900;
     private static final int CHUNK_OVERLAP = 120;
     private static final int MAX_CHUNKS_PER_WORKSPACE = 80;
+    private static final int MIN_READABLE_CHUNK_LENGTH = 24;
     private static final Pattern KEYWORD_PATTERN = Pattern.compile("[\\p{IsHan}]{2,12}|[A-Za-z][A-Za-z0-9_-]{2,}|\\d+(?:\\.\\d+)?%?");
+    private static final Pattern MARKDOWN_TABLE_SEPARATOR = Pattern.compile("(?m)^\\s*\\|?\\s*[-:]{3,}(?:\\s*\\|\\s*[-:]{3,})+\\s*\\|?\\s*$");
+    private static final Pattern SUSPICIOUS_SYMBOL_RUN = Pattern.compile("[#*_~=|]{8,}");
     private static final Set<String> STOPWORDS = Set.of(
             "the", "and", "with", "this", "that", "from", "paper", "study", "research",
             "材料", "摘要", "主题", "关系", "观点", "证据", "要求", "原文", "内容", "可以", "进行"
@@ -159,8 +164,8 @@ public class KnowledgeBaseApplicationService {
         Set<String> seen = new LinkedHashSet<>();
         int chunkIndex = 1;
         for (String sourceText : sourceTexts) {
-            String normalized = normalizeWhitespace(sourceText);
-            if (normalized.isBlank() || !seen.add(normalized)) {
+            String normalized = cleanChunkText(sourceText);
+            if (!isReadableKnowledgeChunk(normalized) || !seen.add(normalized)) {
                 continue;
             }
             KnowledgeChunkEntity chunk = new KnowledgeChunkEntity();
@@ -191,10 +196,8 @@ public class KnowledgeBaseApplicationService {
         appendList(lines, "观点", readStringList(parseResult.getDetectedClaimsJson()));
         appendList(lines, "证据", readStringList(parseResult.getDetectedEvidenceJson()));
         appendList(lines, "老师要求", readStringList(parseResult.getDetectedRequirementsJson()));
-        if (parseResult.getBibliographicMetadataJson() != null && !parseResult.getBibliographicMetadataJson().isBlank()) {
-            lines.add("文献信息：" + parseResult.getBibliographicMetadataJson());
-        }
-        return shorten(String.join("\n", lines), CHUNK_SIZE);
+        appendIfPresent(lines, "文献信息", formatBibliographicMetadata(readBibliographicMetadata(parseResult)));
+        return shorten(cleanChunkText(String.join("\n", lines)), CHUNK_SIZE);
     }
 
     private Map<UUID, AiSemanticParseResultEntity> buildParseResultMap(List<MaterialEntity> materials) {
@@ -282,7 +285,7 @@ public class KnowledgeBaseApplicationService {
     }
 
     private List<String> splitIntoChunks(String text) {
-        String normalized = normalizeWhitespace(text);
+        String normalized = cleanChunkText(text);
         if (normalized.isBlank()) {
             return List.of();
         }
@@ -310,11 +313,12 @@ public class KnowledgeBaseApplicationService {
     }
 
     private List<String> extractKeywords(String text) {
-        if (text == null || text.isBlank()) {
+        String cleaned = cleanChunkText(text);
+        if (cleaned.isBlank()) {
             return List.of();
         }
         Set<String> keywords = new LinkedHashSet<>();
-        Matcher matcher = KEYWORD_PATTERN.matcher(text);
+        Matcher matcher = KEYWORD_PATTERN.matcher(cleaned);
         while (matcher.find()) {
             String token = matcher.group().trim().toLowerCase(Locale.ROOT);
             if (token.length() < 2 || STOPWORDS.contains(token)) {
@@ -336,14 +340,46 @@ public class KnowledgeBaseApplicationService {
             List<?> rawItems = objectMapper.readValue(json, List.class);
             List<String> items = new ArrayList<>();
             for (Object item : rawItems) {
-                if (item != null && !String.valueOf(item).isBlank()) {
-                    items.add(String.valueOf(item));
+                String itemText = item instanceof Map<?, ?> map ? flattenMap(map) : String.valueOf(item);
+                itemText = cleanChunkText(itemText);
+                if (!itemText.isBlank()) {
+                    items.add(itemText);
                 }
             }
             return items;
         } catch (JsonProcessingException e) {
             return List.of();
         }
+    }
+
+    private BibliographicMetadata readBibliographicMetadata(AiSemanticParseResultEntity parseResult) {
+        if (parseResult == null
+                || parseResult.getBibliographicMetadataJson() == null
+                || parseResult.getBibliographicMetadataJson().isBlank()) {
+            return BibliographicMetadata.empty();
+        }
+        try {
+            return objectMapper.readValue(parseResult.getBibliographicMetadataJson(), BibliographicMetadata.class);
+        } catch (JsonProcessingException e) {
+            return BibliographicMetadata.empty();
+        }
+    }
+
+    private String formatBibliographicMetadata(BibliographicMetadata metadata) {
+        if (metadata == null) {
+            return "";
+        }
+        List<String> parts = new ArrayList<>();
+        if (metadata.authors() != null && !metadata.authors().isEmpty()) {
+            parts.add(String.join("、", metadata.authors()));
+        }
+        appendPlain(parts, metadata.year());
+        appendPlain(parts, metadata.title());
+        appendPlain(parts, metadata.sourceTitle());
+        appendPlain(parts, metadata.publisher());
+        appendPlain(parts, metadata.doi() == null ? null : "DOI：" + metadata.doi());
+        appendPlain(parts, metadata.url());
+        return cleanChunkText(String.join("，", parts));
     }
 
     private String writeJson(Object value) {
@@ -398,6 +434,58 @@ public class KnowledgeBaseApplicationService {
                 .trim();
     }
 
+    private String cleanChunkText(String text) {
+        if (text == null) {
+            return "";
+        }
+        String normalized = Normalizer.normalize(text, Normalizer.Form.NFC)
+                .replace('\u00A0', ' ')
+                .replace('\uFFFD', ' ');
+        normalized = normalized.replaceAll("[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F]", " ");
+        normalized = normalized.replaceAll("!\\[[^]]*]\\([^)]*\\)", " ");
+        normalized = normalized.replaceAll("\\[([^]]+)]\\([^)]*\\)", "$1");
+        normalized = normalized.replaceAll("(?m)^\\s{0,8}#{1,6}\\s*", "");
+        normalized = normalized.replaceAll("(?m)^\\s{0,8}>\\s?", "");
+        normalized = normalized.replaceAll("(?m)^\\s{0,8}[-*+]\\s+", "");
+        normalized = normalized.replaceAll("`{1,3}", "");
+        normalized = normalized.replaceAll("\\*{1,3}([^*\\n]+)\\*{1,3}", "$1");
+        normalized = MARKDOWN_TABLE_SEPARATOR.matcher(normalized).replaceAll(" ");
+        normalized = normalized.replace('|', ' ');
+        normalized = normalized.replaceAll("[_*=~]{3,}", " ");
+        normalized = normalized.replaceAll("-{4,}", " ");
+        normalized = normalized.replaceAll("(?<=[\\p{IsHan}])[ \\t]+(?=[\\p{IsHan}])", "");
+        normalized = normalized.replaceAll("\\s+([，。；：、！？,.!?;:])", "$1");
+        normalized = normalized.replaceAll("([（(])\\s+", "$1");
+        normalized = normalized.replaceAll("\\s+([）)])", "$1");
+        return normalizeWhitespace(normalized);
+    }
+
+    private boolean isReadableKnowledgeChunk(String text) {
+        if (text == null || text.isBlank() || text.length() < MIN_READABLE_CHUNK_LENGTH) {
+            return false;
+        }
+        if (SUSPICIOUS_SYMBOL_RUN.matcher(text).find()) {
+            return false;
+        }
+        int meaningfulChars = 0;
+        int visibleChars = 0;
+        for (int i = 0; i < text.length(); i++) {
+            char value = text.charAt(i);
+            if (Character.isWhitespace(value)) {
+                continue;
+            }
+            visibleChars += 1;
+            if (Character.isLetterOrDigit(value) || Character.UnicodeScript.of(value) == Character.UnicodeScript.HAN) {
+                meaningfulChars += 1;
+            }
+        }
+        if (visibleChars == 0) {
+            return false;
+        }
+        double meaningfulRatio = (double) meaningfulChars / visibleChars;
+        return meaningfulRatio >= 0.45d;
+    }
+
     private String normalizeForSearch(String value) {
         return value == null ? "" : value.toLowerCase(Locale.ROOT).replaceAll("\\s+", "");
     }
@@ -414,17 +502,44 @@ public class KnowledgeBaseApplicationService {
     }
 
     private void appendIfPresent(List<String> lines, String label, String value) {
-        if (value != null && !value.isBlank()) {
-            lines.add(label + "：" + value.trim());
+        String cleaned = cleanChunkText(value);
+        if (!cleaned.isBlank()) {
+            lines.add(label + "：" + cleaned);
         }
     }
 
     private void appendList(List<String> lines, String label, List<String> values) {
         for (String value : values) {
-            if (value != null && !value.isBlank()) {
-                lines.add(label + "：" + value.trim());
+            String cleaned = cleanChunkText(value);
+            if (!cleaned.isBlank()) {
+                lines.add(label + "：" + cleaned);
             }
         }
+    }
+
+    private void appendPlain(List<String> parts, String value) {
+        String cleaned = cleanChunkText(value);
+        if (!cleaned.isBlank()) {
+            parts.add(cleaned);
+        }
+    }
+
+    private String flattenMap(Map<?, ?> map) {
+        List<String> values = new ArrayList<>();
+        for (Object value : map.values()) {
+            if (value == null) {
+                continue;
+            }
+            if (value instanceof List<?> list) {
+                list.stream()
+                        .filter(item -> item != null && !String.valueOf(item).isBlank())
+                        .map(String::valueOf)
+                        .forEach(values::add);
+            } else if (!String.valueOf(value).isBlank()) {
+                values.add(String.valueOf(value));
+            }
+        }
+        return String.join("，", values);
     }
 
     private boolean hasText(String value) {

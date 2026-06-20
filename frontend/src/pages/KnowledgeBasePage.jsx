@@ -197,7 +197,7 @@ function KnowledgeChunkCard({ item, showScore }) {
         </div>
         {showScore && <span className="score-pill">匹配度 {formatScore(item.score)}</span>}
       </div>
-      <p className="knowledge-excerpt">{item.sourceExcerpt || item.chunkText}</p>
+      <p className="knowledge-excerpt">{formatChunkPreview(item.sourceExcerpt || item.chunkText)}</p>
       {(item.keywords ?? []).length > 0 && (
         <div className="keyword-row">
           {item.keywords.slice(0, 8).map((keyword) => (
@@ -213,4 +213,11 @@ function formatScore(score) {
   const numeric = Number(score);
   if (Number.isNaN(numeric)) return "-";
   return `${Math.round(numeric * 100)}%`;
+}
+
+function formatChunkPreview(value) {
+  return String(value ?? "")
+    .replaceAll("解析摘要：", "摘要：")
+    .replaceAll("主题关系：", "关系：")
+    .replaceAll("材料文件：", "来源：");
 }

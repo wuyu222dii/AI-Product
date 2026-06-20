@@ -8,6 +8,14 @@ spring:
     username: ${SUPABASE_DB_USER}
     password: ${SUPABASE_DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      # Supabase Session pooler (port 5432) caps total clients at pool_size (often 15).
+      # Keep this low so restarts / multiple local instances do not exhaust the pool.
+      maximum-pool-size: 5
+      minimum-idle: 1
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
   jpa:
     open-in-view: false
     database-platform: org.hibernate.dialect.PostgreSQLDialect
@@ -16,6 +24,12 @@ spring:
     properties:
       hibernate:
         format_sql: true
+  devtools:
+    restart:
+      enabled: true
+      additional-exclude: uploaded-materials/**,logs/**,target/surefire-reports/**
+    livereload:
+      enabled: false
 
 server:
   port: 8080

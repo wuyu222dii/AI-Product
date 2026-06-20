@@ -60,6 +60,15 @@ cd backend
 mvn spring-boot:run
 ```
 
+后端热部署开发模式：
+
+```bash
+cd backend
+./scripts/dev-hot.sh
+```
+
+说明：普通启动适合稳定演示；热部署模式适合持续开发。保存 Java / 配置文件后，脚本会自动编译并触发 Spring Boot DevTools 重启。
+
 前端：
 
 ```bash
@@ -67,6 +76,8 @@ cd frontend
 npm install
 npm run dev
 ```
+
+说明：前端基于 Vite，开发模式下保存页面或样式文件会自动热更新。
 
 默认地址：
 

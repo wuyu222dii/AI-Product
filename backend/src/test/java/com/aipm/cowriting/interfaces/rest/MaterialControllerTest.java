@@ -1,5 +1,6 @@
 package com.aipm.cowriting.interfaces.rest;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
@@ -8,6 +9,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -19,8 +22,12 @@ import com.aipm.cowriting.application.dto.reference.BibliographicMetadata;
 import com.aipm.cowriting.application.service.LocalMaterialStorageService;
 import com.aipm.cowriting.application.service.MaterialApplicationService;
 import com.aipm.cowriting.common.web.GlobalExceptionHandler;
+import com.aipm.cowriting.domain.entity.MaterialEntity;
 import com.aipm.cowriting.domain.model.MaterialCategory;
 import com.aipm.cowriting.domain.model.ParseStage;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -31,9 +38,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
+import org.junit.jupiter.api.io.TempDir;
 
 @WebMvcTest(controllers = MaterialController.class)
 @Import(GlobalExceptionHandler.class)
@@ -47,6 +56,9 @@ class MaterialControllerTest {
 
     @MockBean
     private LocalMaterialStorageService localMaterialStorageService;
+
+    @TempDir
+    private Path tempDir;
 
     @Test
     void uploadShouldAcceptMultipartFile() throws Exception {
@@ -171,6 +183,29 @@ class MaterialControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.previewType").value("file"))
                 .andExpect(jsonPath("$.data.downloadUrl").value("/api/v1/materials/" + materialId + "/file"));
+    }
+
+    @Test
+    void fileShouldReturnUtf8CharsetForMarkdownText() throws Exception {
+        UUID materialId = UUID.randomUUID();
+        Path file = tempDir.resolve("paper.md");
+        Files.writeString(file, "# 课程论文\n中文内容：智能教室能源管理。", StandardCharsets.UTF_8);
+        MaterialEntity material = new MaterialEntity();
+        material.setId(materialId);
+        material.setFilename("论文共写平台测试.md");
+        material.setFileType("md");
+        material.setStoragePath(file.toString());
+
+        when(materialApplicationService.getMaterialForFile(materialId)).thenReturn(material);
+        when(localMaterialStorageService.resolve(file.toString())).thenReturn(file);
+
+        mockMvc.perform(get("/api/v1/materials/{id}/file", materialId))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.CONTENT_TYPE, containsString("text/markdown")))
+                .andExpect(header().string(HttpHeaders.CONTENT_TYPE, containsString("charset=UTF-8")))
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, containsString("filename*=")))
+                .andExpect(content().string(containsString("课程论文")))
+                .andExpect(content().string(containsString("智能教室能源管理")));
     }
 
     @Test

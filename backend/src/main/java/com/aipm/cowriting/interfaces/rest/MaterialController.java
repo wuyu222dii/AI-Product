@@ -14,16 +14,19 @@ import com.aipm.cowriting.common.error.BusinessException;
 import com.aipm.cowriting.common.error.ErrorCode;
 import com.aipm.cowriting.common.web.RequestMetaUtil;
 import com.aipm.cowriting.common.web.RestConstants;
+import com.aipm.cowriting.domain.entity.MaterialEntity;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.io.IOException;
-import java.nio.file.Files;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -117,13 +120,13 @@ public class MaterialController {
     public ResponseEntity<Resource> file(@PathVariable("id") UUID materialId) throws IOException {
         var material = materialApplicationService.getMaterialForFile(materialId);
         Resource resource = new FileSystemResource(localMaterialStorageService.resolve(material.getStoragePath()));
-        String contentType = Files.probeContentType(resource.getFile().toPath());
-        if (contentType == null) {
-            contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
-        }
+        MediaType contentType = contentTypeForMaterial(material, resource);
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + material.getFilename() + "\"")
-                .contentType(MediaType.parseMediaType(contentType))
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.inline()
+                        .filename(material.getFilename(), StandardCharsets.UTF_8)
+                        .build()
+                        .toString())
+                .contentType(contentType)
                 .body(resource);
     }
 
@@ -194,5 +197,29 @@ public class MaterialController {
             return "bin";
         }
         return originalFilename.substring(originalFilename.lastIndexOf('.') + 1).toLowerCase();
+    }
+
+    private MediaType contentTypeForMaterial(MaterialEntity material, Resource resource) throws IOException {
+        String fileType = material.getFileType() == null ? "" : material.getFileType().toLowerCase();
+        return switch (fileType) {
+            case "md", "markdown" -> new MediaType("text", "markdown", StandardCharsets.UTF_8);
+            case "txt", "text", "log" -> new MediaType("text", "plain", StandardCharsets.UTF_8);
+            case "csv" -> new MediaType("text", "csv", StandardCharsets.UTF_8);
+            case "json" -> new MediaType("application", "json", StandardCharsets.UTF_8);
+            case "html", "htm" -> new MediaType("text", "html", StandardCharsets.UTF_8);
+            default -> contentTypeFromProbe(resource);
+        };
+    }
+
+    private MediaType contentTypeFromProbe(Resource resource) throws IOException {
+        String detected = Files.probeContentType(resource.getFile().toPath());
+        if (detected == null || detected.isBlank()) {
+            return MediaType.APPLICATION_OCTET_STREAM;
+        }
+        MediaType mediaType = MediaType.parseMediaType(detected);
+        if ("text".equalsIgnoreCase(mediaType.getType()) && mediaType.getCharset() == null) {
+            return new MediaType(mediaType, StandardCharsets.UTF_8);
+        }
+        return mediaType;
     }
 }
