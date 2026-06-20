@@ -6,6 +6,7 @@ import { describeSelection, hasValidRange } from "./workspaceUtils.js";
 export function WorkspaceAiPanel({ coWriting, latestFeedback, selectedRange, onCoWrite }) {
   const [customInstruction, setCustomInstruction] = useState("");
   const [rewriteDepth, setRewriteDepth] = useState("balanced");
+  const [showAdvancedActions, setShowAdvancedActions] = useState(false);
   const [guardrails, setGuardrails] = useState({
     keepCitations: true,
     keepData: true,
@@ -33,8 +34,15 @@ export function WorkspaceAiPanel({ coWriting, latestFeedback, selectedRange, onC
     handleCustomSubmit();
   }
 
+  const primaryActions = CO_WRITE_ACTIONS.filter((action) =>
+    ["rewrite_selection", "add_evidence", "improve_expression"].includes(action.key)
+  );
+  const advancedActions = CO_WRITE_ACTIONS.filter((action) =>
+    !["rewrite_selection", "add_evidence", "improve_expression"].includes(action.key)
+  );
+
   return (
-    <WorkspacePanel title="AI 共写" compact>
+    <WorkspacePanel title="AI 共写" subtitle="先生成预览，确认后再应用为新版本" compact>
       <div className="panel-body">
         <div className={`ai-scope-card ${hasValidRange(selectedRange) ? "ai-scope-card--selected" : ""}`}>
           <span className="ai-feedback-label">作用范围</span>
@@ -91,8 +99,42 @@ export function WorkspaceAiPanel({ coWriting, latestFeedback, selectedRange, onC
           </div>
         </div>
 
-        <div className="action-grid">
-          {CO_WRITE_ACTIONS.map((action) => (
+        <div className="ai-custom-block ai-custom-block--primary">
+          <label className="field-label" htmlFor="ai-custom-instruction">
+            你想怎么改？
+          </label>
+          <textarea
+            id="ai-custom-instruction"
+            value={customInstruction}
+            onChange={(event) => setCustomInstruction(event.target.value)}
+            onKeyDown={handleCustomKeyDown}
+            placeholder="例如：让这一段更像本科生自然表达，同时保留引用和数据。"
+            rows={4}
+          />
+          <button
+            type="button"
+            className="primary-btn ai-submit-btn"
+            disabled={coWriting || !customInstruction.trim()}
+            onClick={handleCustomSubmit}
+          >
+            {coWriting ? "生成预览中…" : "生成修改预览"}
+          </button>
+          <p className="muted ai-enter-hint">按 Enter 可直接生成预览；Shift + Enter 换行。</p>
+        </div>
+
+        <div className="quick-action-block">
+          <div className="quick-action-head">
+            <span className="ai-feedback-label">常用动作</span>
+            <button
+              type="button"
+              className="ghost-btn ghost-btn--compact"
+              onClick={() => setShowAdvancedActions((current) => !current)}
+            >
+              {showAdvancedActions ? "收起更多" : "更多动作"}
+            </button>
+          </div>
+          <div className="action-grid action-grid--compact">
+            {primaryActions.map((action) => (
             <button
               key={action.key}
               type="button"
@@ -102,31 +144,25 @@ export function WorkspaceAiPanel({ coWriting, latestFeedback, selectedRange, onC
             >
               <strong>{action.label}</strong>
               <span>{action.hint}</span>
-              <small>生成预览后再确认应用</small>
             </button>
           ))}
-        </div>
-
-        <div className="ai-custom-block">
-          <label className="field-label" htmlFor="ai-custom-instruction">
-            自定义指令
-          </label>
-          <textarea
-            id="ai-custom-instruction"
-            value={customInstruction}
-            onChange={(event) => setCustomInstruction(event.target.value)}
-            onKeyDown={handleCustomKeyDown}
-            placeholder="描述你想让 AI 如何修改当前正文…"
-            rows={3}
-          />
-          <button
-            type="button"
-            className="primary-btn ai-submit-btn"
-            disabled={coWriting || !customInstruction.trim()}
-            onClick={handleCustomSubmit}
-          >
-            {coWriting ? "生成预览中…" : "生成预览"}
-          </button>
+          </div>
+          {showAdvancedActions && (
+            <div className="action-grid action-grid--advanced">
+              {advancedActions.map((action) => (
+                <button
+                  key={action.key}
+                  type="button"
+                  className="action-card"
+                  disabled={coWriting}
+                  onClick={() => onCoWrite(action.key, action.instruction, null, currentControls())}
+                >
+                  <strong>{action.label}</strong>
+                  <span>{action.hint}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className={`ai-feedback ${coWriting ? "ai-feedback--loading" : ""}`}>

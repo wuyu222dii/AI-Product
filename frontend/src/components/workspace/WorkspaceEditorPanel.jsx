@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { WorkspacePanel } from "./WorkspacePanel.jsx";
 import {
   buildCitationSuggestions,
@@ -41,6 +41,7 @@ export function WorkspaceEditorPanel({
   onKnowledgeSearch,
   onSaveDraftText
 }) {
+  const [activeAssistTab, setActiveAssistTab] = useState("trust");
   const textareaRef = useRef(null);
   const title = draft?.titleSuggestion || workspace?.title || "正文编辑";
   const traceEntries = sourceTraceEntries(draft?.sourceTraceMap);
@@ -111,27 +112,49 @@ export function WorkspaceEditorPanel({
         </div>
 
         <div className="source-trace-section">
-            <div className="source-trace-header">
-              <div>
-                <strong>材料可信链</strong>
-                <span className="muted">查看正文段落、证据片段、原始材料与正文引用之间的链路</span>
-                {evidenceJobLabel && <span className="muted">{evidenceJobLabel}</span>}
+          <div className="workspace-assist-tabs" role="tablist" aria-label="正文辅助工具">
+            {[
+              { key: "trust", label: "可信链", count: hasEvidenceMap ? evidenceParagraphs.length : traceEntries.length },
+              { key: "knowledge", label: "知识库", count: knowledgeResults.length },
+              { key: "citation", label: "引用", count: citationSuggestions.length }
+            ].map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                role="tab"
+                aria-selected={activeAssistTab === tab.key}
+                className={`workspace-assist-tab ${activeAssistTab === tab.key ? "active" : ""}`}
+                onClick={() => setActiveAssistTab(tab.key)}
+              >
+                {tab.label}
+                <span>{tab.count}</span>
+              </button>
+            ))}
+          </div>
+
+          {activeAssistTab === "trust" && (
+            <div className="assist-tab-panel">
+              <div className="source-trace-header">
+                <div className="source-trace-title">
+                  <strong>材料可信链</strong>
+                  <span className="muted">查看正文段落、证据片段、原始材料与正文引用之间的链路</span>
+                  {evidenceJobLabel && <span className="muted">{evidenceJobLabel}</span>}
+                </div>
+                <div className="trust-summary">
+                  <span>
+                    {hasEvidenceMap
+                      ? `${evidenceParagraphs.filter((item) => item.bindingStatus !== "MISSING").length}/${evidenceParagraphs.length} 段有来源`
+                      : `${trustSummary.linkedParagraphs}/${trustSummary.totalParagraphs || 0} 段有来源`}
+                  </span>
+                  {hasEvidenceMap && <span>{evidenceCoverage.healthLabel}</span>}
+                  {hasEvidenceMap && <span>确认率 {evidenceCoverage.confirmedRatio}%</span>}
+                  {citationConsistency && <span>引用状态 {formatCitationStatus(citationConsistency.status)}</span>}
+                  <span>{evidenceSummary?.usedMaterials?.length ?? trustSummary.uniqueMaterialCount} 份已使用材料</span>
+                  <button type="button" className="ghost-btn" onClick={onRebuildEvidenceBindings} disabled={evidenceLoading}>
+                    {evidenceLoading ? "重建中..." : "重建可信链"}
+                  </button>
+                </div>
               </div>
-              <div className="trust-summary">
-                <span>
-                  {hasEvidenceMap
-                    ? `${evidenceParagraphs.filter((item) => item.bindingStatus !== "MISSING").length}/${evidenceParagraphs.length} 段有来源`
-                    : `${trustSummary.linkedParagraphs}/${trustSummary.totalParagraphs || 0} 段有来源`}
-                </span>
-                {hasEvidenceMap && <span>{evidenceCoverage.healthLabel}</span>}
-                {hasEvidenceMap && <span>确认率 {evidenceCoverage.confirmedRatio}%</span>}
-                {citationConsistency && <span>引用状态 {formatCitationStatus(citationConsistency.status)}</span>}
-                <span>{evidenceSummary?.usedMaterials?.length ?? trustSummary.uniqueMaterialCount} 份已使用材料</span>
-                <button type="button" className="ghost-btn" onClick={onRebuildEvidenceBindings} disabled={evidenceLoading}>
-                  {evidenceLoading ? "重建中..." : "重建可信链"}
-                </button>
-              </div>
-            </div>
           {hasEvidenceMap ? (
             <div className="evidence-map-list">
               {evidenceParagraphs.map((paragraph) => (
@@ -210,8 +233,11 @@ export function WorkspaceEditorPanel({
               </div>
             </div>
           )}
+            </div>
+          )}
 
-          <div className="knowledge-evidence-section">
+          {activeAssistTab === "knowledge" && (
+          <div className="knowledge-evidence-section assist-tab-panel">
             <div className="source-trace-header">
               <div>
                 <strong>知识库证据检索</strong>
@@ -265,8 +291,10 @@ export function WorkspaceEditorPanel({
               </div>
             )}
           </div>
+          )}
 
-          <div className="citation-suggestion-section">
+          {activeAssistTab === "citation" && (
+          <div className="citation-suggestion-section assist-tab-panel">
             <div className="source-trace-header">
               <div>
                 <strong>引用建议</strong>
@@ -317,6 +345,7 @@ export function WorkspaceEditorPanel({
               </div>
             )}
           </div>
+          )}
         </div>
       </div>
     </WorkspacePanel>

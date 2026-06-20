@@ -32,26 +32,31 @@ export function ReviewItem({ review, appealResult, onOpenReview, onOpenAppeal, o
         <button type="button" className="primary-btn" onClick={() => onFixReview(review)} disabled={isClosed}>
           按建议修改
         </button>
-        <button type="button" className="ghost-btn" onClick={() => onOpenAppeal(review)} disabled={isClosed}>
-          发起申诉
-        </button>
-        {isClosed ? (
-          <button type="button" className="ghost-btn" onClick={() => onUpdateReviewStatus(review, "OPEN", "重新打开继续处理")}>
-            重新打开
-          </button>
-        ) : (
-          <>
-            <button type="button" className="ghost-btn" onClick={() => onUpdateReviewStatus(review, "RESOLVED", "用户确认已处理")}>
-              标记已解决
-            </button>
-            {review.canBypass && (
-              <button type="button" className="ghost-btn" onClick={() => onUpdateReviewStatus(review, "IGNORED", "用户确认暂不处理")}>
-                忽略此项
-              </button>
-            )}
-          </>
-        )}
       </div>
+      <details className="review-more-actions">
+        <summary>更多处理</summary>
+        <div className="review-actions review-actions--secondary">
+          <button type="button" className="ghost-btn" onClick={() => onOpenAppeal(review)} disabled={isClosed}>
+            发起申诉
+          </button>
+          {isClosed ? (
+            <button type="button" className="ghost-btn" onClick={() => onUpdateReviewStatus(review, "OPEN", "重新打开继续处理")}>
+              重新打开
+            </button>
+          ) : (
+            <>
+              <button type="button" className="ghost-btn" onClick={() => onUpdateReviewStatus(review, "RESOLVED", "用户确认已处理")}>
+                标记已解决
+              </button>
+              {review.canBypass && (
+                <button type="button" className="ghost-btn" onClick={() => onUpdateReviewStatus(review, "IGNORED", "用户确认暂不处理")}>
+                  忽略此项
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      </details>
     </article>
   );
 }
