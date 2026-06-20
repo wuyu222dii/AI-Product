@@ -3,6 +3,7 @@ package com.aipm.cowriting.application.service;
 import com.aipm.cowriting.application.dto.ai.SemanticParseResult;
 import com.aipm.cowriting.application.dto.job.JobResponse;
 import com.aipm.cowriting.application.dto.material.MaterialResponse;
+import com.aipm.cowriting.application.dto.material.MaterialPreviewResponse;
 import com.aipm.cowriting.application.dto.material.UpdateBibliographicMetadataRequest;
 import com.aipm.cowriting.application.dto.material.UpdateMaterialCategoryRequest;
 import com.aipm.cowriting.application.dto.reference.BibliographicMetadata;
@@ -71,6 +72,40 @@ public class MaterialApplicationService {
         return materials.stream()
                 .map(material -> toResponse(material, parseResults.get(material.getId())))
                 .toList();
+    }
+
+    public MaterialPreviewResponse preview(UUID materialId) {
+        MaterialEntity material = getMaterial(materialId);
+        String downloadUrl = material.getStoragePath() == null || material.getStoragePath().isBlank()
+                ? null
+                : "/api/v1/materials/" + material.getId() + "/file";
+        String previewType = downloadUrl != null
+                ? "file"
+                : material.getExternalLink() != null && !material.getExternalLink().isBlank()
+                ? "external_link"
+                : "text";
+        String text = firstNonBlank(material.getPlainTextContent(), material.getSupplementText(), material.getExternalLink());
+        return new MaterialPreviewResponse(
+                material.getId(),
+                material.getFilename(),
+                material.getFileType(),
+                previewType,
+                snippet(text, 2400),
+                downloadUrl,
+                material.getExternalLink()
+        );
+    }
+
+    public MaterialEntity getMaterialForFile(UUID materialId) {
+        MaterialEntity material = getMaterial(materialId);
+        if (material.getStoragePath() == null || material.getStoragePath().isBlank()) {
+            throw new BusinessException(
+                    ErrorCode.MATERIAL_NOT_FOUND,
+                    HttpStatus.NOT_FOUND.value(),
+                    "该材料没有可预览的原始文件"
+            );
+        }
+        return material;
     }
 
     public MaterialResponse updateCategory(UUID materialId, UpdateMaterialCategoryRequest request) {
@@ -318,6 +353,26 @@ public class MaterialApplicationService {
 
     private String defaultJson(String value, String fallback) {
         return value == null || value.isBlank() ? fallback : value;
+    }
+
+    private String firstNonBlank(String... values) {
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value.trim();
+            }
+        }
+        return "";
+    }
+
+    private String snippet(String text, int maxLength) {
+        if (text == null) {
+            return "";
+        }
+        String trimmed = text.trim();
+        if (trimmed.length() <= maxLength) {
+            return trimmed;
+        }
+        return trimmed.substring(0, Math.max(0, maxLength - 1)) + "…";
     }
 
     private List<String> readStringList(String json) {

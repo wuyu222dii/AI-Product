@@ -1,4 +1,4 @@
-# AI 论文共写工作台 v1.5 接口字段级定义
+# AI 论文共写工作台 v1.6 接口字段级定义
 
 本文档描述当前代码已经实现的 REST API 字段。历史设计中未落地的独立接口不再写入本文件，避免前后端按旧契约开发。
 
@@ -165,6 +165,26 @@
 ```
 
 响应字段同 `preprocess`。
+
+### `GET /materials/{id}/preview`
+
+返回原始材料预览入口。文本 / 链接材料返回可直接展示的信息，文件材料返回后端下载地址。
+
+响应字段：
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `id` | UUID | 材料 ID |
+| `filename` | string | 材料文件名或标题 |
+| `fileType` | string/null | 文件类型 |
+| `previewType` | string | `file / external_link / text` |
+| `previewText` | string/null | 文本预览，最多截取一段 |
+| `downloadUrl` | string/null | 文件下载 / 预览地址 |
+| `externalLink` | string/null | 外部链接 |
+
+### `GET /materials/{id}/file`
+
+返回材料原始文件流。当前用于工作台证据卡的“打开原始材料”入口。
 
 ### `POST /materials/{id}/supplement`
 
@@ -363,9 +383,24 @@
 | `candidateDraftText` | string | 候选正文 |
 | `candidateSourceTraceMap` | object | 候选来源追溯 |
 | `diffSummary` | object | 差异摘要、修改理由、关联审查项等 |
-| `status` | string | `PENDING / APPLIED / DISCARDED` 等 |
+| `status` | string | `READY / APPLIED / DISCARDED` 等 |
 | `createdAt` | datetime | 创建时间 |
 | `appliedAt` | datetime/null | 应用时间 |
+
+`diffSummary` v1.6 关键字段：
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `paragraphDiffs` | object[] | 按段落拆分的候选修改，支持逐段接受 |
+| `paragraphDiffs[].paragraphId` | string | 段落编号，如 `p1` |
+| `paragraphDiffs[].changeType` | string | `added / removed / modified` |
+| `paragraphDiffs[].originalText` | string | 原段落 |
+| `paragraphDiffs[].candidateText` | string | AI 候选段落 |
+| `paragraphDiffs[].intentLabel` | string | 修改意图，如表达优化、补充论证、补充引用 |
+| `paragraphDiffs[].selectedByDefault` | boolean | 前端是否默认选中 |
+| `conflictWarnings` | object[] | 引用、数据、来源相关冲突提示 |
+| `recheckSuggestion` | object | 应用后建议复查的审查项统计与关联审查项 |
+| `recheckSuggestion.relatedReviewItems` | object[] | 可能被本次共写影响的审查项 ID 和关联原因 |
 
 ### `POST /co-write-previews/{id}/apply`
 
@@ -392,6 +427,33 @@
 | `missingParagraphIds` | string[] | 缺来源段落 |
 | `usedMaterials` | EvidenceMaterialResponse[] | 已使用材料 |
 | `unusedMaterials` | EvidenceMaterialResponse[] | 未使用材料 |
+| `coverage` | EvidenceCoverageReport | v1.6 材料覆盖率评分 |
+| `citationConsistency` | CitationConsistencyReport | v1.6 引用一致性检查 |
+
+`EvidenceCoverageReport`：
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `totalParagraphs` | number | 段落总数 |
+| `confirmedParagraphs` | number | 已确认或强绑定段落数 |
+| `weakParagraphs` | number | 弱绑定段落数 |
+| `missingParagraphs` | number | 缺来源段落数 |
+| `coverageRatio` | number | 有来源段落占比，0-100 |
+| `confirmedRatio` | number | 强确认段落占比，0-100 |
+| `healthLabel` | string | 覆盖率状态说明 |
+| `recommendations` | string[] | 后续补证据建议 |
+
+`CitationConsistencyReport`：
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `status` | string | `READY / NEEDS_REVIEW / NEEDS_FIX` |
+| `detectedCitationCount` | number | 正文检测到的引用标记数 |
+| `linkedMaterialCount` | number | 可信链已使用材料数 |
+| `missingCitationParagraphCount` | number | 缺引用或缺来源段落数 |
+| `orphanCitationCount` | number | 正文引用多于可信链材料的估算数量 |
+| `incompleteReferenceCount` | number | 文献信息不完整数量 |
+| `issues` | string[] | 引用一致性问题 |
 
 `EvidenceParagraphResponse`：
 
@@ -418,6 +480,8 @@
 | `bindingStatus` | string | `CONFIRMED / WEAK / MISSING / USER_CONFIRMED` |
 | `citationText` | string | 可插入引用文本 |
 | `bibliographicMetadata` | object | 文献信息 |
+
+`sourceLocation.previewUrl` 会返回 `/api/v1/materials/{id}/preview`，前端可据此打开原始材料预览入口。
 
 ### `POST /drafts/{id}/evidence-bindings/rebuild`
 

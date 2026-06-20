@@ -2,6 +2,7 @@ package com.aipm.cowriting.interfaces.rest;
 
 import com.aipm.cowriting.application.dto.job.JobResponse;
 import com.aipm.cowriting.application.dto.material.MaterialResponse;
+import com.aipm.cowriting.application.dto.material.MaterialPreviewResponse;
 import com.aipm.cowriting.application.dto.material.UpdateBibliographicMetadataRequest;
 import com.aipm.cowriting.application.dto.material.UpdateMaterialCategoryRequest;
 import com.aipm.cowriting.application.service.LocalMaterialStorageService;
@@ -19,6 +20,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.io.IOException;
+import java.nio.file.Files;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -94,6 +100,31 @@ public class MaterialController {
         List<MaterialResponse> items = materialApplicationService.list(workspaceId);
         PagedResponse<MaterialResponse> response = new PagedResponse<>(items, new Pagination(1, items.size(), items.size()));
         return ResponseEntity.ok(ApiResponse.success(response, RequestMetaUtil.meta(httpServletRequest)));
+    }
+
+    @GetMapping(RestConstants.API_V1 + "/materials/{id}/preview")
+    public ResponseEntity<ApiResponse<MaterialPreviewResponse>> preview(
+            @PathVariable("id") UUID materialId,
+            HttpServletRequest httpServletRequest
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                materialApplicationService.preview(materialId),
+                RequestMetaUtil.meta(httpServletRequest)
+        ));
+    }
+
+    @GetMapping(RestConstants.API_V1 + "/materials/{id}/file")
+    public ResponseEntity<Resource> file(@PathVariable("id") UUID materialId) throws IOException {
+        var material = materialApplicationService.getMaterialForFile(materialId);
+        Resource resource = new FileSystemResource(localMaterialStorageService.resolve(material.getStoragePath()));
+        String contentType = Files.probeContentType(resource.getFile().toPath());
+        if (contentType == null) {
+            contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
+        }
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + material.getFilename() + "\"")
+                .contentType(MediaType.parseMediaType(contentType))
+                .body(resource);
     }
 
     @PostMapping(RestConstants.API_V1 + "/materials/{id}/preprocess")

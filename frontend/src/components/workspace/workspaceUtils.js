@@ -451,6 +451,44 @@ export function buildDetailedDiffRows(candidateText = "", currentText = "") {
   return rows.slice(0, 12);
 }
 
+export function buildParagraphDiffRows(preview) {
+  const rows = preview?.diffSummary?.paragraphDiffs;
+  if (Array.isArray(rows) && rows.length > 0) {
+    return rows.map((row, index) => ({
+      id: row.paragraphId || `paragraph-${index}`,
+      paragraphId: row.paragraphId || `p${index + 1}`,
+      type: row.changeType || "modified",
+      label: paragraphChangeLabel(row.changeType),
+      intentLabel: row.intentLabel || "表达优化",
+      originalText: row.originalText || "",
+      candidateText: row.candidateText || "",
+      selected: row.selectedByDefault !== false
+    }));
+  }
+  return [];
+}
+
+export function applySelectedParagraphRows(currentText = "", rows = []) {
+  const selected = rows.filter((row) => row.selected && row.candidateText);
+  if (selected.length === 0) return currentText;
+  const paragraphs = splitParagraphsPreserve(currentText);
+  selected.forEach((row) => {
+    const index = Number(String(row.paragraphId || "").replace(/\D/g, "")) - 1;
+    if (Number.isFinite(index) && index >= 0 && index < paragraphs.length) {
+      paragraphs[index] = row.candidateText;
+    } else {
+      paragraphs.push(row.candidateText);
+    }
+  });
+  return paragraphs.map((item) => item.trim()).filter(Boolean).join("\n\n");
+}
+
+function paragraphChangeLabel(type) {
+  if (type === "added") return "新增段落";
+  if (type === "removed") return "删除段落";
+  return "修改段落";
+}
+
 export function buildHighlightedDiffBlocks(text = "", compareText = "", mode = "candidate") {
   const units = splitTextUnits(text);
   const compareSet = new Set(splitTextUnits(compareText));
@@ -689,6 +727,13 @@ function splitTextUnits(text) {
     .split(/(?<=[。！？!?；;])|\n+/)
     .map((unit) => unit.trim())
     .filter((unit) => unit.length > 8);
+}
+
+function splitParagraphsPreserve(text) {
+  return String(text || "")
+    .split(/\n\s*\n/)
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 export function inferVersionTags(current, previous) {

@@ -58,6 +58,9 @@ export const api = {
       body: JSON.stringify(body)
     });
   },
+  previewMaterial(materialId) {
+    return request(`/materials/${materialId}/preview`);
+  },
   preprocessMaterial(materialId) {
     return request(`/materials/${materialId}/preprocess`, {
       method: "POST"

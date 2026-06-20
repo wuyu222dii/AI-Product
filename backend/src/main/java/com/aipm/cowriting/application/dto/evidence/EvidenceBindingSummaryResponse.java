@@ -8,6 +8,8 @@ public record EvidenceBindingSummaryResponse(
         List<EvidenceParagraphResponse> paragraphs,
         List<String> missingParagraphIds,
         List<EvidenceMaterialResponse> usedMaterials,
-        List<EvidenceMaterialResponse> unusedMaterials
+        List<EvidenceMaterialResponse> unusedMaterials,
+        EvidenceCoverageReport coverage,
+        CitationConsistencyReport citationConsistency
 ) {
 }

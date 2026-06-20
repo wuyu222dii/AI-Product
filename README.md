@@ -1,6 +1,6 @@
 # AI 论文共写工作台 v1 研发交付目录
 
-当前项目基线：`MVP 阶段 100% 收口 + v1.5 AI 解析质量清单`。
+当前项目基线：`MVP 阶段 100% 收口 + v1.6 可信交付增强版`。
 
 本项目面向本科课程论文场景，核心定位是 `AI 强辅助共写平台`：用户上传作业要求、研究成果、参考资料、图片或文件后，系统完成 AI 语义解析、材料充足性检查、初稿生成、可信链追溯、可控共写、审查复查与导出。
 
@@ -13,6 +13,7 @@
 - `v1.3` 项目知识库 MVP：把已完成 AI 解析的材料转成项目级证据片段，支持关键词检索和片段预览。
 - `v1.4` 可信链与共写闭环：支持段落级证据绑定、异步可信链重建、共写预览后应用、审查项手动复查。
 - `v1.5` AI 解析质量清单：材料响应新增 `parseQuality`，前端解析页展示质量徽标、问题清单、一键填入补充说明和关键材料阻断规则。
+- `v1.6` 可信交付增强：支持原始材料预览入口、可信链覆盖率评分、引用一致性检查、共写逐段接受、冲突提示、共写与审查项关联落库，以及导出前交付风险检查。
 
 ## 主流程
 
@@ -46,6 +47,7 @@
 | [engineering_tasks.md](docs/engineering/engineering_tasks.md) | 前后端任务拆分 |
 | [postgresql_schema.sql](postgresql_schema.sql) | PostgreSQL 基础建表草案 |
 | [backend/db/v1_4_trust_chain.sql](backend/db/v1_4_trust_chain.sql) | v1.4 可信链迁移 |
+| [backend/db/v1_6_trust_delivery_enhancement.sql](backend/db/v1_6_trust_delivery_enhancement.sql) | v1.6 共写审查关联迁移 |
 
 ## 启动方式
 
@@ -87,7 +89,7 @@ npm run test
 
 当前验证口径：
 
-- 后端 `47` 个 service / controller 测试通过。
+- 后端 `49` 个 service / controller 测试通过。
 - 前端 `npm run test` 通过，包含生产构建与 MVP smoke check。
 
 ## 当前边界
@@ -98,11 +100,11 @@ npm run test
 - 生产级对象存储。
 - 生产级异步队列、失败重试和监控告警。
 - Playwright / Cypress 端到端测试。
-- PDF 页码级原文跳转、覆盖率评分和更细粒度证据可视化。
+- PDF 页码级精准跳转、更细粒度证据可视化和正式论文级导出排版。
 
 ## 推荐阅读顺序
 
 - 产品 / 设计：`PRD -> frontend_page_spec -> DEMO_GUIDE`
 - 前端：`frontend_page_spec -> api_field_spec -> openapi_contract_draft`
-- 后端：`backend_service_spec -> api_field_spec -> postgresql_schema.sql -> v1_4_trust_chain.sql`
+- 后端：`backend_service_spec -> api_field_spec -> postgresql_schema.sql -> v1_4_trust_chain.sql -> v1_6_trust_delivery_enhancement.sql`
 - 交付 / 演示：`FINAL_DELIVERY_CHECKLIST -> DEMO_GUIDE -> PRODUCT_COMPLETION_STATUS`

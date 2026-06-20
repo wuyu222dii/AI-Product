@@ -56,7 +56,12 @@ class CoWriteControllerTest {
                         "标题",
                         "候选正文",
                         Map.of(),
-                        Map.of("changed", true),
+                        Map.of(
+                                "changed", true,
+                                "paragraphDiffs", List.of(Map.of("paragraphId", "p1", "intentLabel", "表达优化")),
+                                "conflictWarnings", List.of(Map.of("code", "NO_MAJOR_CONFLICT", "level", "LOW")),
+                                "recheckSuggestion", Map.of("shouldRecheck", true, "reviewItemCount", 1)
+                        ),
                         "READY",
                         OffsetDateTime.now(),
                         null
@@ -77,7 +82,9 @@ class CoWriteControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.status").value("READY"))
-                .andExpect(jsonPath("$.data.candidateDraftText").value("候选正文"));
+                .andExpect(jsonPath("$.data.candidateDraftText").value("候选正文"))
+                .andExpect(jsonPath("$.data.diffSummary.paragraphDiffs[0].intentLabel").value("表达优化"))
+                .andExpect(jsonPath("$.data.diffSummary.recheckSuggestion.shouldRecheck").value(true));
     }
 
     @Test

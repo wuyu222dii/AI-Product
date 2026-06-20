@@ -45,6 +45,7 @@ export function WorkspacePage({ workspace, draft, onDraftChange, onGoExport, onE
     handleSaveDraft,
     handleRebuildEvidenceBindings,
     handleUpdateEvidenceBindingStatus,
+    handlePreviewMaterial,
     handleLocateEvidence,
     handleInsertCitation,
     handleKnowledgeSearch,
@@ -52,6 +53,7 @@ export function WorkspacePage({ workspace, draft, onDraftChange, onGoExport, onE
     handleRestoreVersion,
     handleApplyCoWritePreview,
     handleApplySelectedCoWriteDiffRows,
+    handleApplySelectedCoWriteParagraphs,
     handleDiscardCoWritePreview,
     handleSubmitAppeal,
     handleSelectionChange,
@@ -101,6 +103,7 @@ export function WorkspacePage({ workspace, draft, onDraftChange, onGoExport, onE
           evidenceRebuildJob={evidenceRebuildJob}
           onRebuildEvidenceBindings={handleRebuildEvidenceBindings}
           onUpdateEvidenceBindingStatus={handleUpdateEvidenceBindingStatus}
+          onPreviewMaterial={handlePreviewMaterial}
           onLocateEvidence={handleLocateEvidence}
           knowledgeResults={knowledgeResults}
           knowledgeSearching={knowledgeSearching}
@@ -142,6 +145,7 @@ export function WorkspacePage({ workspace, draft, onDraftChange, onGoExport, onE
         discarding={discardingPreview}
         onApply={handleApplyCoWritePreview}
         onApplySelectedRows={handleApplySelectedCoWriteDiffRows}
+        onApplySelectedParagraphs={handleApplySelectedCoWriteParagraphs}
         onDiscard={handleDiscardCoWritePreview}
       />
 

@@ -32,6 +32,7 @@
 | [engineering_tasks.md](engineering/engineering_tasks.md) | 前后端任务拆分 |
 | [postgresql_schema.sql](../postgresql_schema.sql) | PostgreSQL 基础建表草案 |
 | [v1_4_trust_chain.sql](../backend/db/v1_4_trust_chain.sql) | v1.4 可信链迁移 |
+| [v1_6_trust_delivery_enhancement.sql](../backend/db/v1_6_trust_delivery_enhancement.sql) | v1.6 共写审查关联迁移 |
 
 ## 使用与部署
 

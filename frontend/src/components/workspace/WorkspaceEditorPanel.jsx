@@ -34,6 +34,7 @@ export function WorkspaceEditorPanel({
   evidenceRebuildJob,
   onRebuildEvidenceBindings,
   onUpdateEvidenceBindingStatus,
+  onPreviewMaterial,
   onLocateEvidence,
   knowledgeResults = [],
   knowledgeSearching = false,
@@ -54,7 +55,8 @@ export function WorkspaceEditorPanel({
   const evidenceParagraphs = evidenceSummary?.paragraphs ?? [];
   const hasEvidenceMap = evidenceParagraphs.length > 0;
   const evidenceJobLabel = evidenceRebuildJob ? formatEvidenceJob(evidenceRebuildJob) : null;
-  const evidenceCoverage = summarizeEvidenceCoverage(evidenceSummary);
+  const evidenceCoverage = evidenceSummary?.coverage ?? summarizeEvidenceCoverage(evidenceSummary);
+  const citationConsistency = evidenceSummary?.citationConsistency;
 
   useEffect(() => {
     const textarea = textareaRef.current;
@@ -123,6 +125,7 @@ export function WorkspaceEditorPanel({
                 </span>
                 {hasEvidenceMap && <span>{evidenceCoverage.healthLabel}</span>}
                 {hasEvidenceMap && <span>确认率 {evidenceCoverage.confirmedRatio}%</span>}
+                {citationConsistency && <span>引用状态 {formatCitationStatus(citationConsistency.status)}</span>}
                 <span>{evidenceSummary?.usedMaterials?.length ?? trustSummary.uniqueMaterialCount} 份已使用材料</span>
                 <button type="button" className="ghost-btn" onClick={onRebuildEvidenceBindings} disabled={evidenceLoading}>
                   {evidenceLoading ? "重建中..." : "重建可信链"}
@@ -139,6 +142,7 @@ export function WorkspaceEditorPanel({
                   referenceMaterials={referenceMaterials}
                   onInsertCitation={onInsertCitation}
                   onUpdateEvidenceBindingStatus={onUpdateEvidenceBindingStatus}
+                  onPreviewMaterial={onPreviewMaterial}
                   onLocateEvidence={onLocateEvidence}
                 />
               ))}
@@ -176,12 +180,33 @@ export function WorkspaceEditorPanel({
               <div>
                 <strong>可信链覆盖率 {evidenceCoverage.coverageRatio}%</strong>
                 <p className="muted">
-                  {evidenceCoverage.confirmed} 段已确认，{evidenceCoverage.weak} 段弱绑定，{evidenceCoverage.missing} 段缺少明确来源。
+                  {evidenceCoverage.confirmedParagraphs ?? evidenceCoverage.confirmed} 段已确认，
+                  {evidenceCoverage.weakParagraphs ?? evidenceCoverage.weak} 段弱绑定，
+                  {evidenceCoverage.missingParagraphs ?? evidenceCoverage.missing} 段缺少明确来源。
                 </p>
+                {(evidenceCoverage.recommendations ?? []).map((item) => (
+                  <p className="muted" key={item}>{item}</p>
+                ))}
               </div>
               <div className="evidence-material-summary">
                 <span className="toolbar-pill">缺来源段落 {evidenceSummary?.missingParagraphIds?.length ?? 0}</span>
                 <span className="toolbar-pill">未使用材料 {evidenceSummary?.unusedMaterials?.length ?? 0}</span>
+              </div>
+            </div>
+          )}
+
+          {citationConsistency && (
+            <div className={`evidence-coverage-panel evidence-coverage-panel--${String(citationConsistency.status || "READY").toLowerCase()}`}>
+              <div>
+                <strong>引用一致性：{formatCitationStatus(citationConsistency.status)}</strong>
+                <p className="muted">
+                  正文检测到 {citationConsistency.detectedCitationCount} 个引用标记，
+                  可信链使用 {citationConsistency.linkedMaterialCount} 份材料，
+                  {citationConsistency.incompleteReferenceCount} 份文献信息待补全。
+                </p>
+                {(citationConsistency.issues ?? []).map((issue) => (
+                  <p className="muted" key={issue}>{issue}</p>
+                ))}
               </div>
             </div>
           )}
@@ -304,6 +329,7 @@ function EvidenceParagraphCard({
   referenceMaterials,
   onInsertCitation,
   onUpdateEvidenceBindingStatus,
+  onPreviewMaterial,
   onLocateEvidence
 }) {
   const statusLabel = {
@@ -373,6 +399,9 @@ function EvidenceParagraphCard({
                 <div className="review-actions">
                   <button type="button" className="ghost-btn" onClick={() => onLocateEvidence?.(binding)}>
                     定位正文
+                  </button>
+                  <button type="button" className="ghost-btn" onClick={() => onPreviewMaterial?.(binding)}>
+                    打开原始材料
                   </button>
                   {citationText && (
                     <button type="button" className="citation-chip" onClick={() => onInsertCitation(citationText)}>
@@ -450,6 +479,13 @@ function formatEvidenceJob(job) {
   }
   const progress = typeof job.progress === "number" ? `${job.progress}%` : "进行中";
   return `重建任务 ${progress}`;
+}
+
+function formatCitationStatus(status) {
+  if (status === "READY") return "一致";
+  if (status === "NEEDS_FIX") return "需修正";
+  if (status === "NEEDS_REVIEW") return "建议确认";
+  return status || "未检查";
 }
 
 function CitationEvidenceCard({ material, citationStyle, referenceIndex, onInsertCitation }) {

@@ -13,6 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.aipm.cowriting.application.dto.job.JobResponse;
 import com.aipm.cowriting.application.dto.material.MaterialResponse;
+import com.aipm.cowriting.application.dto.material.MaterialPreviewResponse;
 import com.aipm.cowriting.application.dto.material.ParseQualityReport;
 import com.aipm.cowriting.application.dto.reference.BibliographicMetadata;
 import com.aipm.cowriting.application.service.LocalMaterialStorageService;
@@ -149,6 +150,27 @@ class MaterialControllerTest {
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.status").value("success"));
+    }
+
+    @Test
+    void previewShouldReturnMaterialPreview() throws Exception {
+        UUID materialId = UUID.randomUUID();
+        when(materialApplicationService.preview(materialId))
+                .thenReturn(new MaterialPreviewResponse(
+                        materialId,
+                        "paper.pdf",
+                        "pdf",
+                        "file",
+                        "材料预览文本",
+                        "/api/v1/materials/" + materialId + "/file",
+                        null
+                ));
+
+        mockMvc.perform(get("/api/v1/materials/{id}/preview", materialId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.previewType").value("file"))
+                .andExpect(jsonPath("$.data.downloadUrl").value("/api/v1/materials/" + materialId + "/file"));
     }
 
     @Test

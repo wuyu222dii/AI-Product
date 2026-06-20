@@ -409,7 +409,7 @@ DraftGeneratingPage
 ## P7 共写工作台主页面
 
 ### 页面目标
-作为核心工作区，承载正文编辑、AI 共写、推荐任务、版本切换。
+作为核心工作区，承载正文编辑、材料可信链、AI 共写预览、审查复查、版本切换和导出入口。
 
 ### 页面字段清单
 
@@ -432,11 +432,20 @@ DraftGeneratingPage
 - 内联来源提示
 - 段落定位
 - 文本选区信息
+- 可信链覆盖率
+- 引用一致性状态
+- 段落级证据卡
+- 原始材料预览入口
+- 引用插入按钮
 
 #### 右侧 AI 共写面板字段
 - 快捷操作按钮
 - 自定义指令输入框
 - 最近一次共写结果说明
+- 共写预览抽屉
+- 冲突提示
+- 逐段接受列表
+- 应用后复查建议
 
 #### 底部版本记录字段
 - 版本号
@@ -448,6 +457,11 @@ DraftGeneratingPage
 - 直接编辑正文
 - 选中一段发起改写
 - 调用 AI 补证据 / 调结构 / 压重复 / 改表达
+- 查看可信链覆盖率与引用一致性
+- 打开证据对应的原始材料预览
+- 生成共写预览
+- 按段落接受 AI 修改
+- 应用共写预览后复查相关审查项
 - 切换版本
 - 查看差异
 - 导出
@@ -474,7 +488,15 @@ CoWritingWorkspacePage
 │   │   ├── TitleSuggestionBar
 │   │   ├── RichTextEditor
 │   │   ├── InlineCitationHint
-│   │   └── SelectionToolbar
+│   │   ├── SelectionToolbar
+│   │   └── EvidenceTrustMap
+│   │       ├── EvidenceCoverageCard
+│   │       ├── CitationConsistencyCard
+│   │       └── EvidenceParagraphCard
+│   │           ├── SourceExcerpt
+│   │           ├── SourceLocation
+│   │           ├── MaterialPreviewButton
+│   │           └── InsertCitationButton
 │   └── RightSidebar
 │       ├── AIActionPanel
 │       │   ├── RewriteButton
@@ -485,6 +507,12 @@ CoWritingWorkspacePage
 │       │   ├── PromptTextarea
 │       │   └── SubmitPromptButton
 │       └── AILatestResultCard
+├── CoWritePreviewDrawer
+│   ├── DiffSummary
+│   ├── ConflictWarningList
+│   ├── ParagraphAcceptList
+│   ├── RelatedReviewHint
+│   └── ApplyActions
 └── VersionHistoryPanel
     ├── VersionList
     │   └── VersionItem
@@ -591,7 +619,7 @@ AppealPage
 ## P10 导出页
 
 ### 页面目标
-让用户导出最终稿及其变体版本。
+让用户导出最终稿，并在导出前确认参考文献、可信链、引用一致性和正文表达风险。
 
 ### 页面字段清单
 
@@ -604,11 +632,16 @@ AppealPage
 - 当前导出任务状态
 - 下载链接
 - 错误信息
+- 参考文献数量与元数据风险
+- 可信链覆盖率风险
+- 引用一致性风险
+- 正文表达风险
 
 #### 用户操作
 - 发起导出
 - 重新导出
 - 下载文件
+- 查看交付确认清单
 
 ### 组件树
 
@@ -622,6 +655,11 @@ ExportPage
 │   ├── IncludeCommentsSwitch
 │   ├── VersionSelect
 │   └── SubmitExportButton
+├── ExportReadinessPanel
+│   ├── ReferenceRiskItem
+│   ├── EvidenceCoverageRiskItem
+│   ├── CitationConsistencyRiskItem
+│   └── WritingStyleRiskItem
 └── ExportStatusPanel
     ├── ExportStatusBadge
     ├── DownloadLink

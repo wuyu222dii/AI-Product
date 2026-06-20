@@ -18,6 +18,7 @@ export function ExportPage({ workspace, draft, onBack, onError }) {
   const [editingMaterialId, setEditingMaterialId] = useState("");
   const [metadataDraft, setMetadataDraft] = useState(null);
   const [metadataSaving, setMetadataSaving] = useState(false);
+  const [evidenceSummary, setEvidenceSummary] = useState(null);
 
   useEffect(() => {
     if (!workspace?.id) return;
@@ -37,6 +38,14 @@ export function ExportPage({ workspace, draft, onBack, onError }) {
       } catch {
         // Requirement snapshot is optional for export preview; default to APA.
       }
+      try {
+        if (draft?.id) {
+          const evidence = await api.getEvidenceBindings(draft.id);
+          if (!cancelled) setEvidenceSummary(evidence);
+        }
+      } catch {
+        // 导出页不因可信链加载失败阻断用户，保留基础交付确认。
+      }
     }
     loadPageData();
     return () => {
@@ -45,7 +54,10 @@ export function ExportPage({ workspace, draft, onBack, onError }) {
   }, [workspace?.id, onError]);
 
   const referenceMaterials = useMemo(() => collectReferenceMaterials(draft, materials), [draft, materials]);
-  const exportReadiness = useMemo(() => buildExportReadiness(referenceMaterials), [referenceMaterials]);
+  const exportReadiness = useMemo(
+    () => buildExportReadiness(referenceMaterials, evidenceSummary, draft?.draftText),
+    [referenceMaterials, evidenceSummary, draft?.draftText]
+  );
 
   function startEditMetadata(material) {
     const metadata = material.bibliographicMetadata || {};
@@ -237,12 +249,15 @@ export function ExportPage({ workspace, draft, onBack, onError }) {
   );
 }
 
-function buildExportReadiness(referenceMaterials) {
+function buildExportReadiness(referenceMaterials, evidenceSummary, draftText = "") {
   const totalReferences = referenceMaterials.length;
   const incompleteReferences = referenceMaterials.filter((material) => {
     const metadata = material.bibliographicMetadata || {};
     return !metadata.title || !metadata.year || !Array.isArray(metadata.authors) || metadata.authors.length === 0;
   }).length;
+  const coverage = evidenceSummary?.coverage;
+  const citationConsistency = evidenceSummary?.citationConsistency;
+  const writingRisks = buildWritingRiskItems(draftText);
   const items = [
     {
       key: "references",
@@ -261,6 +276,23 @@ function buildExportReadiness(referenceMaterials) {
         : `${incompleteReferences} 条参考文献信息不完整，建议导出前补齐。`
     },
     {
+      key: "evidence_coverage",
+      title: "可信链覆盖率",
+      level: !coverage || coverage.coverageRatio >= 70 ? "ready" : "warn",
+      detail: coverage
+        ? `当前可信链覆盖率 ${coverage.coverageRatio}%，确认率 ${coverage.confirmedRatio}%，缺来源段落 ${coverage.missingParagraphs} 个。`
+        : "暂未读取到可信链结果，建议回工作台重建可信链后再导出。"
+    },
+    {
+      key: "citation_consistency",
+      title: "引用一致性",
+      level: !citationConsistency || citationConsistency.status === "READY" ? "ready" : "warn",
+      detail: citationConsistency
+        ? citationConsistency.issues?.[0] || "正文引用、材料来源和文献信息未发现明显冲突。"
+        : "暂未读取到引用一致性检查结果。"
+    },
+    ...writingRisks,
+    {
       key: "format",
       title: "导出格式",
       level: "ready",
@@ -273,6 +305,32 @@ function buildExportReadiness(referenceMaterials) {
     label: hasWarning ? "建议确认" : "可以交付",
     items
   };
+}
+
+function buildWritingRiskItems(text = "") {
+  const source = String(text || "");
+  const vaguePhrases = ["具有重要意义", "显著提升", "有效促进", "综上所述", "不可忽视", "进一步研究"];
+  const vagueCount = vaguePhrases.reduce((count, phrase) => count + (source.includes(phrase) ? 1 : 0), 0);
+  const paragraphCount = source.split(/\n\s*\n/).filter((item) => item.trim().length > 0).length;
+  const longParagraphCount = source.split(/\n\s*\n/).filter((item) => item.trim().length > 600).length;
+  return [
+    {
+      key: "aigc_style",
+      title: "AI 写作味风险",
+      level: vagueCount >= 3 ? "warn" : "ready",
+      detail: vagueCount >= 3
+        ? `检测到 ${vagueCount} 类偏模板化表达，建议回工作台做自然化改写。`
+        : "暂未发现明显模板化高频表达，仍建议人工通读。"
+    },
+    {
+      key: "academic_expression",
+      title: "学术表达结构",
+      level: paragraphCount > 0 && longParagraphCount <= Math.max(1, Math.floor(paragraphCount / 3)) ? "ready" : "warn",
+      detail: longParagraphCount > 0
+        ? `有 ${longParagraphCount} 个段落较长，建议拆分论点、证据和结论。`
+        : "段落长度整体较均衡。"
+    }
+  ];
 }
 
 function ReferencePreviewItem({

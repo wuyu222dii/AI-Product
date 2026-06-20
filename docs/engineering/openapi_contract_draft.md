@@ -1,4 +1,4 @@
-# AI 论文共写工作台 v1.5 OpenAPI 风格接口契约
+# AI 论文共写工作台 v1.6 OpenAPI 风格接口契约
 
 本文档是当前实现的 OpenAPI 风格契约说明，不是可直接导入的 YAML 文件。字段级细节以 [api_field_spec.md](api_field_spec.md) 为准。
 
@@ -54,6 +54,8 @@
 | `GET` | `/workspaces/{id}/materials` | `200` | 获取材料列表，包含 `parseQuality` |
 | `POST` | `/materials/{id}/preprocess` | `202` | 预处理材料 |
 | `POST` | `/materials/{id}/ai-parse` | `202` | AI 语义解析 |
+| `GET` | `/materials/{id}/preview` | `200` | 获取原始材料预览入口 |
+| `GET` | `/materials/{id}/file` | `200` | 获取原始文件流 |
 | `POST` | `/materials/{id}/supplement` | `200` | 补充说明并重新解析 |
 | `PATCH` | `/materials/{id}/category` | `200` | 用户纠正材料类型 |
 | `PATCH` | `/materials/{id}/bibliographic-metadata` | `200` | 补全文献信息 |
@@ -166,6 +168,12 @@ isKeyMaterial=true
   "forceRetry": true
 }
 ```
+
+### 材料预览
+
+`GET /materials/{id}/preview`
+
+无需请求体。文件材料返回 `downloadUrl`，文本材料返回 `previewText`，链接材料返回 `externalLink`。
 
 ### 补充说明
 
@@ -290,6 +298,20 @@ pageRef=3
 }
 ```
 
+### MaterialPreviewResponse
+
+```json
+{
+  "id": "uuid",
+  "filename": "论文共写平台测试.md",
+  "fileType": "md",
+  "previewType": "text",
+  "previewText": "材料预览内容...",
+  "downloadUrl": null,
+  "externalLink": null
+}
+```
+
 ### EvidenceBindingSummaryResponse
 
 ```json
@@ -310,7 +332,8 @@ pageRef=3
           "sourceExcerpt": "原始证据片段",
           "sourceLocation": {
             "page": 3,
-            "hint": "用户补充说明"
+            "hint": "用户补充说明",
+            "previewUrl": "/api/v1/materials/uuid/preview"
           },
           "confidenceScore": 0.72,
           "supportType": "DIRECT",
@@ -322,7 +345,26 @@ pageRef=3
   ],
   "missingParagraphIds": ["p3"],
   "usedMaterials": [],
-  "unusedMaterials": []
+  "unusedMaterials": [],
+  "coverage": {
+    "totalParagraphs": 5,
+    "confirmedParagraphs": 3,
+    "weakParagraphs": 1,
+    "missingParagraphs": 1,
+    "coverageRatio": 80,
+    "confirmedRatio": 60,
+    "healthLabel": "整体可用，仍建议补强弱绑定段落。",
+    "recommendations": ["优先补充缺来源段落。"]
+  },
+  "citationConsistency": {
+    "status": "NEEDS_REVIEW",
+    "detectedCitationCount": 4,
+    "linkedMaterialCount": 3,
+    "missingCitationParagraphCount": 1,
+    "orphanCitationCount": 1,
+    "incompleteReferenceCount": 0,
+    "issues": ["正文引用数量多于可信链已绑定材料，建议人工核对。"]
+  }
 }
 ```
 
@@ -337,11 +379,37 @@ pageRef=3
   "candidateDraftText": "AI 修改后的候选正文",
   "candidateSourceTraceMap": {},
   "diffSummary": {
-    "summary": "增强了论证表达",
-    "reasons": ["保留原有引用", "未新增来源"],
-    "relatedReviewItemIds": ["uuid"]
+    "paragraphDiffs": [
+      {
+        "paragraphId": "p1",
+        "changeType": "modified",
+        "originalText": "原段落",
+        "candidateText": "AI 修改后的段落",
+        "intentLabel": "补充论证",
+        "selectedByDefault": true
+      }
+    ],
+    "conflictWarnings": [
+      {
+        "code": "NO_MAJOR_CONFLICT",
+        "title": "未发现明显冲突",
+        "message": "引用、数字和来源数量未发现明显异常。",
+        "level": "LOW"
+      }
+    ],
+    "recheckSuggestion": {
+      "shouldRecheck": true,
+      "reviewItemCount": 1,
+      "relatedReviewItems": [
+        {
+          "reviewItemId": "uuid",
+          "relationType": "TARGET_RANGE_OVERLAP",
+          "reason": "本次共写范围与该审查项定位范围重叠。"
+        }
+      ]
+    }
   },
-  "status": "PENDING",
+  "status": "READY",
   "createdAt": "2026-06-20T00:00:00Z",
   "appliedAt": null
 }

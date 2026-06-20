@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   buildDetailedDiffRows,
   buildCoWriteGuardrailChecks,
+  buildParagraphDiffRows,
   buildHighlightedDiffBlocks,
   buildSentenceDiffRows,
   buildTextDiffSummary,
@@ -19,9 +20,11 @@ export function WorkspaceCoWritePreviewDrawer({
   reviews = [],
   onApply,
   onApplySelectedRows,
+  onApplySelectedParagraphs,
   onDiscard
 }) {
   const [selectedRows, setSelectedRows] = useState([]);
+  const [selectedParagraphRows, setSelectedParagraphRows] = useState([]);
 
   useEffect(() => {
     if (!preview) {
@@ -29,6 +32,7 @@ export function WorkspaceCoWritePreviewDrawer({
       return;
     }
     setSelectedRows(buildDetailedDiffRows(preview.candidateDraftText || "", currentDraftText || ""));
+    setSelectedParagraphRows(buildParagraphDiffRows(preview));
   }, [preview?.id, preview?.candidateDraftText, currentDraftText]);
 
   if (!preview) return null;
@@ -41,9 +45,16 @@ export function WorkspaceCoWritePreviewDrawer({
   const relatedReviews = findRelatedReviewsForPreview(preview, reviews, currentDraftText);
   const lengthDelta = Number(preview.diffSummary?.lengthDelta ?? 0);
   const selectedCount = selectedRows.filter((row) => row.selected).length;
+  const selectedParagraphCount = selectedParagraphRows.filter((row) => row.selected && row.candidateText).length;
+  const conflictWarnings = preview.diffSummary?.conflictWarnings ?? [];
+  const recheckSuggestion = preview.diffSummary?.recheckSuggestion;
 
   function toggleRow(rowId) {
     setSelectedRows((rows) => rows.map((row) => (row.id === rowId ? { ...row, selected: !row.selected } : row)));
+  }
+
+  function toggleParagraphRow(rowId) {
+    setSelectedParagraphRows((rows) => rows.map((row) => (row.id === rowId ? { ...row, selected: !row.selected } : row)));
   }
 
   return (
@@ -99,6 +110,23 @@ export function WorkspaceCoWritePreviewDrawer({
                 </div>
               ))}
             </div>
+          </div>
+
+          <div className="detail-card">
+            <strong>冲突提示</strong>
+            <div className="guardrail-check-list">
+              {conflictWarnings.map((warning) => (
+                <div className={`guardrail-check guardrail-check--${warning.level === "LOW" ? "pass" : "warn"}`} key={warning.code}>
+                  <strong>{warning.title}</strong>
+                  <p>{warning.message}</p>
+                </div>
+              ))}
+            </div>
+            {recheckSuggestion && (
+              <p className="muted">
+                {recheckSuggestion.message} 复查会调用 AI，但只针对单条审查项，不会自动全篇重审。
+              </p>
+            )}
           </div>
 
           <div className="preview-diff-grid">
@@ -161,6 +189,27 @@ export function WorkspaceCoWritePreviewDrawer({
           </div>
 
           <div className="detail-card">
+            <strong>逐段接受</strong>
+            <p className="muted">适合正文结构较长时使用。勾选段落后先应用到编辑区，再人工确认并保存。</p>
+            {selectedParagraphRows.length === 0 ? (
+              <p className="muted">当前没有可单独接受的段落级差异。</p>
+            ) : (
+              <div className="selective-diff-list">
+                {selectedParagraphRows.map((row) => (
+                  <label className={`selective-diff-row selective-diff-row--${row.type}`} key={row.id}>
+                    <input type="checkbox" checked={row.selected} onChange={() => toggleParagraphRow(row.id)} />
+                    <span>{row.label}</span>
+                    <div>
+                      <p><strong>{row.paragraphId}｜{row.intentLabel}</strong></p>
+                      <small>{row.candidateText || row.originalText}</small>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="detail-card">
             <strong>局部接受</strong>
             <p className="muted">勾选你想保留的差异后，可以先应用到编辑区，再手动保存正文。删除类差异默认不勾选，避免误删。</p>
             {selectedRows.length === 0 ? (
@@ -192,6 +241,13 @@ export function WorkspaceCoWritePreviewDrawer({
             disabled={applying || discarding || selectedCount === 0}
           >
             应用选中差异（{selectedCount}）
+          </button>
+          <button
+            className="secondary-btn"
+            onClick={() => onApplySelectedParagraphs?.(selectedParagraphRows)}
+            disabled={applying || discarding || selectedParagraphCount === 0}
+          >
+            应用选中段落（{selectedParagraphCount}）
           </button>
           <button className="primary-btn" onClick={onApply} disabled={applying || discarding}>
             {applying ? "应用中..." : "应用为新版本"}

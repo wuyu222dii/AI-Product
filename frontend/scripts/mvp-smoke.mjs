@@ -16,6 +16,8 @@ const checks = [
       "generateDraft",
       "previewCoWrite",
       "applyCoWritePreview",
+      "previewMaterial",
+      "getEvidenceBindings",
       "listReviewItems",
       "createAppeal",
       "exportDraft",
@@ -24,7 +26,15 @@ const checks = [
   },
   {
     file: "src/pages/ExportPage.jsx",
-    tokens: ["导出定稿", "下载导出文件", "交付确认", "参考文献草案"]
+    tokens: ["导出定稿", "下载导出文件", "交付确认", "参考文献草案", "可信链覆盖率", "引用一致性"]
+  },
+  {
+    file: "src/components/workspace/WorkspaceCoWritePreviewDrawer.jsx",
+    tokens: ["AI 修改预览", "冲突提示", "逐段接受", "应用选中段落"]
+  },
+  {
+    file: "src/components/workspace/WorkspaceEditorPanel.jsx",
+    tokens: ["材料可信链", "可信链覆盖率", "引用一致性", "打开原始材料"]
   },
   {
     file: "src/pages/ParsingStatusPage.jsx",

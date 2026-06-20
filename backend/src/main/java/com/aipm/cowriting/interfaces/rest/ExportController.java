@@ -43,7 +43,7 @@ public class ExportController {
     }
 
     @GetMapping(RestConstants.API_V1 + "/exports/{jobId}/download")
-    public ResponseEntity<Resource> download(@PathVariable UUID jobId) throws IOException {
+    public ResponseEntity<Resource> download(@PathVariable("jobId") UUID jobId) throws IOException {
         Resource resource = exportApplicationService.loadExport(jobId);
         String contentType = Files.probeContentType(resource.getFile().toPath());
         if (contentType == null) {

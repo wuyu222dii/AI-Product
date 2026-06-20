@@ -4,6 +4,8 @@ import com.aipm.cowriting.application.dto.evidence.EvidenceBindingItemResponse;
 import com.aipm.cowriting.application.dto.evidence.EvidenceBindingSummaryResponse;
 import com.aipm.cowriting.application.dto.evidence.EvidenceMaterialResponse;
 import com.aipm.cowriting.application.dto.evidence.EvidenceParagraphResponse;
+import com.aipm.cowriting.application.dto.evidence.CitationConsistencyReport;
+import com.aipm.cowriting.application.dto.evidence.EvidenceCoverageReport;
 import com.aipm.cowriting.common.error.BusinessException;
 import com.aipm.cowriting.common.error.ErrorCode;
 import com.aipm.cowriting.domain.entity.AiSemanticParseResultEntity;
@@ -44,6 +46,8 @@ public class EvidenceBindingApplicationService {
     private static final Set<String> ALLOWED_BINDING_STATUSES = Set.of("CONFIRMED", "WEAK", "MISSING", "USER_CONFIRMED");
     private static final Pattern PARAGRAPH_ID_PATTERN = Pattern.compile("p(\\d+)", Pattern.CASE_INSENSITIVE);
     private static final Pattern PAGE_HINT_PATTERN = Pattern.compile("(?:补充页码|页码|第)\\s*(\\d{1,4})\\s*(?:页)?");
+    private static final Pattern APA_CITATION_PATTERN = Pattern.compile("[（(][^）)]{1,80}[，,]\\s*((19|20)\\d{2}|n\\.d\\.)[）)]");
+    private static final Pattern GBT_CITATION_PATTERN = Pattern.compile("\\[(\\d{1,3})]");
 
     private final DraftVersionRepository draftVersionRepository;
     private final EvidenceBindingRepository evidenceBindingRepository;
@@ -199,7 +203,15 @@ public class EvidenceBindingApplicationService {
                 .map(material -> toMaterialResponse(material, parseByMaterialId.get(material.getId())))
                 .toList();
 
-        return new EvidenceBindingSummaryResponse(draft.getId(), paragraphs, missingParagraphIds, usedMaterials, unusedMaterials);
+        return new EvidenceBindingSummaryResponse(
+                draft.getId(),
+                paragraphs,
+                missingParagraphIds,
+                usedMaterials,
+                unusedMaterials,
+                coverageReport(paragraphs),
+                citationConsistencyReport(draft.getDraftText(), paragraphs, usedMaterials, parseByMaterialId)
+        );
     }
 
     private EvidenceBindingEntity missingBinding(DraftVersionEntity draft, ParagraphSlice paragraph, OffsetDateTime now) {
@@ -421,6 +433,7 @@ public class EvidenceBindingApplicationService {
             location.put("page", pageHint.get());
             location.put("label", "第 " + pageHint.get() + " 页附近");
             location.put("confidence", "explicit");
+            location.put("previewUrl", "/api/v1/materials/" + entity.getMaterialId() + "/preview");
             return location;
         }
 
@@ -428,6 +441,7 @@ public class EvidenceBindingApplicationService {
             location.put("type", "knowledge_chunk");
             location.put("label", "知识库片段 " + shortId(entity.getKnowledgeChunkId()));
             location.put("confidence", "inferred");
+            location.put("previewUrl", "/api/v1/materials/" + entity.getMaterialId() + "/preview");
             return location;
         }
 
@@ -436,13 +450,110 @@ public class EvidenceBindingApplicationService {
             location.put("type", "draft_range");
             location.put("label", "正文字符 " + targetRange.getOrDefault("start", "?") + "-" + targetRange.getOrDefault("end", "?") + " 对应材料摘录");
             location.put("confidence", "inferred");
+            location.put("previewUrl", "/api/v1/materials/" + entity.getMaterialId() + "/preview");
             return location;
         }
 
         location.put("type", "excerpt");
         location.put("label", "材料摘录位置");
         location.put("confidence", "inferred");
+        location.put("previewUrl", "/api/v1/materials/" + entity.getMaterialId() + "/preview");
         return location;
+    }
+
+    private EvidenceCoverageReport coverageReport(List<EvidenceParagraphResponse> paragraphs) {
+        int total = paragraphs.size();
+        int confirmed = (int) paragraphs.stream()
+                .filter(item -> "CONFIRMED".equals(item.bindingStatus()) || "USER_CONFIRMED".equals(item.bindingStatus()))
+                .count();
+        int weak = (int) paragraphs.stream().filter(item -> "WEAK".equals(item.bindingStatus())).count();
+        int missing = (int) paragraphs.stream().filter(item -> "MISSING".equals(item.bindingStatus())).count();
+        int coverageRatio = total == 0 ? 0 : Math.round(((confirmed + weak) * 100.0f) / total);
+        int confirmedRatio = total == 0 ? 0 : Math.round((confirmed * 100.0f) / total);
+        String healthLabel = confirmedRatio >= 80 && missing == 0
+                ? "可信链健康"
+                : coverageRatio >= 70
+                ? "仍需补强"
+                : "证据不足";
+        List<String> recommendations = new ArrayList<>();
+        if (missing > 0) {
+            recommendations.add("有 " + missing + " 个段落缺少明确来源，建议补充材料或重新生成可信链。");
+        }
+        if (weak > 0) {
+            recommendations.add("有 " + weak + " 个段落为弱绑定，建议打开原始材料核对后确认可信。");
+        }
+        if (confirmedRatio < 80 && total > 0) {
+            recommendations.add("已确认来源比例低于 80%，导出前建议优先处理关键段落。");
+        }
+        if (recommendations.isEmpty()) {
+            recommendations.add("当前正文段落基本具备可追溯来源，可进入导出前格式检查。");
+        }
+        return new EvidenceCoverageReport(total, confirmed, weak, missing, coverageRatio, confirmedRatio, healthLabel, recommendations);
+    }
+
+    private CitationConsistencyReport citationConsistencyReport(
+            String draftText,
+            List<EvidenceParagraphResponse> paragraphs,
+            List<EvidenceMaterialResponse> usedMaterials,
+            Map<UUID, AiSemanticParseResultEntity> parseByMaterialId
+    ) {
+        String text = draftText == null ? "" : draftText;
+        int detectedCitationCount = countMatches(APA_CITATION_PATTERN, text) + countMatches(GBT_CITATION_PATTERN, text);
+        int linkedMaterialCount = usedMaterials.size();
+        int missingCitationParagraphCount = (int) paragraphs.stream()
+                .filter(paragraph -> !"MISSING".equals(paragraph.bindingStatus()))
+                .filter(paragraph -> paragraph.bindings().stream().noneMatch(binding -> hasText(binding.citationText())))
+                .count();
+        int orphanCitationCount = detectedCitationCount > 0 && linkedMaterialCount == 0 ? detectedCitationCount : 0;
+        int incompleteReferenceCount = (int) usedMaterials.stream()
+                .filter(material -> isBibliographicMetadataIncomplete(parseByMaterialId.get(material.materialId())))
+                .count();
+
+        List<String> issues = new ArrayList<>();
+        if (detectedCitationCount == 0 && linkedMaterialCount > 0) {
+            issues.add("正文已经绑定材料，但暂未检测到正文引用标记。");
+        }
+        if (orphanCitationCount > 0) {
+            issues.add("正文存在引用标记，但没有可追溯材料来源。");
+        }
+        if (missingCitationParagraphCount > 0) {
+            issues.add("有 " + missingCitationParagraphCount + " 个有来源段落缺少可插入引用文本。");
+        }
+        if (incompleteReferenceCount > 0) {
+            issues.add("有 " + incompleteReferenceCount + " 份已使用材料缺少作者、年份或题名。");
+        }
+        String status = issues.isEmpty() ? "READY" : (orphanCitationCount > 0 || incompleteReferenceCount > 0 ? "NEEDS_FIX" : "NEEDS_REVIEW");
+        if (issues.isEmpty()) {
+            issues.add("正文引用、材料来源和文献信息当前未发现明显冲突。");
+        }
+        return new CitationConsistencyReport(
+                status,
+                detectedCitationCount,
+                linkedMaterialCount,
+                missingCitationParagraphCount,
+                orphanCitationCount,
+                incompleteReferenceCount,
+                issues
+        );
+    }
+
+    private int countMatches(Pattern pattern, String text) {
+        Matcher matcher = pattern.matcher(text == null ? "" : text);
+        int count = 0;
+        while (matcher.find()) {
+            count++;
+        }
+        return count;
+    }
+
+    private boolean isBibliographicMetadataIncomplete(AiSemanticParseResultEntity parseResult) {
+        if (parseResult == null || !hasText(parseResult.getBibliographicMetadataJson())) {
+            return true;
+        }
+        Map<String, Object> metadata = readMap(parseResult.getBibliographicMetadataJson());
+        Object authors = metadata.get("authors");
+        boolean hasAuthor = authors instanceof List<?> list && list.stream().anyMatch(item -> item != null && !String.valueOf(item).isBlank());
+        return !hasAuthor || !hasText(stringValue(metadata.get("year"))) || !hasText(stringValue(metadata.get("title")));
     }
 
     private Optional<Integer> pageHint(String value) {

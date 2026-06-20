@@ -3,6 +3,7 @@ import { api } from "../services/api.js";
 import {
   actionForReview,
   applySelectedDiffRows,
+  applySelectedParagraphRows,
   buildCoWriteTargetRange,
   buildReviewInstruction,
   clampRange,
@@ -305,6 +306,31 @@ export function useWorkspace({ workspace, draft, onDraftChange, onError }) {
     }
   }
 
+  async function handlePreviewMaterial(bindingOrMaterial) {
+    const materialId = bindingOrMaterial?.materialId || bindingOrMaterial?.id;
+    if (!materialId) {
+      setLatestFeedback("这条证据暂时没有可打开的原始材料。");
+      return;
+    }
+    try {
+      const preview = await api.previewMaterial(materialId);
+      if (preview.downloadUrl) {
+        window.open(preview.downloadUrl, "_blank", "noopener,noreferrer");
+        setLatestFeedback(`已打开原始材料「${preview.filename}」，请结合页码或片段线索核对。`);
+        return;
+      }
+      if (preview.externalLink) {
+        window.open(preview.externalLink, "_blank", "noopener,noreferrer");
+        setLatestFeedback(`已打开外部来源「${preview.filename}」。`);
+        return;
+      }
+      const previewText = preview.previewText ? `：${preview.previewText.slice(0, 180)}` : "。";
+      setLatestFeedback(`原始材料「${preview.filename}」为文本材料${previewText}`);
+    } catch (error) {
+      onError(error.message);
+    }
+  }
+
   async function handleApplyCoWritePreview() {
     if (!coWritePreview?.id || !workspace?.id) return;
     try {
@@ -317,7 +343,11 @@ export function useWorkspace({ workspace, draft, onDraftChange, onError }) {
       await loadVersions(workspace.id);
       await loadReviews(nextDraft.id);
       await loadEvidenceBindings(nextDraft.id);
-      setLatestFeedback(`预览已应用为新版本 v${nextDraft.versionNo}，建议复查相关审查项并查看可信链。`);
+      const recheck = coWritePreview.diffSummary?.recheckSuggestion;
+      const recheckText = recheck?.shouldRecheck
+        ? `建议复查 ${recheck.reviewItemCount || "相关"} 个待处理审查项。`
+        : "当前没有明显待处理审查项。";
+      setLatestFeedback(`预览已应用为新版本 v${nextDraft.versionNo}，${recheckText}请查看可信链覆盖率。`);
     } catch (error) {
       onError(error.message);
     } finally {
@@ -373,6 +403,19 @@ export function useWorkspace({ workspace, draft, onDraftChange, onError }) {
     setDraftText(nextText);
     setCoWritePreview(null);
     setLatestFeedback(`已将 ${selectedRows.length} 条选中差异应用到编辑区，请保存正文后重建可信链。`);
+  }
+
+  function handleApplySelectedCoWriteParagraphs(rows) {
+    if (!coWritePreview) return;
+    const selectedRows = rows.filter((row) => row.selected && row.candidateText);
+    if (selectedRows.length === 0) {
+      setLatestFeedback("未选择任何段落，当前正文未发生变化。");
+      return;
+    }
+    const nextText = applySelectedParagraphRows(draftText, rows);
+    setDraftText(nextText);
+    setCoWritePreview(null);
+    setLatestFeedback(`已将 ${selectedRows.length} 个段落应用到编辑区，请保存正文后复查相关审查项。`);
   }
 
   async function handleKnowledgeSearch(query) {
@@ -489,6 +532,7 @@ export function useWorkspace({ workspace, draft, onDraftChange, onError }) {
     handleSaveDraft,
     handleRebuildEvidenceBindings,
     handleUpdateEvidenceBindingStatus,
+    handlePreviewMaterial,
     handleLocateEvidence,
     handleInsertCitation,
     handleKnowledgeSearch,
@@ -496,6 +540,7 @@ export function useWorkspace({ workspace, draft, onDraftChange, onError }) {
     handleRestoreVersion,
     handleApplyCoWritePreview,
     handleApplySelectedCoWriteDiffRows,
+    handleApplySelectedCoWriteParagraphs,
     handleDiscardCoWritePreview,
     handleSubmitAppeal,
     handleSelectionChange,

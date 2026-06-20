@@ -11,6 +11,8 @@ import com.aipm.cowriting.application.dto.evidence.EvidenceBindingItemResponse;
 import com.aipm.cowriting.application.dto.evidence.EvidenceBindingSummaryResponse;
 import com.aipm.cowriting.application.dto.evidence.EvidenceMaterialResponse;
 import com.aipm.cowriting.application.dto.evidence.EvidenceParagraphResponse;
+import com.aipm.cowriting.application.dto.evidence.CitationConsistencyReport;
+import com.aipm.cowriting.application.dto.evidence.EvidenceCoverageReport;
 import com.aipm.cowriting.application.dto.job.JobResponse;
 import com.aipm.cowriting.application.service.EvidenceBindingApplicationService;
 import com.aipm.cowriting.application.service.EvidenceBindingRebuildJobService;
@@ -70,14 +72,18 @@ class EvidenceBindingControllerTest {
                         List.of(new EvidenceParagraphResponse("p1", "正文段落", "CONFIRMED", List.of(item))),
                         List.of(),
                         List.of(new EvidenceMaterialResponse(materialId, "reference.pdf", "pdf", "upload", true, Map.of())),
-                        List.of()
+                        List.of(),
+                        new EvidenceCoverageReport(1, 1, 0, 0, 100, 100, "可信链健康", List.of("当前正文段落基本具备可追溯来源，可进入导出前格式检查。")),
+                        new CitationConsistencyReport("READY", 1, 1, 0, 0, 0, List.of("正文引用、材料来源和文献信息当前未发现明显冲突。"))
                 ));
 
         mockMvc.perform(get("/api/v1/drafts/{id}/evidence-bindings", draftId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.paragraphs[0].bindingStatus").value("CONFIRMED"))
-                .andExpect(jsonPath("$.data.paragraphs[0].bindings[0].citationText").value("（作者，2024）"));
+                .andExpect(jsonPath("$.data.paragraphs[0].bindings[0].citationText").value("（作者，2024）"))
+                .andExpect(jsonPath("$.data.coverage.coverageRatio").value(100))
+                .andExpect(jsonPath("$.data.citationConsistency.status").value("READY"));
     }
 
     @Test
