@@ -1,8 +1,8 @@
 # AI 论文共写工作台开发文档
 
-生成日期：2026-07-10  
-扫描范围：项目文档、前端源码、后端源码、数据库 SQL、测试与本地运行配置  
-当前结论：项目已经完成 `MVP 阶段 100% 收口 + v1.6 可信交付增强版`，具备可演示的端到端产品闭环。
+生成日期：2026-07-11
+扫描范围：项目文档、前端源码、后端源码、数据库 SQL、测试与本地运行配置
+当前结论：项目已经完成 `MVP 主流程 100% + v1.8 原创实证补强 + v1.9 文献补充增强首轮收口`，现已进入产品深度可用性打磨阶段，具备可演示的端到端产品闭环，但尚未达到生产上线标准。
 
 本文档根据当前仓库实际内容整理，重点说明你此前已经完成的产品、设计、工程与 AI 编排工作。说明以代码实际实现为主，同时参考已有 PRD、接口文档、Demo 指南、交付清单和完成度快照。
 
@@ -19,11 +19,11 @@
 -> AI 语义解析
 -> 解析质量检查与补全
 -> Requirement Snapshot
--> 材料充足性检查
+-> 材料充足性检查 / 文献补充增强入口
 -> 生成初稿
 -> 构建项目知识库
 -> 进入共写工作台
--> 查看可信链 / 知识库 / 引用建议
+-> 查看可信链 / 知识库 / 引用建议 / 原创实证风险
 -> 生成 AI 共写预览
 -> 逐句 / 逐段 / 整版应用
 -> 审查、申诉、手动复查
@@ -40,7 +40,7 @@
 
 一句话概括：
 
-`你已经把项目从产品概念、页面原型和工程规格，推进成了一个接入真实 Supabase PostgreSQL 与真实 OpenAI 兼容 AI 调用的论文共写 MVP，并进一步补上可信链、共写预览、审查复查、导出风险检查等可信交付能力。`
+`你已经把项目从产品概念、页面原型和工程规格，推进成了一个接入真实 Supabase PostgreSQL 与真实 OpenAI 兼容 AI 调用的论文共写 MVP，并进一步补上可信链、共写预览、审查复查、原创实证补强、文献补充回流和导出风险检查等可信交付能力。`
 
 ## 2. 你之前已经完成的事情
 
@@ -139,12 +139,16 @@ backend/
 | v1.4 | 可信链与共写闭环，支持段落级证据绑定、异步可信链重建、共写预览后应用、审查项手动复查 |
 | v1.5 | AI 解析质量清单，材料响应新增 `parseQuality`，前端展示质量徽标、问题清单、一键填入补充说明和关键材料阻断 |
 | v1.6 | 可信交付增强，支持原始材料预览入口、可信链覆盖率、引用一致性、共写逐段接受、冲突提示、共写与审查项关联落库、导出前风险检查 |
+| v1.8 | 原创实证补强，支持段落级空泛论证、原创实证不足和 AI 写作味风险派生，并把风险接入工作台、审查、共写与导出 |
+| v1.9 | 文献补充增强，支持 Crossref / OpenAlex / Semantic Scholar 多源元数据检索、质量评分、去重、待下载清单和上传关联回流 |
 
 近期 Git 历史也体现了这些工作：
 
 - `improve the cowrite interface`：共写工作台视觉降噪与 AI 面板优化。
 - `update_operator`：上传页易用性、知识库可读性、原始材料 UTF-8 预览修复、热部署开发体验。
 - `v1.6 Trusted Delivery Enhancement Plan`：材料预览、可信链评分、引用一致性、共写审查关联、导出风险检查。
+- `New Literature Retrieval Interface`：材料不足页新增 Crossref 检索和 Google Scholar / 知网外部入口。
+- `supply the material evidence`：补齐 v1.8 原创实证补强和 v1.9 多源文献候选、质量评分、待下载与上传关联。
 - `Document_Consolidation`：README、Demo 指南、接口字段、OpenAPI、交付清单等文档口径收口。
 - `update`：早期完整工程骨架、后端服务、前端页面、测试、样例和文档落地。
 
@@ -207,6 +211,8 @@ Controller 覆盖：
 | `EvidenceBindingController` | 可信链获取、异步重建、绑定状态更新 |
 | `ReviewController` | 审查项列表、状态更新、申诉、手动复查、申诉查询 |
 | `KnowledgeBaseController` | 知识库构建、片段列表、关键词检索 |
+| `LiteratureSearchController` | 多源文献元数据检索、候选保存与待下载清单查询 |
+| `WritingRiskController` | 获取草稿的段落级原创实证与 AI 写作味风险 |
 | `ExportController` | DOCX / PDF 导出与下载 |
 | `JobController` | 内存 job 状态查询 |
 
@@ -231,6 +237,7 @@ Controller 覆盖：
 | `ReviewItemEntity` | `review_items` | 审查项、影响等级、定位范围、建议、状态、复查字段 |
 | `ReviewRecheckLogEntity` | `review_recheck_logs` | 单条审查项复查历史与依据快照 |
 | `AppealCaseEntity` | `appeal_cases` | 审查申诉理由、证据和复审结果 |
+| `LiteratureCandidateEntity` | `literature_candidates` | 候选文献元数据、质量评分、待下载状态和已关联材料 |
 
 基础 SQL 在：
 
@@ -241,11 +248,14 @@ Controller 覆盖：
 
 - `backend/db/v1_4_trust_chain.sql`
 - `backend/db/v1_6_trust_delivery_enhancement.sql`
+- `backend/db/v1_9_literature_candidates.sql`
 
 需要注意的历史边界：
 
 - SQL 草案中保留了 `preprocessed_contents`、`generation_jobs`、`user_actions` 等设计对象。
 - 当前代码实际把预处理文本放在 `materials.plainTextContent` / `supplementText`，job 使用 `JobApplicationService` 的内存 `ConcurrentHashMap`，还不是数据库持久化队列。
+- v1.9 迁移 SQL 已交付，JPA 可自动补建表；当前文档没有记录该 SQL 已被手动执行为正式 Supabase 迁移。
+- 新建 Supabase 表是否暴露到 Data API 取决于项目设置；当前前端不直连该表，业务访问仍由 Spring Boot / JPA 承担。
 
 ### 3.4 状态模型
 
@@ -479,6 +489,9 @@ specialRequirements.minReferences = 5
 前端行为：
 
 - 材料不足时展示缺失原因、下一步动作、建议补充数量。
+- 缺少参考资料时可调用 `LiteratureSearchController` 检索 Crossref / OpenAlex / Semantic Scholar 公开元数据。
+- 候选结果会显示质量评分、匹配理由和缺失元数据，并可加入待下载清单。
+- 用户下载原文后可在上传页关联候选；候选本身不会直接进入生成、知识库或可信链。
 - 不会兜底生成。
 - 只有 `isGenerationEligible = true` 时才触发初稿生成。
 
@@ -817,6 +830,17 @@ AI prompt 中已经明确：
   - reference orphan
   - reference not cited
   - reference metadata incomplete
+  - aigc style risk
+  - generic unsupported claim
+  - original evidence missing
+
+v1.8 原创实证补强：
+
+- `WritingRiskApplicationService` 按段落派生空泛论证、模板表达、证据缺失和原创实证不足风险。
+- `GET /api/v1/drafts/{id}/writing-risks` 返回风险分、触发信号、补充提示和共写指令。
+- 工作台可定位风险段落，并基于已上传材料生成“补原创实证”共写预览。
+- 材料不足时只返回需要补充的案例、数据、访谈、问卷、实验或文献清单，不编造实证。
+- 该能力用于提升内容质量，不承诺规避 AI 检测或论文查重。
 
 本地引用规则叠加：
 
@@ -1206,7 +1230,7 @@ AI prompt 中已经明确：
 
 ## 6. API 端点清单
 
-当前端点与 `docs/engineering/openapi_contract_draft.md`、`docs/engineering/api_field_spec.md` 基本一致。
+下表以当前后端 Controller 实现为准。`openapi_contract_draft.md` 与 `api_field_spec.md` 仍保留 v1.6 历史规格，尚未完整覆盖 v1.8 / v1.9 新接口。
 
 | 方法 | 路径 | 用途 |
 | --- | --- | --- |
@@ -1225,6 +1249,9 @@ AI prompt 中已经明确：
 | `POST` | `/api/v1/workspaces/{id}/requirement-snapshot` | 创建要求快照 |
 | `GET` | `/api/v1/workspaces/{id}/requirement-snapshot` | 获取最新要求快照 |
 | `POST` | `/api/v1/workspaces/{id}/material-sufficiency-check` | 材料充足性检查 |
+| `POST` | `/api/v1/workspaces/{id}/literature-search` | 多源文献元数据检索 |
+| `POST` | `/api/v1/workspaces/{id}/literature-candidates` | 保存候选到待下载清单 |
+| `GET` | `/api/v1/workspaces/{id}/literature-candidates` | 获取候选文献清单 |
 | `POST` | `/api/v1/workspaces/{id}/generate-draft` | 初稿生成 |
 | `GET` | `/api/v1/workspaces/{id}/drafts` | 草稿版本列表 |
 | `GET` | `/api/v1/drafts/{id}` | 草稿详情 |
@@ -1237,6 +1264,7 @@ AI prompt 中已经明确：
 | `GET` | `/api/v1/drafts/{id}/evidence-bindings` | 获取可信链 |
 | `POST` | `/api/v1/drafts/{id}/evidence-bindings/rebuild` | 异步重建可信链 |
 | `PATCH` | `/api/v1/evidence-bindings/{id}/status` | 更新证据绑定状态 |
+| `GET` | `/api/v1/drafts/{id}/writing-risks` | 获取原创实证与 AI 写作味风险 |
 | `GET` | `/api/v1/drafts/{id}/review-items` | 审查项列表 |
 | `PATCH` | `/api/v1/review-items/{id}/status` | 更新审查项状态 |
 | `POST` | `/api/v1/review-items/{id}/appeal` | 发起申诉 |
@@ -1270,10 +1298,12 @@ AI prompt 中已经明确：
 - CoWrite controller。
 - CoWrite preview service。
 - Review service / controller。
+- Writing risk service / controller。
+- Literature search service / controller，包括多 Provider 降级、质量评分和去重。
 - Export controller。
 - Job controller。
 
-当前 README 与完成度文档写到后端测试曾达到 `49` / `51` 个测试通过。不同文档存在数量口径差异，最近一次 README 写的是 `51` 个 service / controller 测试通过。
+当前后端测试报告为 `62` 个测试通过，`0` 失败、`0` 错误、`0` 跳过。文档中出现的 `37 / 49 / 51 / 55 / 60` 是对应历史阶段的当时验证数量，不代表当前测试总数。
 
 运行命令：
 
@@ -1463,14 +1493,16 @@ OPENAI_TIMEOUT_SECONDS=...
 - 应用预览后的明确复查任务列表。
 - 更正式的论文排版。
 - 真实批注导出。
-- 独立 AIGC 风格风险评分模块。
+- 更细的原创材料采集模板和段落补强任务。
+- 候选文献阅读任务与中文学术元数据增强。
 
 当前实现中也有一些设计与代码的差异：
 
 - SQL 草案里有 `generation_jobs`，但当前 job 是内存实现。
 - SQL 草案里有 `preprocessed_contents`，但当前预处理文本存在 `materials` 表字段。
-- 前端 README 早期接口清单没有完全同步 v1.6 最新接口，根 README 和工程接口文档更准确。
-- 文档中测试数量有 `49` 与 `51` 的历史口径差异，当前根 README 写 `51`。
+- `api_field_spec.md` 和 `openapi_contract_draft.md` 标题及主体仍是 v1.6 历史规格，未完整同步 v1.8 写作风险和 v1.9 文献候选接口。
+- 历史文档保留了 `37 / 49 / 51 / 55 / 60` 等阶段测试数量；当前统一验证口径是 `62` 个测试通过。
+- v1.9 迁移 SQL 已交付且 JPA 可自动建表，但尚无手动执行正式 Supabase 迁移的文档记录。
 - 前端依赖里 `react-router-dom` 标注 `^7.16.0`，实际 API 仍按 BrowserRouter / Route / Routes 常规方式使用。
 
 ## 11. 下一阶段建议
@@ -1486,10 +1518,10 @@ P0：
 
 P1：
 
+- 建立问卷、访谈、实验、案例、数据和观察记录等原创材料采集模板。
+- 增加候选文献阅读任务，并继续增强中文学术元数据来源。
+- 强化 APA / GB/T 7714 格式化与正文引用一致性。
 - 优化 DOCX / PDF 正式论文排版。
-- 强化 APA / GB/T 7714 格式化。
-- 增加 AIGC 风格风险提示。
-- 增强文件解析补全体验。
 
 P2：
 
@@ -1515,6 +1547,9 @@ P2：
 - Requirement Snapshot。
 - 材料充足性检查。
 - 材料不足阻断。
+- 多源文献元数据检索与失败降级。
+- 候选文献质量评分、去重和待下载清单。
+- 上传原文时关联候选文献。
 - 真实初稿生成。
 - 版本管理。
 - 项目知识库。
@@ -1533,6 +1568,8 @@ P2：
 - 申诉复审。
 - 单条手动复查。
 - 复查历史。
+- 段落级原创实证不足、空泛论证和 AI 写作味风险提示。
+- 基于已有材料生成原创实证补强预览。
 - DOCX / PDF 导出。
 - 导出前交付确认。
 - 前端构建与 smoke 验证。
@@ -1542,4 +1579,4 @@ P2：
 
 最终判断：
 
-`这已经是一套能演示、能联调、能从材料到定稿跑通的 AI 论文共写 MVP。它最有价值的部分不是“能生成论文”，而是你围绕 AI 输出可信度做了完整产品设计：材料不足不生成、解析质量可补、证据链可追溯、共写先预览、审查可申诉、复查可留痕、导出前有风险提示。`
+`这已经是一套能演示、能联调、能从材料到定稿跑通的 AI 论文共写 MVP，并完成 v1.8 原创实证补强与 v1.9 文献补充增强首轮建设。它最有价值的部分不是“能生成论文”，而是围绕 AI 输出可信度形成了完整产品设计：材料不足时帮助用户寻找真实文献但不越权生成、解析质量可补、证据链可追溯、原创实证可补强、共写先预览、审查可申诉、复查可留痕、导出前有风险提示。当前产品适合完整 Demo 和用户验证，但尚未达到生产上线标准。`

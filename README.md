@@ -1,8 +1,10 @@
 # AI 论文共写工作台 v1 研发交付目录
 
-当前项目基线：`MVP 阶段 100% 收口 + v1.6 可信交付增强版`。
+当前项目基线：`MVP 主流程 100% 完成 + v1.8 原创实证补强完成 + v1.9 文献补充增强首轮完成`。
 
-本项目面向本科课程论文场景，核心定位是 `AI 强辅助共写平台`：用户上传作业要求、研究成果、参考资料、图片或文件后，系统完成 AI 语义解析、材料充足性检查、初稿生成、可信链追溯、可控共写、审查复查与导出。
+当前已经进入 `产品深度可用性打磨阶段`。这里的 MVP 100% 仅表示 PRD 定义的 MVP 验收范围已完成，不代表生产上线、权限隔离、持久化任务队列和监控体系已经完成。
+
+本项目面向本科课程论文场景，核心定位是 `AI 强辅助共写平台`：用户上传作业要求、研究成果、参考资料、图片或文件后，系统完成 AI 语义解析、材料充足性检查、真实文献补充、初稿生成、可信链追溯、原创实证补强、可控共写、审查复查与导出。
 
 当前正式状态以 [PRODUCT_COMPLETION_STATUS-6-16.md](docs/project/PRODUCT_COMPLETION_STATUS-6-16.md) 为准；交付检查以 [FINAL_DELIVERY_CHECKLIST.md](docs/project/FINAL_DELIVERY_CHECKLIST.md) 为准。
 
@@ -14,6 +16,8 @@
 - `v1.4` 可信链与共写闭环：支持段落级证据绑定、异步可信链重建、共写预览后应用、审查项手动复查。
 - `v1.5` AI 解析质量清单：材料响应新增 `parseQuality`，前端解析页展示质量徽标、问题清单、一键填入补充说明和关键材料阻断规则。
 - `v1.6` 可信交付增强：支持原始材料预览入口、可信链覆盖率评分、引用一致性检查、共写逐段接受、冲突提示、共写与审查项关联落库，以及导出前交付风险检查。
+- `v1.8` 原创实证补强：识别空泛论证、原创实证不足和 AI 写作味风险，引导用户基于真实材料补充案例、数据和来源，不承诺规避检测。
+- `v1.9` 文献补充增强：材料不足时支持 Crossref / OpenAlex / Semantic Scholar 元数据检索、候选质量评分、待下载清单和上传关联回流；候选原文必须上传并完成 AI 解析后才参与生成。
 
 ## 主流程
 
@@ -23,9 +27,10 @@
 -> 预处理
 -> AI 语义解析
 -> 解析质量检查
--> 材料充足性检查
+-> 材料充足性检查 / 文献补充入口
 -> 生成初稿
 -> 项目知识库 / 材料可信链
+-> 原创实证与 AI 写作味风险检查
 -> 共写预览后应用
 -> 审查与手动复查
 -> 导出 docx / pdf
@@ -48,6 +53,7 @@
 | [postgresql_schema.sql](postgresql_schema.sql) | PostgreSQL 基础建表草案 |
 | [backend/db/v1_4_trust_chain.sql](backend/db/v1_4_trust_chain.sql) | v1.4 可信链迁移 |
 | [backend/db/v1_6_trust_delivery_enhancement.sql](backend/db/v1_6_trust_delivery_enhancement.sql) | v1.6 共写审查关联迁移 |
+| [backend/db/v1_9_literature_candidates.sql](backend/db/v1_9_literature_candidates.sql) | v1.9 候选文献清单迁移 SQL |
 
 ## 启动方式
 
@@ -100,7 +106,7 @@ npm run test
 
 当前验证口径：
 
-- 后端 `51` 个 service / controller 测试通过。
+- 后端 `62` 个 service / controller 测试通过，无失败或错误。
 - 前端 `npm run test` 通过，包含生产构建与 MVP smoke check。
 
 ## 当前边界
@@ -117,5 +123,5 @@ npm run test
 
 - 产品 / 设计：`PRD -> frontend_page_spec -> DEMO_GUIDE`
 - 前端：`frontend_page_spec -> api_field_spec -> openapi_contract_draft`
-- 后端：`backend_service_spec -> api_field_spec -> postgresql_schema.sql -> v1_4_trust_chain.sql -> v1_6_trust_delivery_enhancement.sql`
+- 后端：`backend_service_spec -> api_field_spec -> postgresql_schema.sql -> v1_4_trust_chain.sql -> v1_6_trust_delivery_enhancement.sql -> v1_9_literature_candidates.sql`
 - 交付 / 演示：`FINAL_DELIVERY_CHECKLIST -> DEMO_GUIDE -> PRODUCT_COMPLETION_STATUS`
