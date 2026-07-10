@@ -108,11 +108,16 @@ public class OpenAiSemanticParsingService {
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() >= 400) {
+                UpstreamError upstreamError = parseUpstreamError(response.body());
                 throw new BusinessException(
                         ErrorCode.AI_SERVICE_UNAVAILABLE,
                         HttpStatus.BAD_GATEWAY.value(),
-                        "OpenAI 语义解析请求失败",
-                        Map.of("statusCode", response.statusCode(), "body", response.body())
+                        "OpenAI 语义解析请求失败：" + upstreamError.message(),
+                        Map.of(
+                                "statusCode", response.statusCode(),
+                                "upstreamCode", upstreamError.code(),
+                                "upstreamType", upstreamError.type()
+                        )
                 );
             }
 
@@ -242,10 +247,32 @@ public class OpenAiSemanticParsingService {
         List<String> items = new ArrayList<>();
         if (node != null && node.isArray()) {
             for (JsonNode child : node) {
-                items.add(child.asText());
+                String value = textValue(child);
+                if (value != null && !value.isBlank()) {
+                    items.add(value);
+                }
             }
         }
         return items;
+    }
+
+    private String textValue(JsonNode node) {
+        if (node == null || node.isMissingNode() || node.isNull()) {
+            return null;
+        }
+        if (node.isTextual() || node.isNumber() || node.isBoolean()) {
+            return node.asText();
+        }
+        if (node.isObject()) {
+            for (String field : List.of("claim", "evidence", "requirement", "text", "content", "value", "description")) {
+                JsonNode fieldValue = node.get(field);
+                if (fieldValue != null && fieldValue.isTextual() && !fieldValue.asText().isBlank()) {
+                    return fieldValue.asText();
+                }
+            }
+            return node.toString();
+        }
+        return node.toString();
     }
 
     private BibliographicMetadata readBibliographicMetadata(JsonNode node) {
@@ -277,5 +304,35 @@ public class OpenAiSemanticParsingService {
             normalized = normalized + "/v1";
         }
         return normalized;
+    }
+
+    private UpstreamError parseUpstreamError(String body) {
+        if (body == null || body.isBlank()) {
+            return new UpstreamError("unknown", "unknown", "上游服务未返回错误详情");
+        }
+        try {
+            JsonNode error = objectMapper.readTree(body).path("error");
+            String code = emptyToDefault(error.path("code").asText(null), "unknown");
+            String type = emptyToDefault(error.path("type").asText(null), "unknown");
+            String message = emptyToDefault(error.path("message").asText(null), snippet(body, 300));
+            return new UpstreamError(code, type, message);
+        } catch (JsonProcessingException ex) {
+            return new UpstreamError("unknown", "unknown", snippet(body, 300));
+        }
+    }
+
+    private String emptyToDefault(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value.trim();
+    }
+
+    private String snippet(String value, int maxLength) {
+        if (value == null) {
+            return "";
+        }
+        String normalized = value.replaceAll("\\s+", " ").trim();
+        return normalized.length() <= maxLength ? normalized : normalized.substring(0, maxLength - 1) + "…";
+    }
+
+    private record UpstreamError(String code, String type, String message) {
     }
 }

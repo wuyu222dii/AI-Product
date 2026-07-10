@@ -98,6 +98,12 @@ export const api = {
       body: JSON.stringify({ requirementSnapshotId })
     });
   },
+  searchLiterature(workspaceId, body) {
+    return request(`/workspaces/${workspaceId}/literature-search`, {
+      method: "POST",
+      body: JSON.stringify(body)
+    });
+  },
   generateDraft(workspaceId, requirementSnapshotId, mode = "stable") {
     return request(`/workspaces/${workspaceId}/generate-draft`, {
       method: "POST",
