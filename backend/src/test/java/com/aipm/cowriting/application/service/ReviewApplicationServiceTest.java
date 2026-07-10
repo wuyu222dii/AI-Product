@@ -2,6 +2,7 @@ package com.aipm.cowriting.application.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import com.aipm.cowriting.application.dto.ai.ReviewGenerationResult;
@@ -44,6 +45,8 @@ class ReviewApplicationServiceTest {
     private ReviewRecheckLogRepository reviewRecheckLogRepository;
     @Mock
     private OpenAiReviewService openAiReviewService;
+    @Mock
+    private WritingRiskApplicationService writingRiskApplicationService;
 
     private ReviewApplicationService reviewApplicationService;
 
@@ -57,8 +60,10 @@ class ReviewApplicationServiceTest {
                 aiSemanticParseResultRepository,
                 reviewRecheckLogRepository,
                 openAiReviewService,
+                writingRiskApplicationService,
                 new ObjectMapper()
         );
+        lenient().when(writingRiskApplicationService.reviewItems(any())).thenReturn(List.of());
     }
 
     @Test

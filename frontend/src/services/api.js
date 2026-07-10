@@ -104,6 +104,15 @@ export const api = {
       body: JSON.stringify(body)
     });
   },
+  saveLiteratureCandidate(workspaceId, body) {
+    return request(`/workspaces/${workspaceId}/literature-candidates`, {
+      method: "POST",
+      body: JSON.stringify(body)
+    });
+  },
+  listLiteratureCandidates(workspaceId) {
+    return request(`/workspaces/${workspaceId}/literature-candidates`);
+  },
   generateDraft(workspaceId, requirementSnapshotId, mode = "stable") {
     return request(`/workspaces/${workspaceId}/generate-draft`, {
       method: "POST",
@@ -143,6 +152,9 @@ export const api = {
   },
   listReviewItems(draftId) {
     return request(`/drafts/${draftId}/review-items`);
+  },
+  getWritingRisks(draftId) {
+    return request(`/drafts/${draftId}/writing-risks`);
   },
   getEvidenceBindings(draftId) {
     return request(`/drafts/${draftId}/evidence-bindings`);

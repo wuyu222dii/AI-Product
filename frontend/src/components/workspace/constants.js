@@ -1,6 +1,7 @@
 export const CO_WRITE_ACTIONS = [
   { key: "rewrite_selection", label: "重写", hint: "保持原意，改善逻辑或表达", instruction: "请重写选中内容，保留核心观点和证据。" },
   { key: "add_evidence", label: "补证据", hint: "为论点补充来源支撑", instruction: "请为选中论点补充证据解释，不要编造不存在的引用。" },
+  { key: "add_original_evidence", label: "补原创实证", hint: "补案例、数据或调研依据", instruction: "请基于已上传材料为选中段落补充原创案例、数据或实证支撑；材料不足时请列出需要我补充的内容，不要编造。" },
   { key: "adjust_structure", label: "调结构", hint: "优化段落层次与承接", instruction: "请优化选中内容的论证顺序、主题句和衔接。" },
   { key: "reduce_repetition", label: "压重复", hint: "压缩重复信息", instruction: "请压缩选中内容中的信息重复，保留必要的小结和回扣。" },
   { key: "improve_expression", label: "改表达", hint: "降低 AI 写作味", instruction: "请让选中内容更像学生自然写作，减少空泛连接词和套话。" },
@@ -19,6 +20,9 @@ export const REVIEW_TYPE_LABELS = {
   reference_orphan: "引用来源待确认",
   reference_not_cited: "参考文献未被引用",
   reference_metadata_incomplete: "文献信息不完整",
+  aigc_style_risk: "AI 写作味风险",
+  generic_unsupported_claim: "空泛论证",
+  original_evidence_missing: "原创实证不足",
   unknown: "未知问题"
 };
 

@@ -36,6 +36,10 @@ export function WorkspaceEditorPanel({
   onUpdateEvidenceBindingStatus,
   onPreviewMaterial,
   onLocateEvidence,
+  writingRisks,
+  writingRisksLoading = false,
+  onLocateWritingRisk,
+  onFixWritingRisk,
   knowledgeResults = [],
   knowledgeSearching = false,
   onKnowledgeSearch,
@@ -58,6 +62,7 @@ export function WorkspaceEditorPanel({
   const evidenceJobLabel = evidenceRebuildJob ? formatEvidenceJob(evidenceRebuildJob) : null;
   const evidenceCoverage = evidenceSummary?.coverage ?? summarizeEvidenceCoverage(evidenceSummary);
   const citationConsistency = evidenceSummary?.citationConsistency;
+  const writingRiskItems = writingRisks?.items ?? [];
 
   useEffect(() => {
     const textarea = textareaRef.current;
@@ -115,6 +120,7 @@ export function WorkspaceEditorPanel({
           <div className="workspace-assist-tabs" role="tablist" aria-label="正文辅助工具">
             {[
               { key: "trust", label: "可信链", count: hasEvidenceMap ? evidenceParagraphs.length : traceEntries.length },
+              { key: "originality", label: "原创补强", count: writingRiskItems.length },
               { key: "knowledge", label: "知识库", count: knowledgeResults.length },
               { key: "citation", label: "引用", count: citationSuggestions.length }
             ].map((tab) => (
@@ -236,6 +242,15 @@ export function WorkspaceEditorPanel({
             </div>
           )}
 
+          {activeAssistTab === "originality" && (
+            <OriginalityRiskPanel
+              writingRisks={writingRisks}
+              loading={writingRisksLoading}
+              onLocateWritingRisk={onLocateWritingRisk}
+              onFixWritingRisk={onFixWritingRisk}
+            />
+          )}
+
           {activeAssistTab === "knowledge" && (
           <div className="knowledge-evidence-section assist-tab-panel">
             <div className="source-trace-header">
@@ -349,6 +364,86 @@ export function WorkspaceEditorPanel({
         </div>
       </div>
     </WorkspacePanel>
+  );
+}
+
+function OriginalityRiskPanel({ writingRisks, loading, onLocateWritingRisk, onFixWritingRisk }) {
+  const items = writingRisks?.items ?? [];
+  const score = writingRisks?.overallScore ?? 100;
+  const status = writingRisks?.overallStatus || "READY";
+
+  return (
+    <div className="originality-risk-section assist-tab-panel">
+      <div className="source-trace-header">
+        <div className="source-trace-title">
+          <strong>原创实证与 AI 写作味风险</strong>
+          <span className="muted">识别空泛论证、模板化表达和缺少案例/数据/来源支撑的段落，引导补真实材料，不承诺规避检测。</span>
+        </div>
+        <span className={`status-badge ${status === "READY" ? "ready" : "local_fix"}`}>
+          {loading ? "检查中" : originalityStatusLabel(status)}
+        </span>
+      </div>
+
+      <div className="originality-summary-card">
+        <div>
+          <strong>风险质量分 {score}</strong>
+          <p className="muted">
+            {items.length === 0
+              ? "当前未发现明显空泛无据段落，仍建议人工通读并核对数据、案例和引用真实。"
+              : `发现 ${items.length} 个建议补强段落，优先处理“原创实证不足”和“空泛论证”。`}
+          </p>
+        </div>
+        <div className="originality-metrics">
+          <span>{items.filter((item) => item.level === "LOCAL_FIX").length} 项需局部补强</span>
+          <span>{items.filter((item) => item.riskType === "original_evidence_missing").length} 项缺实证</span>
+        </div>
+      </div>
+
+      {(writingRisks?.recommendations ?? []).length > 0 && (
+        <div className="originality-recommendations">
+          {writingRisks.recommendations.map((item) => (
+            <p className="muted" key={item}>{item}</p>
+          ))}
+        </div>
+      )}
+
+      {items.length === 0 ? (
+        <div className="mini-card">
+          <p className="muted">这里会在发现高风险段落后展示补强建议。你也可以先选中正文，在右侧使用“补原创实证”。</p>
+        </div>
+      ) : (
+        <div className="originality-risk-list">
+          {items.map((item) => (
+            <article className={`originality-risk-card originality-risk-card--${String(item.level || "NOTICE").toLowerCase()}`} key={`${item.paragraphId}-${item.riskType}`}>
+              <div className="originality-risk-head">
+                <div>
+                  <strong>{item.paragraphId}｜{originalityRiskLabel(item.riskType)}</strong>
+                  <span className="muted">{item.paragraphExcerpt}</span>
+                </div>
+                <span className={`trust-state ${item.level === "LOCAL_FIX" ? "warn" : "ready"}`}>
+                  {item.level === "LOCAL_FIX" ? "建议补强" : "仅提示"}
+                </span>
+              </div>
+              <div className="keyword-row">
+                {(item.signals ?? []).map((signal) => (
+                  <span key={signal}>{signal}</span>
+                ))}
+              </div>
+              <p className="muted"><strong>建议：</strong>{item.suggestedAction}</p>
+              <p className="muted"><strong>可补内容：</strong>{item.supplementPrompt}</p>
+              <div className="review-actions">
+                <button type="button" className="ghost-btn" onClick={() => onLocateWritingRisk?.(item)}>
+                  定位段落
+                </button>
+                <button type="button" className="secondary-btn" onClick={() => onFixWritingRisk?.(item)}>
+                  用已有材料补强
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -496,6 +591,22 @@ function EvidenceChainRail({ binding, citationText }) {
       ))}
     </div>
   );
+}
+
+function originalityStatusLabel(status) {
+  if (status === "READY") return "风险较低";
+  if (status === "NEEDS_REVIEW") return "建议确认";
+  if (status === "NEEDS_ORIGINAL_EVIDENCE") return "需要补实证";
+  return status || "未检查";
+}
+
+function originalityRiskLabel(type) {
+  const labels = {
+    aigc_style_risk: "AI 写作味风险",
+    generic_unsupported_claim: "空泛论证",
+    original_evidence_missing: "原创实证不足"
+  };
+  return labels[type] || type || "写作风险";
 }
 
 function formatEvidenceJob(job) {

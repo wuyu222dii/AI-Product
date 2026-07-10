@@ -2,7 +2,7 @@ package com.aipm.cowriting.application.dto.literature;
 
 import java.util.List;
 
-public record LiteratureSearchItem(
+public record LiteratureCandidateRequest(
         String provider,
         String title,
         List<String> authors,

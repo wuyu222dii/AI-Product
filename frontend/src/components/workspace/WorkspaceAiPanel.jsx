@@ -35,10 +35,10 @@ export function WorkspaceAiPanel({ coWriting, latestFeedback, selectedRange, onC
   }
 
   const primaryActions = CO_WRITE_ACTIONS.filter((action) =>
-    ["rewrite_selection", "add_evidence", "improve_expression"].includes(action.key)
+    ["rewrite_selection", "add_evidence", "add_original_evidence", "improve_expression"].includes(action.key)
   );
   const advancedActions = CO_WRITE_ACTIONS.filter((action) =>
-    !["rewrite_selection", "add_evidence", "improve_expression"].includes(action.key)
+    !["rewrite_selection", "add_evidence", "add_original_evidence", "improve_expression"].includes(action.key)
   );
 
   return (

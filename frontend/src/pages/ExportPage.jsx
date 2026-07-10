@@ -19,6 +19,7 @@ export function ExportPage({ workspace, draft, onBack, onError }) {
   const [metadataDraft, setMetadataDraft] = useState(null);
   const [metadataSaving, setMetadataSaving] = useState(false);
   const [evidenceSummary, setEvidenceSummary] = useState(null);
+  const [writingRisks, setWritingRisks] = useState(null);
 
   useEffect(() => {
     if (!workspace?.id) return;
@@ -46,17 +47,25 @@ export function ExportPage({ workspace, draft, onBack, onError }) {
       } catch {
         // 导出页不因可信链加载失败阻断用户，保留基础交付确认。
       }
+      try {
+        if (draft?.id) {
+          const risks = await api.getWritingRisks(draft.id);
+          if (!cancelled) setWritingRisks(risks);
+        }
+      } catch {
+        // 风险汇总属于导出前提醒，失败时仍保留本地兜底提示。
+      }
     }
     loadPageData();
     return () => {
       cancelled = true;
     };
-  }, [workspace?.id, onError]);
+  }, [workspace?.id, draft?.id, onError]);
 
   const referenceMaterials = useMemo(() => collectReferenceMaterials(draft, materials), [draft, materials]);
   const exportReadiness = useMemo(
-    () => buildExportReadiness(referenceMaterials, evidenceSummary, draft?.draftText),
-    [referenceMaterials, evidenceSummary, draft?.draftText]
+    () => buildExportReadiness(referenceMaterials, evidenceSummary, writingRisks, draft?.draftText),
+    [referenceMaterials, evidenceSummary, writingRisks, draft?.draftText]
   );
 
   function startEditMetadata(material) {
@@ -249,7 +258,7 @@ export function ExportPage({ workspace, draft, onBack, onError }) {
   );
 }
 
-function buildExportReadiness(referenceMaterials, evidenceSummary, draftText = "") {
+function buildExportReadiness(referenceMaterials, evidenceSummary, writingRisks, draftText = "") {
   const totalReferences = referenceMaterials.length;
   const incompleteReferences = referenceMaterials.filter((material) => {
     const metadata = material.bibliographicMetadata || {};
@@ -257,7 +266,7 @@ function buildExportReadiness(referenceMaterials, evidenceSummary, draftText = "
   }).length;
   const coverage = evidenceSummary?.coverage;
   const citationConsistency = evidenceSummary?.citationConsistency;
-  const writingRisks = buildWritingRiskItems(draftText);
+  const writingRiskItems = buildWritingRiskItems(writingRisks, draftText);
   const items = [
     {
       key: "references",
@@ -291,7 +300,7 @@ function buildExportReadiness(referenceMaterials, evidenceSummary, draftText = "
         ? citationConsistency.issues?.[0] || "正文引用、材料来源和文献信息未发现明显冲突。"
         : "暂未读取到引用一致性检查结果。"
     },
-    ...writingRisks,
+    ...writingRiskItems,
     {
       key: "format",
       title: "导出格式",
@@ -307,7 +316,31 @@ function buildExportReadiness(referenceMaterials, evidenceSummary, draftText = "
   };
 }
 
-function buildWritingRiskItems(text = "") {
+function buildWritingRiskItems(writingRisks, text = "") {
+  if (writingRisks?.items) {
+    const riskCount = writingRisks.items.length;
+    const localFixCount = writingRisks.items.filter((item) => item.level === "LOCAL_FIX").length;
+    const topRisk = writingRisks.items[0];
+    return [
+      {
+        key: "original_evidence_risk",
+        title: "原创实证与 AI 写作味",
+        level: writingRisks.overallStatus === "READY" ? "ready" : "warn",
+        detail: writingRisks.overallStatus === "READY"
+          ? `风险质量分 ${writingRisks.overallScore}，暂未发现明显空泛无据段落。`
+          : `风险质量分 ${writingRisks.overallScore}，${localFixCount || riskCount} 个段落建议补真实案例、数据或来源支撑。`
+      },
+      {
+        key: "original_evidence_top_action",
+        title: "重点补强动作",
+        level: riskCount === 0 ? "ready" : "warn",
+        detail: topRisk
+          ? `${topRisk.paragraphId}：${topRisk.suggestedAction}`
+          : "当前没有段落级原创补强建议，导出前仍建议人工通读。"
+      }
+    ];
+  }
+
   const source = String(text || "");
   const vaguePhrases = ["具有重要意义", "显著提升", "有效促进", "综上所述", "不可忽视", "进一步研究"];
   const vagueCount = vaguePhrases.reduce((count, phrase) => count + (source.includes(phrase) ? 1 : 0), 0);
@@ -316,7 +349,7 @@ function buildWritingRiskItems(text = "") {
   return [
     {
       key: "aigc_style",
-      title: "AI 写作味风险",
+      title: "原创实证与 AI 写作味",
       level: vagueCount >= 3 ? "warn" : "ready",
       detail: vagueCount >= 3
         ? `检测到 ${vagueCount} 类偏模板化表达，建议回工作台做自然化改写。`

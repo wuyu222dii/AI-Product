@@ -34,6 +34,8 @@ export function WorkspacePage({ workspace, draft, onDraftChange, onGoExport, onE
     evidenceSummary,
     evidenceLoading,
     evidenceRebuildJob,
+    writingRisks,
+    writingRisksLoading,
     coWritePreview,
     applyingPreview,
     discardingPreview,
@@ -47,6 +49,8 @@ export function WorkspacePage({ workspace, draft, onDraftChange, onGoExport, onE
     handleUpdateEvidenceBindingStatus,
     handlePreviewMaterial,
     handleLocateEvidence,
+    handleLocateWritingRisk,
+    handleFixWritingRisk,
     handleInsertCitation,
     handleKnowledgeSearch,
     handleAcceptCurrentVersion,
@@ -105,6 +109,10 @@ export function WorkspacePage({ workspace, draft, onDraftChange, onGoExport, onE
           onUpdateEvidenceBindingStatus={handleUpdateEvidenceBindingStatus}
           onPreviewMaterial={handlePreviewMaterial}
           onLocateEvidence={handleLocateEvidence}
+          writingRisks={writingRisks}
+          writingRisksLoading={writingRisksLoading}
+          onLocateWritingRisk={handleLocateWritingRisk}
+          onFixWritingRisk={handleFixWritingRisk}
           knowledgeResults={knowledgeResults}
           knowledgeSearching={knowledgeSearching}
           onKnowledgeSearch={handleKnowledgeSearch}

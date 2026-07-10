@@ -1,6 +1,7 @@
 package com.aipm.cowriting.application.service;
 
 import com.aipm.cowriting.application.dto.literature.LiteratureSearchItem;
+import com.aipm.cowriting.application.dto.literature.LiteratureSearchRequest;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -38,8 +39,14 @@ public class CrossrefLiteratureClient {
     }
 
     public List<LiteratureSearchItem> search(String query, int limit) throws IOException, InterruptedException {
+        return search(query, limit, null);
+    }
+
+    public List<LiteratureSearchItem> search(String query, int limit, LiteratureSearchRequest searchRequest) throws IOException, InterruptedException {
         String encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8);
-        URI uri = URI.create(CROSSREF_WORKS_URL + "?query.bibliographic=" + encodedQuery + "&rows=" + limit);
+        String filter = crossrefFilter(searchRequest);
+        String filterParam = filter.isBlank() ? "" : "&filter=" + URLEncoder.encode(filter, StandardCharsets.UTF_8);
+        URI uri = URI.create(CROSSREF_WORKS_URL + "?query.bibliographic=" + encodedQuery + "&rows=" + limit + filterParam);
         HttpRequest request = HttpRequest.newBuilder(uri)
                 .timeout(Duration.ofSeconds(TIMEOUT_SECONDS))
                 .header("Accept", "application/json")
@@ -84,7 +91,13 @@ public class CrossrefLiteratureClient {
                     doi,
                     url,
                     abstractSnippet,
-                    citationPreview
+                    citationPreview,
+                    null,
+                    null,
+                    List.of(),
+                    List.of(),
+                    null,
+                    null
             ));
             if (result.size() >= limit) {
                 break;
@@ -188,6 +201,38 @@ public class CrossrefLiteratureClient {
             parts.add(url);
         }
         return String.join(". ", parts);
+    }
+
+    private String crossrefFilter(LiteratureSearchRequest request) {
+        if (request == null) {
+            return "";
+        }
+        List<String> filters = new ArrayList<>();
+        if (request.yearFrom() != null) {
+            filters.add("from-pub-date:" + request.yearFrom() + "-01-01");
+        }
+        if (request.yearTo() != null) {
+            filters.add("until-pub-date:" + request.yearTo() + "-12-31");
+        }
+        String type = firstCrossrefType(request.workTypes());
+        if (!isBlank(type)) {
+            filters.add("type:" + type);
+        }
+        return String.join(",", filters);
+    }
+
+    private String firstCrossrefType(List<String> workTypes) {
+        if (workTypes == null || workTypes.isEmpty()) {
+            return null;
+        }
+        return switch (workTypes.get(0)) {
+            case "journal_article" -> "journal-article";
+            case "book_chapter" -> "book-chapter";
+            case "conference_paper" -> "proceedings-article";
+            case "book" -> "book";
+            case "dataset" -> "dataset";
+            default -> null;
+        };
     }
 
     private boolean isBlank(String value) {

@@ -6,6 +6,7 @@ import com.aipm.cowriting.application.dto.material.MaterialPreviewResponse;
 import com.aipm.cowriting.application.dto.material.UpdateBibliographicMetadataRequest;
 import com.aipm.cowriting.application.dto.material.UpdateMaterialCategoryRequest;
 import com.aipm.cowriting.application.service.LocalMaterialStorageService;
+import com.aipm.cowriting.application.service.LiteratureCandidateApplicationService;
 import com.aipm.cowriting.application.service.MaterialApplicationService;
 import com.aipm.cowriting.common.api.ApiResponse;
 import com.aipm.cowriting.common.api.PagedResponse;
@@ -47,13 +48,16 @@ public class MaterialController {
 
     private final MaterialApplicationService materialApplicationService;
     private final LocalMaterialStorageService localMaterialStorageService;
+    private final LiteratureCandidateApplicationService literatureCandidateApplicationService;
 
     public MaterialController(
             MaterialApplicationService materialApplicationService,
-            LocalMaterialStorageService localMaterialStorageService
+            LocalMaterialStorageService localMaterialStorageService,
+            LiteratureCandidateApplicationService literatureCandidateApplicationService
     ) {
         this.materialApplicationService = materialApplicationService;
         this.localMaterialStorageService = localMaterialStorageService;
+        this.literatureCandidateApplicationService = literatureCandidateApplicationService;
     }
 
     @PostMapping(value = RestConstants.API_V1 + "/workspaces/{id}/materials", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -64,6 +68,7 @@ public class MaterialController {
             @RequestParam(name = "externalLink", required = false) String externalLink,
             @RequestParam(name = "sourceType") String sourceType,
             @RequestParam(name = "isKeyMaterial", defaultValue = "false") boolean isKeyMaterial,
+            @RequestParam(name = "literatureCandidateId", required = false) UUID literatureCandidateId,
             HttpServletRequest httpServletRequest
     ) {
         boolean emptyFiles = files == null || files.isEmpty();
@@ -91,6 +96,7 @@ public class MaterialController {
                 plainText,
                 externalLink
         );
+        literatureCandidateApplicationService.linkCandidateToMaterial(workspaceId, literatureCandidateId, material.id());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(Map.of("items", List.of(material)), RequestMetaUtil.meta(httpServletRequest)));
     }

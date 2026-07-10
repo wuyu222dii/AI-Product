@@ -45,7 +45,7 @@ public class OpenAiReviewService {
                 {
                   "items": [
                     {
-                      "reviewType": "missing_evidence | requirement_conflict | repetition_issue | logic_gap | factual_risk | citation_missing | citation_format_mismatch | reference_orphan | reference_not_cited | reference_metadata_incomplete",
+                      "reviewType": "missing_evidence | requirement_conflict | repetition_issue | logic_gap | factual_risk | citation_missing | citation_format_mismatch | reference_orphan | reference_not_cited | reference_metadata_incomplete | aigc_style_risk | generic_unsupported_claim | original_evidence_missing",
                       "reviewImpactLevel": "NOTICE | LOCAL_FIX | MUST_CONFIRM",
                       "targetRange": { "start": 0, "end": 120 },
                       "message": "string",
@@ -62,6 +62,8 @@ public class OpenAiReviewService {
                 - Use MUST_CONFIRM only for issues that affect correctness, requirement alignment, or major structure.
                 - Treat unverifiable or invented citations as MUST_CONFIRM.
                 - Treat citation format mismatch or uncited references as LOCAL_FIX unless it affects source authenticity.
+                - Use aigc_style_risk / generic_unsupported_claim / original_evidence_missing only as writing-quality guidance.
+                - Do not claim to bypass AI detection or plagiarism checks; focus on concrete evidence, original cases, data, and academic rigor.
                 - If no issue exists, return an empty items array.
 
                 Requirement snapshot:

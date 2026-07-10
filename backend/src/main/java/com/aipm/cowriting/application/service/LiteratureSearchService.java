@@ -35,19 +35,25 @@ public class LiteratureSearchService {
     private final MaterialRepository materialRepository;
     private final AiSemanticParseResultRepository parseResultRepository;
     private final CrossrefLiteratureClient crossrefLiteratureClient;
+    private final OpenAlexLiteratureClient openAlexLiteratureClient;
+    private final SemanticScholarLiteratureClient semanticScholarLiteratureClient;
 
     public LiteratureSearchService(
             WorkspaceRepository workspaceRepository,
             RequirementSnapshotRepository requirementSnapshotRepository,
             MaterialRepository materialRepository,
             AiSemanticParseResultRepository parseResultRepository,
-            CrossrefLiteratureClient crossrefLiteratureClient
+            CrossrefLiteratureClient crossrefLiteratureClient,
+            OpenAlexLiteratureClient openAlexLiteratureClient,
+            SemanticScholarLiteratureClient semanticScholarLiteratureClient
     ) {
         this.workspaceRepository = workspaceRepository;
         this.requirementSnapshotRepository = requirementSnapshotRepository;
         this.materialRepository = materialRepository;
         this.parseResultRepository = parseResultRepository;
         this.crossrefLiteratureClient = crossrefLiteratureClient;
+        this.openAlexLiteratureClient = openAlexLiteratureClient;
+        this.semanticScholarLiteratureClient = semanticScholarLiteratureClient;
     }
 
     public LiteratureSearchResponse search(UUID workspaceId, LiteratureSearchRequest request) {
@@ -59,25 +65,22 @@ public class LiteratureSearchService {
                 ));
         int limit = normalizeLimit(request == null ? null : request.limit());
         String missingItemType = request == null ? null : request.missingItemType();
-        String query = firstNonBlank(request == null ? null : request.query(), defaultQuery(workspace, missingItemType));
+        String query = firstNonBlank(
+                request == null ? null : request.query(),
+                defaultQuery(workspace, missingItemType, request == null ? null : request.searchIntent())
+        );
+        LiteratureSearchRequest effectiveRequest = request == null
+                ? new LiteratureSearchRequest(query, "crossref", limit, missingItemType, List.of("crossref"), null, null, List.of(), null, null)
+                : request;
         Map<String, String> providerStatus = new LinkedHashMap<>();
-        List<LiteratureSearchItem> items = List.of();
+        List<LiteratureSearchItem> rawItems = new ArrayList<>();
 
-        if (shouldSearchCrossref(request == null ? null : request.source())) {
-            try {
-                items = crossrefLiteratureClient.search(query, limit);
-                providerStatus.put("crossref", items.isEmpty() ? "EMPTY" : "SUCCESS");
-            } catch (InterruptedException ex) {
-                Thread.currentThread().interrupt();
-                providerStatus.put("crossref", "FAILED");
-                items = List.of();
-            } catch (Exception ex) {
-                providerStatus.put("crossref", "FAILED");
-                items = List.of();
-            }
-        } else {
-            providerStatus.put("crossref", "SKIPPED");
+        for (String provider : providers(effectiveRequest)) {
+            rawItems.addAll(searchProvider(provider, query, limit, effectiveRequest, providerStatus));
         }
+        List<LiteratureSearchItem> items = LiteratureQualityService.enrichAndDedupe(rawItems, effectiveRequest).stream()
+                .limit(limit)
+                .toList();
 
         return new LiteratureSearchResponse(
                 query,
@@ -87,8 +90,56 @@ public class LiteratureSearchService {
         );
     }
 
-    private boolean shouldSearchCrossref(String source) {
-        return source == null || source.isBlank() || "crossref".equalsIgnoreCase(source);
+    private List<String> providers(LiteratureSearchRequest request) {
+        if (request.providers() != null && !request.providers().isEmpty()) {
+            return request.providers().stream()
+                    .map(this::normalizeProvider)
+                    .filter(provider -> !provider.isBlank())
+                    .distinct()
+                    .toList();
+        }
+        String legacySource = normalizeProvider(request.source());
+        if (!legacySource.isBlank()) {
+            return List.of(legacySource);
+        }
+        return List.of("crossref", "openalex");
+    }
+
+    private List<LiteratureSearchItem> searchProvider(
+            String provider,
+            String query,
+            int limit,
+            LiteratureSearchRequest request,
+            Map<String, String> providerStatus
+    ) {
+        try {
+            List<LiteratureSearchItem> items = switch (provider) {
+                case "crossref" -> crossrefLiteratureClient.search(query, limit, request);
+                case "openalex" -> openAlexLiteratureClient.search(query, limit, request);
+                case "semantic_scholar" -> semanticScholarLiteratureClient.search(query, limit, request);
+                default -> List.of();
+            };
+            providerStatus.put(provider, items.isEmpty() ? "EMPTY" : "SUCCESS");
+            return items;
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            providerStatus.put(provider, "FAILED");
+            return List.of();
+        } catch (Exception ex) {
+            providerStatus.put(provider, "FAILED");
+            return List.of();
+        }
+    }
+
+    private String normalizeProvider(String provider) {
+        if (provider == null || provider.isBlank()) {
+            return "";
+        }
+        String normalized = provider.trim().toLowerCase().replace("-", "_").replace(" ", "_");
+        if ("semantic".equals(normalized) || "semanticscholar".equals(normalized)) {
+            return "semantic_scholar";
+        }
+        return normalized;
     }
 
     private int normalizeLimit(Integer limit) {
@@ -98,7 +149,7 @@ public class LiteratureSearchService {
         return Math.min(limit, MAX_LIMIT);
     }
 
-    private String defaultQuery(WorkspaceEntity workspace, String missingItemType) {
+    private String defaultQuery(WorkspaceEntity workspace, String missingItemType, String searchIntent) {
         List<String> parts = new ArrayList<>();
         add(parts, workspace.getTitle());
         requirementSnapshotRepository.findFirstByWorkspaceIdOrderByVersionDesc(workspace.getId())
@@ -108,6 +159,7 @@ public class LiteratureSearchService {
         if ("reference_material".equalsIgnoreCase(missingItemType)) {
             add(parts, "research literature");
         }
+        add(parts, intentKeyword(searchIntent));
         if (parts.isEmpty()) {
             return "academic writing research";
         }
@@ -139,6 +191,16 @@ public class LiteratureSearchService {
         if (!parts.contains(normalized)) {
             parts.add(normalized);
         }
+    }
+
+    private String intentKeyword(String searchIntent) {
+        return switch (String.valueOf(searchIntent).toLowerCase()) {
+            case "theory" -> "theoretical framework literature review";
+            case "method" -> "methodology empirical study";
+            case "case" -> "case study";
+            case "data" -> "dataset survey empirical evidence";
+            default -> null;
+        };
     }
 
     private List<ExternalSearchLink> externalLinks(String query) {

@@ -19,6 +19,7 @@ import com.aipm.cowriting.application.dto.material.MaterialResponse;
 import com.aipm.cowriting.application.dto.material.MaterialPreviewResponse;
 import com.aipm.cowriting.application.dto.material.ParseQualityReport;
 import com.aipm.cowriting.application.dto.reference.BibliographicMetadata;
+import com.aipm.cowriting.application.service.LiteratureCandidateApplicationService;
 import com.aipm.cowriting.application.service.LocalMaterialStorageService;
 import com.aipm.cowriting.application.service.MaterialApplicationService;
 import com.aipm.cowriting.common.web.GlobalExceptionHandler;
@@ -56,6 +57,9 @@ class MaterialControllerTest {
 
     @MockBean
     private LocalMaterialStorageService localMaterialStorageService;
+
+    @MockBean
+    private LiteratureCandidateApplicationService literatureCandidateApplicationService;
 
     @TempDir
     private Path tempDir;

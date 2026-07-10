@@ -54,6 +54,7 @@ public class ReviewApplicationService {
     private final AiSemanticParseResultRepository aiSemanticParseResultRepository;
     private final ReviewRecheckLogRepository reviewRecheckLogRepository;
     private final OpenAiReviewService openAiReviewService;
+    private final WritingRiskApplicationService writingRiskApplicationService;
     private final ObjectMapper objectMapper;
 
     public ReviewApplicationService(
@@ -64,6 +65,7 @@ public class ReviewApplicationService {
             AiSemanticParseResultRepository aiSemanticParseResultRepository,
             ReviewRecheckLogRepository reviewRecheckLogRepository,
             OpenAiReviewService openAiReviewService,
+            WritingRiskApplicationService writingRiskApplicationService,
             ObjectMapper objectMapper
     ) {
         this.draftVersionRepository = draftVersionRepository;
@@ -73,6 +75,7 @@ public class ReviewApplicationService {
         this.aiSemanticParseResultRepository = aiSemanticParseResultRepository;
         this.reviewRecheckLogRepository = reviewRecheckLogRepository;
         this.openAiReviewService = openAiReviewService;
+        this.writingRiskApplicationService = writingRiskApplicationService;
         this.objectMapper = objectMapper;
     }
 
@@ -227,6 +230,7 @@ public class ReviewApplicationService {
 
         List<Map<String, Object>> reviewItems = new ArrayList<>(generated.items() == null ? List.of() : generated.items());
         reviewItems.addAll(buildCitationReviewItems(draft.getDraftText(), snapshot.getCitationStyle(), sourceTraceMap));
+        reviewItems.addAll(writingRiskApplicationService.reviewItems(draft));
 
         List<ReviewItemEntity> entities = reviewItems.stream().map(item -> {
             ReviewItemEntity entity = new ReviewItemEntity();

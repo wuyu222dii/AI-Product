@@ -11,8 +11,30 @@ const MISSING_ITEM_LABELS = {
 const LITERATURE_SOURCE_LABELS = {
   "Google Scholar": "Google Scholar",
   CNKI: "知网",
-  Crossref: "Crossref"
+  Crossref: "Crossref",
+  OpenAlex: "OpenAlex",
+  "Semantic Scholar": "Semantic Scholar"
 };
+
+const SEARCH_INTENT_OPTIONS = [
+  { value: "theory", label: "理论基础", hint: "找综述、概念和相关研究" },
+  { value: "method", label: "研究方法", hint: "找方法、模型和实验设计" },
+  { value: "case", label: "案例材料", hint: "找场景、对象和应用案例" },
+  { value: "data", label: "数据实证", hint: "找数据、调查和实证研究" }
+];
+
+const PROVIDER_OPTIONS = [
+  { value: "crossref", label: "Crossref" },
+  { value: "openalex", label: "OpenAlex" },
+  { value: "semantic_scholar", label: "Semantic Scholar" }
+];
+
+const WORK_TYPE_OPTIONS = [
+  { value: "journal_article", label: "期刊论文" },
+  { value: "conference_paper", label: "会议论文" },
+  { value: "book_chapter", label: "书籍章节" },
+  { value: "dataset", label: "数据集" }
+];
 
 function formatMissingItemLabel(item) {
   return item?.label || MISSING_ITEM_LABELS[item?.type] || "材料信息不完整";
@@ -28,6 +50,16 @@ export function MaterialGatePage({ workspace, onEligible, onBackUpload, onError 
   const [literatureSearching, setLiteratureSearching] = useState(false);
   const [literatureError, setLiteratureError] = useState("");
   const [copiedKey, setCopiedKey] = useState("");
+  const [candidateSavingKey, setCandidateSavingKey] = useState("");
+  const [literatureCandidates, setLiteratureCandidates] = useState([]);
+  const [literatureFilters, setLiteratureFilters] = useState({
+    searchIntent: "theory",
+    providers: ["crossref", "openalex"],
+    yearFrom: "",
+    yearTo: "",
+    workTypes: ["journal_article"],
+    languageHint: ""
+  });
 
   useEffect(() => {
     if (!workspace?.id) return;
@@ -57,6 +89,11 @@ export function MaterialGatePage({ workspace, onEligible, onBackUpload, onError 
     return () => {
       cancelled = true;
     };
+  }, [workspace?.id]);
+
+  useEffect(() => {
+    if (!workspace?.id) return;
+    refreshLiteratureCandidates(true);
   }, [workspace?.id]);
 
   const suggestedLiteratureQuery = useMemo(() => {
@@ -108,9 +145,15 @@ export function MaterialGatePage({ workspace, onEligible, onBackUpload, onError 
       setLiteratureError("");
       const response = await api.searchLiterature(workspace.id, {
         query,
-        source: "crossref",
+        source: literatureFilters.providers[0] || "crossref",
         limit: 10,
-        missingItemType: "reference_material"
+        missingItemType: "reference_material",
+        providers: literatureFilters.providers,
+        yearFrom: toOptionalNumber(literatureFilters.yearFrom),
+        yearTo: toOptionalNumber(literatureFilters.yearTo),
+        workTypes: literatureFilters.workTypes,
+        languageHint: literatureFilters.languageHint || null,
+        searchIntent: literatureFilters.searchIntent
       });
       setLiteratureQuery(response.query || query);
       setLiteratureResult(response);
@@ -118,6 +161,30 @@ export function MaterialGatePage({ workspace, onEligible, onBackUpload, onError 
       setLiteratureError(error.message);
     } finally {
       setLiteratureSearching(false);
+    }
+  }
+
+  async function refreshLiteratureCandidates(silent = false) {
+    if (!workspace?.id) return;
+    try {
+      const response = await api.listLiteratureCandidates(workspace.id);
+      setLiteratureCandidates(Array.isArray(response) ? response : []);
+    } catch (error) {
+      if (!silent) onError(error.message);
+    }
+  }
+
+  async function handleSaveCandidate(item, index) {
+    if (!workspace?.id) return;
+    const key = literatureCandidateKey(item, index);
+    try {
+      setCandidateSavingKey(key);
+      await api.saveLiteratureCandidate(workspace.id, item);
+      await refreshLiteratureCandidates();
+    } catch (error) {
+      onError(error.message);
+    } finally {
+      setCandidateSavingKey("");
     }
   }
 
@@ -175,8 +242,13 @@ export function MaterialGatePage({ workspace, onEligible, onBackUpload, onError 
           literatureSearching={literatureSearching}
           literatureError={literatureError}
           copiedKey={copiedKey}
+          literatureFilters={literatureFilters}
+          setLiteratureFilters={setLiteratureFilters}
+          literatureCandidates={literatureCandidates}
+          candidateSavingKey={candidateSavingKey}
           onLiteratureSearch={handleLiteratureSearch}
           onCopyCitation={copyCitation}
+          onSaveCandidate={handleSaveCandidate}
           onBackUpload={onBackUpload}
         />
       )}
@@ -193,8 +265,13 @@ function MaterialInsufficientPanel({
   literatureSearching,
   literatureError,
   copiedKey,
+  literatureFilters,
+  setLiteratureFilters,
+  literatureCandidates,
+  candidateSavingKey,
   onLiteratureSearch,
   onCopyCitation,
+  onSaveCandidate,
   onBackUpload
 }) {
   const hasReferenceGap = (result.missingItems ?? []).some((item) => item.type === "reference_material");
@@ -245,9 +322,15 @@ function MaterialInsufficientPanel({
               placeholder="例如：智能教室 能源管理 机器学习 预测"
             />
           </div>
+          <LiteratureSearchFilters
+            filters={literatureFilters}
+            setFilters={setLiteratureFilters}
+            suggestedLiteratureQuery={suggestedLiteratureQuery}
+            setLiteratureQuery={setLiteratureQuery}
+          />
           <div className="button-row">
             <button className="primary-btn" disabled={literatureSearching}>
-              {literatureSearching ? "检索中..." : "检索 Crossref 文献"}
+              {literatureSearching ? "检索中..." : "检索真实文献线索"}
             </button>
             <button className="ghost-btn" type="button" onClick={() => setLiteratureQuery(suggestedLiteratureQuery)}>
               填入推荐关键词
@@ -271,9 +354,14 @@ function MaterialInsufficientPanel({
         <LiteratureSearchResults
           result={literatureResult}
           copiedKey={copiedKey}
+          candidates={literatureCandidates}
+          candidateSavingKey={candidateSavingKey}
           onCopyCitation={onCopyCitation}
+          onSaveCandidate={onSaveCandidate}
           onBackUpload={onBackUpload}
         />
+
+        <LiteratureCandidateList candidates={literatureCandidates} onBackUpload={onBackUpload} />
       </div>
 
       {(result.recommendedSupplements ?? []).length > 0 && (
@@ -295,7 +383,128 @@ function MaterialInsufficientPanel({
   );
 }
 
-function LiteratureSearchResults({ result, copiedKey, onCopyCitation, onBackUpload }) {
+function LiteratureSearchFilters({ filters, setFilters, suggestedLiteratureQuery, setLiteratureQuery }) {
+  function toggleProvider(provider) {
+    setFilters((current) => {
+      const nextProviders = current.providers.includes(provider)
+        ? current.providers.filter((item) => item !== provider)
+        : [...current.providers, provider];
+      return {
+        ...current,
+        providers: nextProviders.length > 0 ? nextProviders : ["crossref"]
+      };
+    });
+  }
+
+  function toggleWorkType(workType) {
+    setFilters((current) => ({
+      ...current,
+      workTypes: current.workTypes.includes(workType)
+        ? current.workTypes.filter((item) => item !== workType)
+        : [...current.workTypes, workType]
+    }));
+  }
+
+  return (
+    <div className="literature-filter-panel">
+      <div className="literature-filter-head">
+        <div>
+          <strong>推荐检索策略</strong>
+          <p className="muted">先选你缺的材料场景，系统会把关键词和筛选条件一起传给学术元数据源。</p>
+        </div>
+        <button className="ghost-btn" type="button" onClick={() => setLiteratureQuery(suggestedLiteratureQuery)}>
+          使用推荐词
+        </button>
+      </div>
+
+      <div className="intent-chip-grid">
+        {SEARCH_INTENT_OPTIONS.map((option) => (
+          <button
+            type="button"
+            className={`intent-chip ${filters.searchIntent === option.value ? "selected" : ""}`}
+            key={option.value}
+            onClick={() => setFilters((current) => ({ ...current, searchIntent: option.value }))}
+          >
+            <strong>{option.label}</strong>
+            <span>{option.hint}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="literature-filter-grid">
+        <div className="field">
+          <label>检索来源</label>
+          <div className="inline-checks">
+            {PROVIDER_OPTIONS.map((option) => (
+              <label className="inline-check" key={option.value}>
+                <input
+                  type="checkbox"
+                  checked={filters.providers.includes(option.value)}
+                  onChange={() => toggleProvider(option.value)}
+                />
+                {option.label}
+              </label>
+            ))}
+          </div>
+        </div>
+        <div className="field">
+          <label>文献类型</label>
+          <div className="inline-checks">
+            {WORK_TYPE_OPTIONS.map((option) => (
+              <label className="inline-check" key={option.value}>
+                <input
+                  type="checkbox"
+                  checked={filters.workTypes.includes(option.value)}
+                  onChange={() => toggleWorkType(option.value)}
+                />
+                {option.label}
+              </label>
+            ))}
+          </div>
+        </div>
+        <div className="field">
+          <label>年份范围</label>
+          <div className="year-range-row">
+            <input
+              value={filters.yearFrom}
+              onChange={(event) => setFilters((current) => ({ ...current, yearFrom: event.target.value }))}
+              placeholder="起始年"
+              inputMode="numeric"
+            />
+            <span>至</span>
+            <input
+              value={filters.yearTo}
+              onChange={(event) => setFilters((current) => ({ ...current, yearTo: event.target.value }))}
+              placeholder="结束年"
+              inputMode="numeric"
+            />
+          </div>
+        </div>
+        <div className="field">
+          <label>语言倾向</label>
+          <select
+            value={filters.languageHint}
+            onChange={(event) => setFilters((current) => ({ ...current, languageHint: event.target.value }))}
+          >
+            <option value="">不限</option>
+            <option value="zh">优先中文</option>
+            <option value="en">优先英文</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LiteratureSearchResults({
+  result,
+  copiedKey,
+  candidates,
+  candidateSavingKey,
+  onCopyCitation,
+  onSaveCandidate,
+  onBackUpload
+}) {
   if (!result) {
     return (
       <div className="literature-empty-state">
@@ -305,19 +514,23 @@ function LiteratureSearchResults({ result, copiedKey, onCopyCitation, onBackUplo
     );
   }
 
-  const crossrefStatus = result.providerStatus?.crossref;
   const items = result.items ?? [];
+  const savedKeys = new Set((candidates ?? []).map((item) => item.duplicateGroupKey).filter(Boolean));
 
   return (
     <div className="literature-results">
       <div className="literature-results-head">
         <div>
-          <strong>Crossref 候选文献</strong>
+          <strong>站内候选文献</strong>
           <p className="muted">检索词：{result.query}</p>
         </div>
-        <span className={`status-badge ${crossrefStatus === "SUCCESS" ? "ready" : "local_fix"}`}>
-          {formatProviderStatus(crossrefStatus)}
-        </span>
+        <div className="provider-status-row">
+          {Object.entries(result.providerStatus ?? {}).map(([provider, status]) => (
+            <span className={`status-badge ${status === "SUCCESS" ? "ready" : "local_fix"}`} key={provider}>
+              {formatProviderName(provider)}：{formatProviderStatus(status)}
+            </span>
+          ))}
+        </div>
       </div>
 
       {items.length === 0 ? (
@@ -328,13 +541,30 @@ function LiteratureSearchResults({ result, copiedKey, onCopyCitation, onBackUplo
       ) : (
         <div className="literature-result-list">
           {items.map((item, index) => {
-            const key = `${item.doi || item.title || index}-${index}`;
+            const key = literatureCandidateKey(item, index);
+            const alreadySaved = Boolean(item.duplicateGroupKey && savedKeys.has(item.duplicateGroupKey));
             return (
               <article className="literature-card" key={key}>
                 <div className="literature-card-main">
-                  <span className="hero-chip">{item.provider}</span>
+                  <div className="literature-card-meta-row">
+                    <span className="hero-chip">{item.provider}</span>
+                    <span className={`quality-chip ${qualityClass(item.qualityLabel)}`}>
+                      {item.qualityLabel || "需人工确认"} · {item.qualityScore ?? "-"} 分
+                    </span>
+                  </div>
                   <h5>{item.title}</h5>
                   <p className="muted">{referenceMetaLine(item)}</p>
+                  {item.recommendedUse && <p className="recommended-use">{item.recommendedUse}</p>}
+                  {(item.matchedReasons ?? []).length > 0 && (
+                    <div className="reason-chip-row">
+                      {item.matchedReasons.map((reason) => (
+                        <span key={reason}>{reason}</span>
+                      ))}
+                    </div>
+                  )}
+                  {(item.missingMetadata ?? []).length > 0 && (
+                    <p className="metadata-warning">待人工确认：{item.missingMetadata.join("、")}</p>
+                  )}
                   {item.abstractSnippet && <p className="literature-abstract">{item.abstractSnippet}</p>}
                   {item.citationPreview && <p className="literature-citation">{item.citationPreview}</p>}
                 </div>
@@ -347,6 +577,14 @@ function LiteratureSearchResults({ result, copiedKey, onCopyCitation, onBackUplo
                   <button className="ghost-btn" type="button" onClick={() => onCopyCitation(item, index)}>
                     {copiedKey === key ? "已复制" : "复制 DOI / 引用"}
                   </button>
+                  <button
+                    className="ghost-btn"
+                    type="button"
+                    onClick={() => onSaveCandidate(item, index)}
+                    disabled={alreadySaved || candidateSavingKey === key}
+                  >
+                    {alreadySaved ? "已加入清单" : candidateSavingKey === key ? "加入中..." : "加入待下载"}
+                  </button>
                   <button className="secondary-btn" type="button" onClick={onBackUpload}>
                     我已下载，去上传
                   </button>
@@ -356,6 +594,56 @@ function LiteratureSearchResults({ result, copiedKey, onCopyCitation, onBackUplo
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+function LiteratureCandidateList({ candidates, onBackUpload }) {
+  if (!candidates?.length) {
+    return null;
+  }
+
+  return (
+    <div className="candidate-download-panel">
+      <div className="candidate-download-head">
+        <div>
+          <strong>待下载清单</strong>
+          <p className="muted">这些只是文献线索，还不会参与正文生成。下载原文后请回上传页关联候选并完成 AI 解析。</p>
+        </div>
+        <button className="ghost-btn" type="button" onClick={onBackUpload}>
+          去上传原文
+        </button>
+      </div>
+      <div className="candidate-download-list">
+        {candidates.map((candidate) => (
+          <article className="candidate-download-card" key={candidate.id}>
+            <div>
+              <div className="literature-card-meta-row">
+                <span className="hero-chip">{candidate.provider}</span>
+                <span className={`quality-chip ${qualityClass(candidate.qualityLabel)}`}>
+                  {candidate.qualityLabel || "需人工确认"} · {candidate.qualityScore ?? "-"} 分
+                </span>
+                <span className={`status-pill ${candidate.status === "LINKED" ? "success" : "pending"}`}>
+                  {candidate.status === "LINKED" ? "已关联上传材料" : "待下载原文"}
+                </span>
+              </div>
+              <h5>{candidate.title}</h5>
+              <p className="muted">{referenceMetaLine(candidate)}</p>
+              {candidate.recommendedUse && <p className="recommended-use">{candidate.recommendedUse}</p>}
+            </div>
+            <div className="candidate-download-actions">
+              {candidate.url && (
+                <a className="ghost-btn" href={candidate.url} target="_blank" rel="noreferrer">
+                  打开来源
+                </a>
+              )}
+              <button className="secondary-btn" type="button" onClick={onBackUpload}>
+                我已下载，去上传
+              </button>
+            </div>
+          </article>
+        ))}
+      </div>
     </div>
   );
 }
@@ -395,4 +683,33 @@ function formatProviderStatus(status) {
     default:
       return "待检索";
   }
+}
+
+function formatProviderName(provider) {
+  switch (provider) {
+    case "crossref":
+      return "Crossref";
+    case "openalex":
+      return "OpenAlex";
+    case "semantic_scholar":
+      return "Semantic Scholar";
+    default:
+      return provider;
+  }
+}
+
+function toOptionalNumber(value) {
+  if (value == null || String(value).trim() === "") return null;
+  const parsed = Number.parseInt(String(value).trim(), 10);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function literatureCandidateKey(item, index) {
+  return `${item.duplicateGroupKey || item.doi || item.title || index}-${index}`;
+}
+
+function qualityClass(label) {
+  if (label === "推荐引用") return "quality-strong";
+  if (label === "信息不完整") return "quality-weak";
+  return "quality-check";
 }

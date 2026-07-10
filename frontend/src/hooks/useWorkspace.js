@@ -39,6 +39,8 @@ export function useWorkspace({ workspace, draft, onDraftChange, onError }) {
   const [evidenceSummary, setEvidenceSummary] = useState(null);
   const [evidenceLoading, setEvidenceLoading] = useState(false);
   const [evidenceRebuildJob, setEvidenceRebuildJob] = useState(null);
+  const [writingRisks, setWritingRisks] = useState(null);
+  const [writingRisksLoading, setWritingRisksLoading] = useState(false);
   const [coWritePreview, setCoWritePreview] = useState(null);
   const [applyingPreview, setApplyingPreview] = useState(false);
   const [discardingPreview, setDiscardingPreview] = useState(false);
@@ -48,6 +50,7 @@ export function useWorkspace({ workspace, draft, onDraftChange, onError }) {
     setDraftText(draft?.draftText ?? "");
     setSelectedRange(null);
     setCoWritePreview(null);
+    setWritingRisks(null);
   }, [draft?.id]);
 
   async function loadVersions(workspaceId) {
@@ -90,6 +93,23 @@ export function useWorkspace({ workspace, draft, onDraftChange, onError }) {
     }
   }
 
+  async function loadWritingRisks(draftId, cancelled = false) {
+    if (!draftId) return null;
+    try {
+      setWritingRisksLoading(true);
+      const data = await api.getWritingRisks(draftId);
+      if (!cancelled) {
+        setWritingRisks(data);
+      }
+      return data;
+    } catch (error) {
+      if (!cancelled) onError(error.message);
+      return null;
+    } finally {
+      if (!cancelled) setWritingRisksLoading(false);
+    }
+  }
+
   async function loadMaterials(workspaceId, cancelled = false) {
     if (!workspaceId) return;
     try {
@@ -124,6 +144,7 @@ export function useWorkspace({ workspace, draft, onDraftChange, onError }) {
         await loadRequirementSnapshot(workspace.id, cancelled);
         await loadReviews(draft.id, cancelled);
         await loadEvidenceBindings(draft.id, cancelled);
+        await loadWritingRisks(draft.id, cancelled);
       } catch (error) {
         if (!cancelled) onError(error.message);
       }
@@ -230,6 +251,7 @@ export function useWorkspace({ workspace, draft, onDraftChange, onError }) {
         updated.id,
         `版本 v${updated.versionNo} 的正文修改已保存，可信链正在后台重建。`
       );
+      await loadWritingRisks(updated.id);
       setLatestFeedback(`版本 v${updated.versionNo} 已保存，可信链已重建：${evidence?.missingParagraphIds?.length ?? 0} 个段落仍缺少明确来源。`);
     } catch (error) {
       onError(error.message);
@@ -343,6 +365,7 @@ export function useWorkspace({ workspace, draft, onDraftChange, onError }) {
       await loadVersions(workspace.id);
       await loadReviews(nextDraft.id);
       await loadEvidenceBindings(nextDraft.id);
+      await loadWritingRisks(nextDraft.id);
       const recheck = coWritePreview.diffSummary?.recheckSuggestion;
       const recheckText = recheck?.shouldRecheck
         ? `建议复查 ${recheck.reviewItemCount || "相关"} 个待处理审查项。`
@@ -390,6 +413,31 @@ export function useWorkspace({ workspace, draft, onDraftChange, onError }) {
     }
     setSelectedRange(range);
     setLatestFeedback(`已定位可信链「${binding.paragraphId || "段落"}」对应的正文范围。`);
+  }
+
+  function handleLocateWritingRisk(risk) {
+    const range = clampRange(risk?.targetRange, draftText);
+    if (!range) {
+      setLatestFeedback("这条原创补强提示暂时没有可定位范围，请在正文中人工核对对应段落。");
+      return;
+    }
+    setSelectedRange(range);
+    setLatestFeedback(`已定位「${formatReviewType(risk.riskType)}」对应的正文段落。`);
+  }
+
+  async function handleFixWritingRisk(risk) {
+    const normalized = clampRange(risk?.targetRange, draftText);
+    if (normalized) {
+      setSelectedRange(normalized);
+    }
+    const instruction = risk?.coWriteInstruction || "请基于已上传材料补充原创案例、数据或实证支撑；材料不足时列出需要用户补充的内容，不要编造。";
+    await handleCoWrite("add_original_evidence", instruction, normalized, {
+      rewriteDepth: "balanced",
+      keepCitations: true,
+      keepData: true,
+      noNewSources: true,
+      keepStudentVoice: true
+    });
   }
 
   function handleApplySelectedCoWriteDiffRows(rows) {
@@ -448,6 +496,7 @@ export function useWorkspace({ workspace, draft, onDraftChange, onError }) {
       await loadVersions(workspace.id);
       await loadReviews(restored.id);
       await loadEvidenceBindings(restored.id);
+      await loadWritingRisks(restored.id);
       setLatestFeedback(`已撤回并恢复到版本 v${restored.versionNo}`);
     } catch (error) {
       onError(error.message);
@@ -521,6 +570,8 @@ export function useWorkspace({ workspace, draft, onDraftChange, onError }) {
     evidenceSummary,
     evidenceLoading,
     evidenceRebuildJob,
+    writingRisks,
+    writingRisksLoading,
     coWritePreview,
     applyingPreview,
     discardingPreview,
@@ -534,6 +585,8 @@ export function useWorkspace({ workspace, draft, onDraftChange, onError }) {
     handleUpdateEvidenceBindingStatus,
     handlePreviewMaterial,
     handleLocateEvidence,
+    handleLocateWritingRisk,
+    handleFixWritingRisk,
     handleInsertCitation,
     handleKnowledgeSearch,
     handleAcceptCurrentVersion,

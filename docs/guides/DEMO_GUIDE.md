@@ -11,10 +11,10 @@
 5. 执行材料充足性检查；若材料不足，可直接进入文献补充入口。
 6. 生成真实初稿。
 7. 构建项目知识库并查看可信链。
-8. 在工作台中查看可信链覆盖率、引用一致性和原始材料预览入口。
+8. 在工作台中查看可信链覆盖率、引用一致性、原始材料预览入口和原创补强风险。
 9. 生成共写预览，逐段接受或确认后应用为新版本。
 10. 查看真实审查结果，发起申诉或手动复查。
-11. 导出真实 `docx / pdf`，并查看交付确认、参考文献风险和正文表达风险提示。
+11. 导出真实 `docx / pdf`，并查看交付确认、参考文献风险、可信链风险和原创实证 / AI 写作味风险提示。
 
 当前已接真的核心能力：
 
@@ -25,11 +25,12 @@
 - 真实 AI 语义解析。
 - 真实解析质量清单与补全引导。
 - 真实材料充足性检查。
-- 真实材料不足文献补充入口：Crossref 站内候选文献、Google Scholar / 知网外部检索入口。
+- 真实材料不足文献补充增强：Crossref / OpenAlex / Semantic Scholar 站内候选文献、质量评分、待下载清单、Google Scholar / 知网外部检索入口。
 - 真实初稿生成。
 - 真实项目知识库。
 - 真实段落级材料可信链。
 - 真实材料覆盖率评分与引用一致性检查。
+- 真实原创实证补强：段落级 AI 写作味风险、空泛论证和缺实证提示。
 - 真实共写预览后应用。
 - 真实共写逐段接受、冲突提示和审查项关联落库。
 - 真实审查 / 复审。
@@ -104,7 +105,7 @@ npm run test
 
 当前 MVP 验证口径：
 
-- 后端 `55` 个 service / controller 测试通过。
+- 后端 `62` 个 service / controller 测试通过。
 - 前端 `npm run test` 会执行生产构建与 MVP smoke check。
 
 ## 5. 推荐演示路径
@@ -121,14 +122,18 @@ npm run test
 6. 查看每份材料的解析质量清单。
 7. 若提示缺少老师要求、文献信息或研究证据，点击“填入补充说明”并重新解析。
 8. 进入材料检查。
-9. 若提示缺少参考资料，在材料不足页使用“去找可引用文献”检索 Crossref，或打开 Google Scholar / 知网外部入口。
-10. 从候选文献中打开来源、复制 DOI / 引用信息，用自己的学校账号下载原文。
-11. 返回上传页补传下载后的文献，完成 AI 解析后重新执行材料检查。
-12. 若材料充足，生成初稿。
-13. 在工作台查看可信链覆盖率和引用一致性，打开原始材料预览入口。
-14. 生成共写预览，查看冲突提示，逐段接受或应用新版本。
-15. 查看审查项、发起申诉或复查。
-16. 导出 docx 或 pdf。
+9. 若提示缺少参考资料，在材料不足页使用“去找可引用文献”选择理论基础 / 研究方法 / 案例 / 数据等检索策略。
+10. 使用年份、文献类型和来源筛选检索 Crossref / OpenAlex / Semantic Scholar，查看质量评分、匹配理由和缺失元数据。
+11. 把合适的候选加入“待下载清单”，打开来源或外部 Google Scholar / 知网入口，用自己的学校账号下载原文。
+12. 返回上传页补传下载后的文献，并在“关联待下载候选文献”里选择对应候选。
+13. 完成 AI 解析后重新执行材料检查。
+14. 若材料充足，生成初稿。
+15. 在工作台查看可信链覆盖率和引用一致性，打开原始材料预览入口。
+16. 切到“原创补强”页签，查看空泛论证或原创实证不足段落，并定位到正文。
+17. 点击“用已有材料补强”，生成共写预览；材料不足时观察 AI 给出的补充清单。
+18. 查看冲突提示，逐段接受或应用新版本。
+19. 查看审查项、发起申诉或复查。
+20. 导出 docx 或 pdf。
 
 ### 路径 B：文件上传演示
 
@@ -177,7 +182,11 @@ npm run test
 - 明确告诉用户是否可以生成。
 - 材料不足时给出缺失项和补充建议。
 - 缺少参考资料时提供“去找可引用文献”入口。
-- 支持站内检索 Crossref 公开元数据候选文献。
+- 支持推荐检索策略：理论基础、研究方法、案例材料、数据实证。
+- 支持站内检索 Crossref / OpenAlex / Semantic Scholar 公开元数据候选文献。
+- 支持年份范围、文献类型、语言倾向和检索来源筛选。
+- 支持候选质量评分、推荐引用 / 需人工确认 / 信息不完整标签、匹配理由和缺失元数据提示。
+- 支持把候选加入“待下载清单”，下载原文后回上传页关联候选。
 - 支持一键打开 Google Scholar / 知网外部检索页，学生自行登录学校账号下载原文。
 - 候选文献可以打开来源、复制 DOI / 引用信息，并引导回上传页补传解析。
 
@@ -191,6 +200,7 @@ npm run test
 
 - 中间正文为主。
 - 可信链地图展示正文段落、证据片段、原始材料、引用信息、覆盖率评分和引用一致性提示。
+- 原创补强页签展示段落级风险分、AI 写作味风险、空泛论证和原创实证不足，并提供“定位段落 / 用已有材料补强”动作。
 - 证据卡可打开原始材料预览入口，文本材料展示摘要，文件材料打开下载 / 预览地址。
 - AI 共写默认先生成预览，不直接覆盖正文。
 - 预览抽屉展示差异摘要、修改理由、冲突提示、逐段接受和可能关联的审查项。
@@ -202,7 +212,7 @@ npm run test
 - 发起真实导出。
 - 获取真实下载链接。
 - 查看交付确认。
-- 检查参考文献数量、元数据完整性、可信链覆盖率、引用一致性和正文表达风险提示。
+- 检查参考文献数量、元数据完整性、可信链覆盖率、引用一致性和原创实证 / AI 写作味风险提示。
 
 ## 7. 当前适合怎样演示
 
@@ -223,7 +233,7 @@ npm run test
 
 当前版本定位：
 
-`MVP 阶段 100% 收口 + v1.6 可信交付增强，适合做完整功能演示和产品验证的 Demo`
+`MVP 阶段 100% 收口 + v1.9 文献补充增强，适合做完整功能演示和产品验证的 Demo`
 
 ## 8. 常见问题
 
@@ -278,6 +288,8 @@ npm run test
 - [MaterialController.java](../../backend/src/main/java/com/aipm/cowriting/interfaces/rest/MaterialController.java)
 - [MaterialApplicationService.java](../../backend/src/main/java/com/aipm/cowriting/application/service/MaterialApplicationService.java)
 - [ParseQualityService.java](../../backend/src/main/java/com/aipm/cowriting/application/service/ParseQualityService.java)
+- [WritingRiskApplicationService.java](../../backend/src/main/java/com/aipm/cowriting/application/service/WritingRiskApplicationService.java)
+- [WritingRiskController.java](../../backend/src/main/java/com/aipm/cowriting/interfaces/rest/WritingRiskController.java)
 - [OpenAiSemanticParsingService.java](../../backend/src/main/java/com/aipm/cowriting/application/service/OpenAiSemanticParsingService.java)
 - [OpenAiDraftGenerationService.java](../../backend/src/main/java/com/aipm/cowriting/application/service/OpenAiDraftGenerationService.java)
 - [OpenAiCoWriteService.java](../../backend/src/main/java/com/aipm/cowriting/application/service/OpenAiCoWriteService.java)

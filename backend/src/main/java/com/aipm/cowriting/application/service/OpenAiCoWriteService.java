@@ -357,6 +357,7 @@ public class OpenAiCoWriteService {
     private String actionGuidance(String action) {
         return switch (action) {
             case "add_evidence" -> "Add or strengthen evidence for the selected claim. Prefer concrete source-linked wording and do not invent citations.";
+            case "add_original_evidence" -> "Strengthen the selected paragraph with original empirical support from uploaded materials only. Prefer concrete cases, data, questionnaire/interview findings, experiment results, or source-linked evidence. If the current materials are insufficient, state exactly what the student must upload or supplement; do not invent cases, numbers, citations, or fieldwork.";
             case "adjust_structure" -> "Improve paragraph order, topic sentences, transitions, and argumentative hierarchy without changing the core conclusion.";
             case "reduce_repetition" -> "Remove information repetition while preserving necessary structural recap in introductions, section summaries, and conclusions.";
             case "improve_expression" -> "Make the prose clearer, more natural, and more student-authored; reduce generic AI tone and keep academic restraint.";

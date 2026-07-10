@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../services/api";
 
 export function UploadPage({ workspace, onContinue, onError }) {
@@ -10,8 +10,31 @@ export function UploadPage({ workspace, onContinue, onError }) {
   const [draggingFiles, setDraggingFiles] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [uploadSummary, setUploadSummary] = useState(null);
+  const [literatureCandidates, setLiteratureCandidates] = useState([]);
+  const [selectedCandidateId, setSelectedCandidateId] = useState("");
   const fileInputRef = useRef(null);
   const dragDepthRef = useRef(0);
+
+  useEffect(() => {
+    if (!workspace?.id) return;
+    let cancelled = false;
+    async function loadCandidates() {
+      try {
+        const response = await api.listLiteratureCandidates(workspace.id);
+        if (!cancelled) {
+          setLiteratureCandidates(Array.isArray(response) ? response : []);
+        }
+      } catch {
+        if (!cancelled) {
+          setLiteratureCandidates([]);
+        }
+      }
+    }
+    loadCandidates();
+    return () => {
+      cancelled = true;
+    };
+  }, [workspace?.id]);
 
   const totalPendingCount = useMemo(() => {
     let count = pendingFiles.length;
@@ -96,12 +119,15 @@ export function UploadPage({ workspace, onContinue, onError }) {
     setPendingFiles((current) => current.filter((item) => item.localId !== localId));
   }
 
-  async function uploadPendingFile(item) {
+  async function uploadPendingFile(item, literatureCandidateId = "") {
     updateFile(item.localId, (current) => ({ ...current, status: "uploading", error: "" }));
     const formData = new FormData();
     formData.append("files", item.file);
     formData.append("sourceType", "upload");
     formData.append("isKeyMaterial", String(item.isKeyMaterial));
+    if (literatureCandidateId) {
+      formData.append("literatureCandidateId", literatureCandidateId);
+    }
     try {
       const result = await api.uploadMaterials(workspace.id, formData);
       updateFile(item.localId, (current) => ({
@@ -136,12 +162,20 @@ export function UploadPage({ workspace, onContinue, onError }) {
 
       let successCount = 0;
       let failedCount = 0;
+      let candidateIdForNextUpload = selectedCandidateId;
+
+      function appendCandidateOnce(formData) {
+        if (!candidateIdForNextUpload) return;
+        formData.append("literatureCandidateId", candidateIdForNextUpload);
+        candidateIdForNextUpload = "";
+      }
 
       if (plainText.trim()) {
         const formData = new FormData();
         formData.append("plainText", plainText.trim());
         formData.append("sourceType", "pasted_text");
         formData.append("isKeyMaterial", String(textIsKey));
+        appendCandidateOnce(formData);
         try {
           await api.uploadMaterials(workspace.id, formData);
           successCount += 1;
@@ -156,6 +190,7 @@ export function UploadPage({ workspace, onContinue, onError }) {
         formData.append("externalLink", externalLink.trim());
         formData.append("sourceType", "external_link");
         formData.append("isKeyMaterial", String(linkIsKey));
+        appendCandidateOnce(formData);
         try {
           await api.uploadMaterials(workspace.id, formData);
           successCount += 1;
@@ -166,7 +201,8 @@ export function UploadPage({ workspace, onContinue, onError }) {
       }
 
       for (const item of pendingFiles) {
-        const success = await uploadPendingFile(item);
+        const success = await uploadPendingFile(item, candidateIdForNextUpload);
+        candidateIdForNextUpload = "";
         if (success) {
           successCount += 1;
         } else {
@@ -380,6 +416,24 @@ export function UploadPage({ workspace, onContinue, onError }) {
             <p className="muted">
               提交后不会直接生成正文，会先进入“解析质量清单”，让你确认 AI 是否理解正确。
             </p>
+            {literatureCandidates.length > 0 && (
+              <div className="field candidate-link-field">
+                <label>关联待下载候选文献（可选）</label>
+                <select
+                  value={selectedCandidateId}
+                  onChange={(event) => setSelectedCandidateId(event.target.value)}
+                >
+                  <option value="">本次上传不关联候选</option>
+                  {literatureCandidates.map((candidate) => (
+                    <option key={candidate.id} value={candidate.id} disabled={candidate.status === "LINKED"}>
+                      {candidate.status === "LINKED" ? "已关联｜" : "待下载｜"}
+                      {candidate.title}
+                    </option>
+                  ))}
+                </select>
+                <small className="muted">适合从材料不足页加入清单后，下载原文再上传。候选本身不会直接参与生成。</small>
+              </div>
+            )}
             {uploadSummary && (
               <div className="mini-card">
                 <strong>上传结果</strong>

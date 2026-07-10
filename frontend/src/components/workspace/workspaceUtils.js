@@ -295,7 +295,10 @@ export function buildReviewInstruction(review) {
     citation_format_mismatch: "请按当前要求统一引用格式，不改变事实和来源含义。",
     reference_orphan: "请标出需要确认来源的引用，并避免保留无法追溯的引用。",
     reference_not_cited: "请把参考文献与正文论点建立对应关系，或提示删除未使用条目。",
-    reference_metadata_incomplete: "请提示用户先补全文献信息，不要自行编造作者、年份或题名。"
+    reference_metadata_incomplete: "请提示用户先补全文献信息，不要自行编造作者、年份或题名。",
+    aigc_style_risk: "请减少模板化套话，补入更具体的研究对象、情境或材料依据。",
+    generic_unsupported_claim: "请把空泛判断改成具体场景、数据或案例支撑的论证。",
+    original_evidence_missing: "请只基于已上传材料补充原创实证；材料不足时列出需要用户补充的案例、数据或调研信息。"
   }[type] || "请根据审查意见进行局部修正。";
   return [message, fix, action].filter(Boolean).join("\n");
 }
@@ -303,6 +306,7 @@ export function buildReviewInstruction(review) {
 export function actionForReview(review) {
   const type = review?.reviewType;
   if (type === "missing_evidence") return "add_evidence";
+  if (type === "aigc_style_risk" || type === "generic_unsupported_claim" || type === "original_evidence_missing") return "add_original_evidence";
   if (type === "citation_missing" || type === "reference_orphan" || type === "reference_not_cited") return "add_evidence";
   if (type === "citation_format_mismatch" || type === "reference_metadata_incomplete") return "adjust_structure";
   if (type === "repetition_issue") return "reduce_repetition";
@@ -321,7 +325,10 @@ export function summarizeReviewBasis(review) {
     citation_format_mismatch: "系统会对照老师要求或导出设置，检查 APA 与 GB/T 7714 是否混用。",
     reference_orphan: "系统会检查正文引用是否能对应到已上传并解析的材料，避免疑似编造来源。",
     reference_not_cited: "系统会检查参考文献区是否存在正文未实际引用的条目。",
-    reference_metadata_incomplete: "系统会检查已引用材料是否缺少作者、年份、题名等关键文献信息。"
+    reference_metadata_incomplete: "系统会检查已引用材料是否缺少作者、年份、题名等关键文献信息。",
+    aigc_style_risk: "系统会检查模板化表达、泛化总结和缺少具体对象的段落。",
+    generic_unsupported_claim: "系统会检查抽象判断是否缺少具体案例、数据或真实材料依据。",
+    original_evidence_missing: "系统会检查较长论证段是否缺少引用、数据、案例或原创实证线索。"
   };
   return messages[review?.reviewType] || "系统会结合正文、要求快照和来源追溯给出该项判断。";
 }
@@ -353,7 +360,10 @@ export function reviewEvidenceChecklist(review) {
     requirement_conflict: ["优先对照老师要求快照。", "如果老师要求本身模糊，建议补录要求后再复查。"],
     repetition_issue: ["区分必要的结构性回扣和真正的信息重复。", "如属于章节小结或结论回顾，可申诉保留。"],
     citation_format_mismatch: ["优先确认当前导出引用格式。", "建议统一 APA 或 GB/T 7714，不要混用。"],
-    reference_metadata_incomplete: ["优先补全作者、年份、题名、期刊/出版社和链接。", "不要让 AI 自行编造缺失文献信息。"]
+    reference_metadata_incomplete: ["优先补全作者、年份、题名、期刊/出版社和链接。", "不要让 AI 自行编造缺失文献信息。"],
+    aigc_style_risk: ["优先减少空泛套话和万能总结。", "如果缺少具体材料，建议先补充真实案例或数据。"],
+    generic_unsupported_claim: ["优先把抽象判断改成具体对象、材料证据和分析解释。", "不要为了自然化而编造不存在的事实。"],
+    original_evidence_missing: ["优先补充问卷、访谈、实验、课程案例或真实文献依据。", "已有材料不足时，应先上传或补充说明，再生成修改预览。"]
   }[type] || ["结合正文、老师要求和材料可信链人工确认。"];
   return [...typeSpecific, ...common];
 }
@@ -511,6 +521,9 @@ export function explainCoWriteChange(row, preview) {
     }
     return "删除理由：AI 判断该句可能与本次目标不强相关，应用前建议人工确认。";
   }
+  if (action.includes("original") || instruction.includes("原创") || instruction.includes("实证")) {
+    return "新增理由：尝试用已有材料补充具体案例、数据或调研依据，降低空泛论证。";
+  }
   if (action.includes("evidence") || instruction.includes("证据") || instruction.includes("引用")) {
     return "新增理由：补强论点支撑或让证据与正文关系更清楚。";
   }
@@ -607,6 +620,7 @@ function rangesOverlap(left, right) {
 function coWriteReviewTypeScore(action, reviewType) {
   const normalizedAction = String(action || "");
   const normalizedType = String(reviewType || "");
+  if (normalizedAction.includes("original") && ["aigc_style_risk", "generic_unsupported_claim", "original_evidence_missing"].includes(normalizedType)) return 2;
   if (normalizedAction.includes("evidence") && ["missing_evidence", "citation_missing", "reference_not_cited"].includes(normalizedType)) return 2;
   if (normalizedAction.includes("structure") && ["logic_gap", "requirement_conflict"].includes(normalizedType)) return 2;
   if (normalizedAction.includes("reduce") && normalizedType === "repetition_issue") return 2;

@@ -1,6 +1,7 @@
 package com.aipm.cowriting.application.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -42,6 +43,10 @@ class LiteratureSearchServiceTest {
     private AiSemanticParseResultRepository parseResultRepository;
     @Mock
     private CrossrefLiteratureClient crossrefLiteratureClient;
+    @Mock
+    private OpenAlexLiteratureClient openAlexLiteratureClient;
+    @Mock
+    private SemanticScholarLiteratureClient semanticScholarLiteratureClient;
 
     private LiteratureSearchService literatureSearchService;
 
@@ -52,7 +57,9 @@ class LiteratureSearchServiceTest {
                 requirementSnapshotRepository,
                 materialRepository,
                 parseResultRepository,
-                crossrefLiteratureClient
+                crossrefLiteratureClient,
+                openAlexLiteratureClient,
+                semanticScholarLiteratureClient
         );
     }
 
@@ -71,22 +78,27 @@ class LiteratureSearchServiceTest {
         when(requirementSnapshotRepository.findFirstByWorkspaceIdOrderByVersionDesc(workspaceId)).thenReturn(Optional.of(snapshot));
         when(materialRepository.findByWorkspaceIdOrderByCreatedAtDesc(workspaceId)).thenReturn(List.of(material));
         when(parseResultRepository.findByMaterialIdIn(List.of(material.getId()))).thenReturn(List.of(parseResult));
-        when(crossrefLiteratureClient.search(anyString(), eq(5))).thenReturn(List.of(item()));
+        when(crossrefLiteratureClient.search(anyString(), eq(5), any(LiteratureSearchRequest.class)))
+                .thenReturn(List.of(item("Crossref", "10.1234/example")));
 
         var response = literatureSearchService.search(
                 workspaceId,
-                new LiteratureSearchRequest(null, "crossref", 5, "reference_material")
+                request(null, "crossref", 5, "reference_material", List.of("crossref"), "theory")
         );
 
         ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
-        verify(crossrefLiteratureClient).search(queryCaptor.capture(), eq(5));
+        verify(crossrefLiteratureClient).search(queryCaptor.capture(), eq(5), any(LiteratureSearchRequest.class));
         assertThat(queryCaptor.getValue())
                 .contains("智能教室能源管理系统")
                 .contains("机器学习预测高校教室能耗")
                 .contains("已有材料强调物联网采集和能耗预测模型")
-                .contains("research literature");
+                .contains("research literature")
+                .contains("theoretical framework");
         assertThat(response.items()).hasSize(1);
         assertThat(response.providerStatus()).containsEntry("crossref", "SUCCESS");
+        assertThat(response.items().get(0).qualityScore()).isGreaterThanOrEqualTo(80);
+        assertThat(response.items().get(0).qualityLabel()).isEqualTo("推荐引用");
+        assertThat(response.items().get(0).recommendedUse()).contains("理论基础");
         assertThat(response.externalSearchLinks()).extracting("provider")
                 .contains("Google Scholar", "CNKI", "Crossref");
     }
@@ -95,11 +107,12 @@ class LiteratureSearchServiceTest {
     void searchShouldReturnExternalLinksWhenCrossrefFails() throws Exception {
         UUID workspaceId = UUID.randomUUID();
         when(workspaceRepository.findById(workspaceId)).thenReturn(Optional.of(workspace(workspaceId, "AI 写作")));
-        when(crossrefLiteratureClient.search("AI writing", 10)).thenThrow(new IOException("timeout"));
+        when(crossrefLiteratureClient.search(eq("AI writing"), eq(10), any(LiteratureSearchRequest.class)))
+                .thenThrow(new IOException("timeout"));
 
         var response = literatureSearchService.search(
                 workspaceId,
-                new LiteratureSearchRequest("AI writing", "crossref", null, "reference_material")
+                request("AI writing", "crossref", null, "reference_material", List.of("crossref"), null)
         );
 
         assertThat(response.items()).isEmpty();
@@ -107,6 +120,30 @@ class LiteratureSearchServiceTest {
         assertThat(response.externalSearchLinks().stream().map(link -> link.url()).toList())
                 .anySatisfy(url -> assertThat(url).contains("scholar.google.com").contains("AI+writing"))
                 .anySatisfy(url -> assertThat(url).contains("oversea.cnki.net").contains("AI+writing"));
+    }
+
+    @Test
+    void searchShouldDeduplicateMultiProviderResultsAndKeepQualitySignals() throws Exception {
+        UUID workspaceId = UUID.randomUUID();
+        when(workspaceRepository.findById(workspaceId)).thenReturn(Optional.of(workspace(workspaceId, "智能教室")));
+        when(crossrefLiteratureClient.search(eq("smart classroom energy"), eq(10), any(LiteratureSearchRequest.class)))
+                .thenReturn(List.of(item("Crossref", "10.1234/example")));
+        when(openAlexLiteratureClient.search(eq("smart classroom energy"), eq(10), any(LiteratureSearchRequest.class)))
+                .thenReturn(List.of(item("OpenAlex", "10.1234/example")));
+
+        var response = literatureSearchService.search(
+                workspaceId,
+                request("smart classroom energy", null, 10, "reference_material", List.of("crossref", "openalex"), "method")
+        );
+
+        assertThat(response.items()).hasSize(1);
+        assertThat(response.items().get(0).duplicateGroupKey()).isEqualTo("doi:10.1234/example");
+        assertThat(response.items().get(0).matchedReasons())
+                .anySatisfy(reason -> assertThat(reason).contains("多来源命中"));
+        assertThat(response.items().get(0).recommendedUse()).contains("研究方法");
+        assertThat(response.providerStatus())
+                .containsEntry("crossref", "SUCCESS")
+                .containsEntry("openalex", "SUCCESS");
     }
 
     private WorkspaceEntity workspace(UUID workspaceId, String title) {
@@ -120,18 +157,46 @@ class LiteratureSearchServiceTest {
         return workspace;
     }
 
-    private LiteratureSearchItem item() {
+    private LiteratureSearchRequest request(
+            String query,
+            String source,
+            Integer limit,
+            String missingItemType,
+            List<String> providers,
+            String searchIntent
+    ) {
+        return new LiteratureSearchRequest(
+                query,
+                source,
+                limit,
+                missingItemType,
+                providers,
+                null,
+                null,
+                List.of(),
+                null,
+                searchIntent
+        );
+    }
+
+    private LiteratureSearchItem item(String provider, String doi) {
         return new LiteratureSearchItem(
-                "Crossref",
+                provider,
                 "Intelligent classroom energy management",
                 List.of("Jane Doe"),
                 "2024",
                 "Energy Informatics",
                 "Example Publisher",
-                "10.1234/example",
-                "https://doi.org/10.1234/example",
+                doi,
+                "https://doi.org/" + doi,
                 "Machine learning reduces energy waste.",
-                "Jane Doe. (2024). Intelligent classroom energy management."
+                "Jane Doe. (2024). Intelligent classroom energy management.",
+                null,
+                null,
+                List.of(),
+                List.of(),
+                null,
+                null
         );
     }
 }
