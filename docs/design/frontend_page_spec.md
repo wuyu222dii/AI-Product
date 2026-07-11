@@ -1,5 +1,7 @@
 # AI 论文共写工作台 v1 前端页面字段清单与组件树
 
+> 本文档保留 v1.x 页面规格。v2.0 新增项目画像、多文档与章节工作台以 [V2_ACADEMIC_UPGRADE.md](../product/V2_ACADEMIC_UPGRADE.md) 和 `frontend/src/pages/AcademicDocumentsPage.jsx` 为准。
+
 ## 1. 文档目标
 
 本文档用于补齐前端实现所需的两类信息：

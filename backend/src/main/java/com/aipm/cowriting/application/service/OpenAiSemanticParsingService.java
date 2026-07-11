@@ -57,6 +57,9 @@ public class OpenAiSemanticParsingService {
                 Required JSON shape:
                 {
                   "materialCategory": "ASSIGNMENT_REQUIREMENT | REFERENCE_MATERIAL | USER_DRAFT | RESEARCH_RESULT | CHART_OR_DATA | SUPPLEMENT_NOTE | UNKNOWN",
+                  "materialRole": "SUBMISSION_REQUIREMENT | LITERATURE | AUTHOR_DRAFT | RESEARCH_ARTIFACT | REVIEW_FEEDBACK | SUPPLEMENT | UNKNOWN",
+                  "researchArtifactType": "RESEARCH_PROPOSAL | METHOD_PROTOCOL | DATASET | ANALYSIS_OUTPUT | INTERVIEW_TRANSCRIPT | QUESTIONNAIRE | FIELD_NOTE | ETHICS_DOCUMENT | FIGURE_TABLE | CODE_NOTE | REVIEW_COMMENT | OTHER | NONE",
+                  "materialTags": ["tag1"],
                   "summary": "short summary",
                   "topicRelation": "how this content relates to the current paper topic",
                   "detectedClaims": ["claim1"],
@@ -76,11 +79,14 @@ public class OpenAiSemanticParsingService {
                 }
                 Rules:
                 - materialCategory must be one of the allowed enum values.
+                - materialRole and researchArtifactType must be one of their allowed enum values.
                 - confidenceScore must be a number between 0 and 1.
-                - detectedClaims / detectedEvidence / detectedRequirements must always be arrays.
+                - materialTags / detectedClaims / detectedEvidence / detectedRequirements must always be arrays.
                 - Extract bibliographicMetadata only from explicit source information in the input, filename, DOI, or URL.
                 - Do not invent authors, year, title, sourceTitle, publisher, URL, or DOI. Use empty strings/arrays when unknown.
-                - For assignment requirements, drafts, data notes, or user research notes that are not citable literature, keep unknown bibliographic fields empty.
+                - Treat school, supervisor, course, journal, conference, or user-confirmed submission rules as SUBMISSION_REQUIREMENT.
+                - Use RESEARCH_ARTIFACT for proposals, protocols, data, analysis outputs, interviews, questionnaires, field notes, ethics documents, figures, tables, or code notes.
+                - For submission requirements, drafts, data notes, or user research notes that are not citable literature, keep unknown bibliographic fields empty.
                 Current topic context:
                 %s
 
@@ -127,6 +133,9 @@ public class OpenAiSemanticParsingService {
 
             return new SemanticParseResult(
                     result.path("materialCategory").asText("UNKNOWN"),
+                    result.path("materialRole").asText("UNKNOWN"),
+                    result.path("researchArtifactType").asText("NONE"),
+                    readStringList(result.path("materialTags")),
                     result.path("summary").asText(""),
                     result.path("topicRelation").asText(""),
                     readStringList(result.path("detectedClaims")),

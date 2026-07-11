@@ -125,7 +125,7 @@ export function useWorkspace({ workspace, draft, onDraftChange, onError }) {
   async function loadRequirementSnapshot(workspaceId, cancelled = false) {
     if (!workspaceId) return;
     try {
-      const snapshot = await api.getRequirementSnapshot(workspaceId);
+      const snapshot = await api.getRequirementSnapshot(workspaceId, true);
       if (!cancelled && snapshot?.citationStyle) {
         setCitationStyle(normalizeCitationStyle(snapshot.citationStyle));
       }

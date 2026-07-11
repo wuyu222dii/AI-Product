@@ -17,6 +17,11 @@ public class RequirementSnapshotEntity {
     @Column(nullable = false)
     private UUID workspaceId;
 
+    private UUID documentId;
+
+    @Column(nullable = false, length = 32)
+    private String sourceType;
+
     private String topic;
 
     private Integer wordCount;
@@ -48,6 +53,22 @@ public class RequirementSnapshotEntity {
 
     public void setWorkspaceId(UUID workspaceId) {
         this.workspaceId = workspaceId;
+    }
+
+    public UUID getDocumentId() {
+        return documentId;
+    }
+
+    public void setDocumentId(UUID documentId) {
+        this.documentId = documentId;
+    }
+
+    public String getSourceType() {
+        return sourceType;
+    }
+
+    public void setSourceType(String sourceType) {
+        this.sourceType = sourceType;
     }
 
     public String getTopic() {

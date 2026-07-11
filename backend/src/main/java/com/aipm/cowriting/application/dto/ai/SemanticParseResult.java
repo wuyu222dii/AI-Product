@@ -6,6 +6,9 @@ import java.util.List;
 
 public record SemanticParseResult(
         String materialCategory,
+        String materialRole,
+        String researchArtifactType,
+        List<String> materialTags,
         String summary,
         String topicRelation,
         List<String> detectedClaims,

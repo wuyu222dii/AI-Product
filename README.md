@@ -1,61 +1,68 @@
-# AI 论文共写工作台 v1 研发交付目录
+# AI 论文共写工作台 v2.0.1
 
-当前项目基线：`MVP 主流程 100% 完成 + v1.8 原创实证补强完成 + v1.9 文献补充增强首轮完成`。
+当前项目基线：`v1.x MVP 能力完整保留 + v2.0 全学术人群升级 + v2.0.1 学术文档统一工作台首轮收口`。
 
-当前已经进入 `产品深度可用性打磨阶段`。这里的 MVP 100% 仅表示 PRD 定义的 MVP 验收范围已完成，不代表生产上线、权限隔离、持久化任务队列和监控体系已经完成。
+产品定位：`面向本科生、硕士生、博士生与科研人员的证据驱动型研究共创平台`。AI 可以基于真实材料生成和修改学术文档，但必须保留材料范围、来源追溯、章节版本、人工确认和 AI 使用记录；产品不承诺规避 AI 检测或论文查重。
 
-本项目面向本科课程论文场景，核心定位是 `AI 强辅助共写平台`：用户上传作业要求、研究成果、参考资料、图片或文件后，系统完成 AI 语义解析、材料充足性检查、真实文献补充、初稿生成、可信链追溯、原创实证补强、可控共写、审查复查与导出。
+当前正式状态以 [PRODUCT_COMPLETION_STATUS-6-16.md](docs/project/PRODUCT_COMPLETION_STATUS-6-16.md) 为准，产品边界见 [V2_ACADEMIC_UPGRADE.md](docs/product/V2_ACADEMIC_UPGRADE.md)，最新接口与统一工作台契约见 [v2_academic_workspace_api.md](docs/engineering/v2_academic_workspace_api.md)。
 
-当前正式状态以 [PRODUCT_COMPLETION_STATUS-6-16.md](docs/project/PRODUCT_COMPLETION_STATUS-6-16.md) 为准；交付检查以 [FINAL_DELIVERY_CHECKLIST.md](docs/project/FINAL_DELIVERY_CHECKLIST.md) 为准。
+## v2.0.1 已完成
 
-## 当前能力
+- 学术项目画像：本科、硕士、博士、科研人员；学科方向、研究范式、语言、引用格式和 AI 使用策略。
+- 多文档研究项目：同一项目共享材料和知识库，可创建开题、学位论文、期刊稿、综述、研究报告等独立文档。
+- 章节树写作：支持拖拽整理章节顺序，以及章节级正文、状态、目标篇幅、版本恢复、AI 生成、共写预览、组装与导出。
+- 动态 readiness：按文档类型、研究范式和章节类型判断材料门槛；研究计划不要求已有结果，系统综述不要求实验数据。
+- 文档材料隔离：每个文档可选择自己的材料集，知识检索、章节生成和共写不会串用其他文档材料。
+- 通用学术要求：要求优先级为 `用户确认的学校/导师/课程/期刊要求 > 文档设置 > 研究范式规则 > 平台默认`。
+- AI 使用留痕：记录操作类型、目标章节、材料依据、模型、采纳状态与披露要求。
+- 统一正文源：`DocumentSection` 是唯一可编辑正文；整篇视图只负责组装预览、全篇检查、审查和导出。
+- 统一分析作用域：`ContentScope` 同时支持章节、整篇文档和旧草稿，可信链、原创风险、审查与复查不再绑定单一 draft 模型。
+- 章节可信审查闭环：章节保存后异步重建可信链，本地风险实时派生；AI 深度审查由用户手动发起，旧结果会按章节版本标记为 `STALE`。
+- 可控章节共写：支持选区共写、整版/逐段/差异行应用、引用与数据冲突提示；基准版本变化时返回 `409`，不会覆盖用户新修改。
+- 整篇只读交付：聚合章节准备度、证据覆盖率、原创实证风险、审查状态和引用一致性，并直接按章节组装导出，不创建可编辑旧 draft。
+- 旧入口退场：导航已隐藏“整篇共写（兼容）”；旧 `/workspace`、`/export` 路由和旧 API 仅保留历史回归兼容。
+- 旧稿可选拆分：可识别标题并预览，用户确认后才生成章节，拆分前正文保留在版本历史。
+- Supabase 正式迁移：v2.0 基础迁移、章节版本修复和 v2.0.1 作用域迁移均已在真实数据库执行。
 
-- `v1.1` 文件解析补全：支持 PDF / DOCX / TXT / Markdown / 图片 / XLSX / CSV / PPTX / ZIP 等上传输入，并支持解析失败后的补充说明。
-- `v1.2` 引用与格式增强：解析参考资料作者、年份、题名、期刊/出版社、链接，并支持 APA / GB/T 7714 格式切换。
-- `v1.3` 项目知识库 MVP：把已完成 AI 解析的材料转成项目级证据片段，支持关键词检索和片段预览。
-- `v1.4` 可信链与共写闭环：支持段落级证据绑定、异步可信链重建、共写预览后应用、审查项手动复查。
-- `v1.5` AI 解析质量清单：材料响应新增 `parseQuality`，前端解析页展示质量徽标、问题清单、一键填入补充说明和关键材料阻断规则。
-- `v1.6` 可信交付增强：支持原始材料预览入口、可信链覆盖率评分、引用一致性检查、共写逐段接受、冲突提示、共写与审查项关联落库，以及导出前交付风险检查。
-- `v1.8` 原创实证补强：识别空泛论证、原创实证不足和 AI 写作味风险，引导用户基于真实材料补充案例、数据和来源，不承诺规避检测。
-- `v1.9` 文献补充增强：材料不足时支持 Crossref / OpenAlex / Semantic Scholar 元数据检索、候选质量评分、待下载清单和上传关联回流；候选原文必须上传并完成 AI 解析后才参与生成。
+## 保留能力
 
-## 主流程
+v1.1-v1.9 的上传与 OCR、AI 语义解析、解析质量清单、材料不足文献检索、项目知识库、材料可信链、原创实证补强、审查复查和 DOCX/PDF 导出继续可用。旧整篇共写路由和接口保留兼容，但不再作为默认产品入口。
+
+## 当前主流程
 
 ```text
-创建项目
--> 上传写作输入
--> 预处理
--> AI 语义解析
--> 解析质量检查
--> 材料充足性检查 / 文献补充入口
--> 生成初稿
--> 项目知识库 / 材料可信链
--> 原创实证与 AI 写作味风险检查
--> 共写预览后应用
--> 审查与手动复查
--> 导出 docx / pdf
+创建研究项目与学术画像
+-> 上传并 AI 解析真实材料
+-> 按当前文档执行动态 readiness
+-> 材料不足时检索和补传真实文献/研究成果
+-> 构建项目知识库
+-> 创建或切换学术文档
+-> 按章节生成、编辑和共写预览
+-> 选择性应用为章节新版本
+-> 查看本章可信链、原创风险、审查与复查
+-> 在整篇检查中聚合质量问题并跳回对应章节
+-> 按章节组装并导出
 ```
 
-## 文档总览
+旧版“整篇初稿 -> 整篇共写”流程只保留直接路由和 API 兼容，导航已隐藏。学术文档工作台是唯一主入口，整篇内容不可直接编辑。
 
-| 文档 | 用途 |
+## 目录
+
+| 路径 | 用途 |
 | --- | --- |
-| [docs/README.md](docs/README.md) | 全部文档索引 |
-| [PRD.md](docs/product/PRD.md) | 产品与开发总规格 |
-| [DEMO_GUIDE.md](docs/guides/DEMO_GUIDE.md) | Demo 启动、演示路径与排查 |
-| [FINAL_DELIVERY_CHECKLIST.md](docs/project/FINAL_DELIVERY_CHECKLIST.md) | 当前交付检查清单 |
-| [PRODUCT_COMPLETION_STATUS-6-16.md](docs/project/PRODUCT_COMPLETION_STATUS-6-16.md) | 当前产品完成度快照 |
-| [frontend_page_spec.md](docs/design/frontend_page_spec.md) | 前端页面字段与组件树 |
-| [backend_service_spec.md](docs/engineering/backend_service_spec.md) | 后端服务拆分与状态机 |
-| [api_field_spec.md](docs/engineering/api_field_spec.md) | 当前实现的接口字段定义 |
-| [openapi_contract_draft.md](docs/engineering/openapi_contract_draft.md) | OpenAPI 风格接口契约 |
-| [engineering_tasks.md](docs/engineering/engineering_tasks.md) | 前后端任务拆分 |
-| [postgresql_schema.sql](postgresql_schema.sql) | PostgreSQL 基础建表草案 |
-| [backend/db/v1_4_trust_chain.sql](backend/db/v1_4_trust_chain.sql) | v1.4 可信链迁移 |
-| [backend/db/v1_6_trust_delivery_enhancement.sql](backend/db/v1_6_trust_delivery_enhancement.sql) | v1.6 共写审查关联迁移 |
-| [backend/db/v1_9_literature_candidates.sql](backend/db/v1_9_literature_candidates.sql) | v1.9 候选文献清单迁移 SQL |
+| [backend](backend) | Spring Boot 3 / Java 17 REST 后端 |
+| [frontend](frontend) | React / Vite 多页面前端 |
+| [supabase/migrations/20260711031857_v2_academic_workspace.sql](supabase/migrations/20260711031857_v2_academic_workspace.sql) | v2.0 正式 Supabase 迁移 |
+| [supabase/migrations/20260711065932_repair_document_section_versions.sql](supabase/migrations/20260711065932_repair_document_section_versions.sql) | 章节历史版本一致性修复迁移 |
+| [supabase/migrations/20260711092831_academic_document_quality_scopes.sql](supabase/migrations/20260711092831_academic_document_quality_scopes.sql) | v2.0.1 章节/文档可信链、审查和选择性共写作用域迁移 |
+| [docs/README.md](docs/README.md) | 文档总索引 |
+| [docs/product/PRD.md](docs/product/PRD.md) | 产品总规格与历史兼容规格 |
+| [docs/product/V2_ACADEMIC_UPGRADE.md](docs/product/V2_ACADEMIC_UPGRADE.md) | v2.0 当前产品规格 |
+| [docs/engineering/v2_academic_workspace_api.md](docs/engineering/v2_academic_workspace_api.md) | v2.0 数据与接口契约 |
+| [docs/guides/DEMO_GUIDE.md](docs/guides/DEMO_GUIDE.md) | 启动与演示说明 |
+| [docs/project/FINAL_DELIVERY_CHECKLIST.md](docs/project/FINAL_DELIVERY_CHECKLIST.md) | 当前交付清单 |
 
-## 启动方式
+## 启动
 
 后端：
 
@@ -63,15 +70,6 @@
 cd backend
 mvn spring-boot:run
 ```
-
-后端热部署开发模式：
-
-```bash
-cd backend
-./scripts/dev-hot.sh
-```
-
-说明：该模式会启动 Spring Boot DevTools，并监听 `src/main/java` 与 `src/main/resources`。保存 Java / 配置文件后脚本会自动编译，随后 DevTools 自动重启后端应用。
 
 前端：
 
@@ -81,47 +79,29 @@ npm install
 npm run dev
 ```
 
-说明：前端基于 Vite，`npm run dev` 已支持保存后自动热更新。
+默认地址：后端 `http://localhost:8080`，前端 `http://localhost:5173`。可通过 `VITE_API_PROXY_TARGET` 覆盖前端代理目标。
 
-默认地址：
+数据库结构只通过版本化 SQL 迁移维护，运行时默认 `HIBERNATE_DDL_AUTO=none`，避免 Hibernate 与 PostgreSQL 生成列或索引冲突。
 
-- 后端：`http://localhost:8080`
-- 前端：`http://localhost:5173`
-
-## 验证方式
-
-后端：
+## 验证
 
 ```bash
-cd backend
-mvn clean test
+cd backend && mvn test
+cd frontend && npm run test
+cd frontend && npm run test:e2e
 ```
 
-前端：
+当前验证结果：
 
-```bash
-cd frontend
-npm run test
-```
-
-当前验证口径：
-
-- 后端 `62` 个 service / controller 测试通过，无失败或错误。
-- 前端 `npm run test` 通过，包含生产构建与 MVP smoke check。
+- 后端 `78` 个 service / controller 测试通过，无失败或错误。
+- 前端生产构建与 smoke test 通过。
+- 前端 Playwright E2E `2` 个 Chrome 用户流程通过，覆盖统一学术文档工作台、章节共写、审查复查与导出。
+- `npm audit` 与 `npm audit --omit=dev` 均为 `0 vulnerabilities`。
+- 真实 Supabase 已完成 v2.0.1 迁移和 API 冒烟：章节可信链异步重建、整篇质量聚合、AI 审查与单项复查、基准版本冲突、逐段应用、章节组装和 DOCX 导出均通过。
 
 ## 当前边界
 
-以下内容不属于当前 MVP 已完成范围，应作为后续产品化增强处理：
-
-- 用户登录、租户隔离、权限体系。
-- 生产级对象存储。
-- 生产级异步队列、失败重试和监控告警。
-- Playwright / Cypress 端到端测试。
-- PDF 页码级精准跳转、更细粒度证据可视化和正式论文级导出排版。
-
-## 推荐阅读顺序
-
-- 产品 / 设计：`PRD -> frontend_page_spec -> DEMO_GUIDE`
-- 前端：`frontend_page_spec -> api_field_spec -> openapi_contract_draft`
-- 后端：`backend_service_spec -> api_field_spec -> postgresql_schema.sql -> v1_4_trust_chain.sql -> v1_6_trust_delivery_enhancement.sql -> v1_9_literature_candidates.sql`
-- 交付 / 演示：`FINAL_DELIVERY_CHECKLIST -> DEMO_GUIDE -> PRODUCT_COMPLETION_STATUS`
+- 尚未实现登录、租户隔离、协作者权限和导师批注。
+- 尚未接入对象存储、生产级任务队列和监控告警；前端组件级测试与更多异常路径 E2E 仍可继续扩充。
+- v2.0 使用 PostgreSQL 全文检索、元数据和结构化筛选；混合向量检索留到 v2.1 以后。
+- CSL、RIS/BibTeX、LaTeX 和正式学位论文模板仍属于下一阶段。

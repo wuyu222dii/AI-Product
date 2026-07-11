@@ -147,7 +147,7 @@ public class OpenAiCoWriteService {
             Map<String, Object> sourceTraceMap
     ) {
         return """
-                You are revising an academic course paper draft in Chinese.
+                You are revising an evidence-grounded academic document in Chinese.
                 Action type: %s
                 Action guidance: %s
                 User instruction: %s
@@ -169,11 +169,12 @@ public class OpenAiCoWriteService {
                 - If keepCitations=true, preserve existing citation markers unless the user explicitly asks to repair citation format.
                 - If keepData=true, do not change numbers, names, locations, dates, or measured findings.
                 - If noNewSources=true, do not introduce citations or evidence not present in the current source trace map.
-                - If keepStudentVoice=true, avoid overly polished template-like phrasing and keep the student's original stance and wording habits where possible.
+                - If keepStudentVoice=true, treat it as keepAuthorVoice: avoid template-like phrasing and preserve the human author's stance and wording habits where possible.
                 - If target range contains start/end/selectedText, prioritize revising that range while preserving the rest of the draft.
                 - Return the full revised draft, not partial snippets.
-                - Keep the paper coherent and suitable as a course paper draft.
-                - Keep the student's topic, evidence, and teacher requirements as the highest priority.
+                - Adapt the revision to the academic profile, document type, research paradigm, and section context supplied in the outline.
+                - Keep the author's topic, evidence, and confirmed institution/supervisor/course/journal requirements as the highest priority.
+                - Do not invent data, experiments, interviews, ethics approval, citations, or claims of originality.
                 - Reduce obvious AI-like phrasing: avoid empty transitions, inflated claims, repetitive summaries, and generic value judgments.
                 - Preserve title unless a better title is necessary.
 
@@ -212,7 +213,7 @@ public class OpenAiCoWriteService {
             Map<String, Object> sourceTraceMap
     ) {
         return """
-                You are revising a selected passage from a Chinese academic course paper.
+                You are revising a selected passage from a Chinese academic document.
                 Action type: %s
                 Action guidance: %s
                 User instruction: %s
@@ -233,10 +234,10 @@ public class OpenAiCoWriteService {
                 - If keepCitations=true, preserve existing citation markers unless the user explicitly asks to repair citation format.
                 - If keepData=true, do not change numbers, names, locations, dates, or measured findings.
                 - If noNewSources=true, do not introduce citations or evidence not present in the current source trace map.
-                - If keepStudentVoice=true, avoid overly polished template-like phrasing and keep the student's original stance and wording habits where possible.
-                - Preserve the student's topic, evidence alignment, and teacher requirements.
+                - If keepStudentVoice=true, treat it as keepAuthorVoice and preserve the human author's stance and wording habits where possible.
+                - Preserve the author's topic, evidence alignment, and confirmed institution/supervisor/course/journal requirements.
                 - Keep the replacement passage compatible with the before/after context.
-                - Do not invent citations or data.
+                - Do not invent citations, data, experiments, interviews, ethics approval, or original contributions.
                 - Reduce obvious AI-like phrasing: avoid empty transitions, inflated claims, repetitive summaries, and generic value judgments.
 
                 Current title:
@@ -357,10 +358,10 @@ public class OpenAiCoWriteService {
     private String actionGuidance(String action) {
         return switch (action) {
             case "add_evidence" -> "Add or strengthen evidence for the selected claim. Prefer concrete source-linked wording and do not invent citations.";
-            case "add_original_evidence" -> "Strengthen the selected paragraph with original empirical support from uploaded materials only. Prefer concrete cases, data, questionnaire/interview findings, experiment results, or source-linked evidence. If the current materials are insufficient, state exactly what the student must upload or supplement; do not invent cases, numbers, citations, or fieldwork.";
+            case "add_original_evidence" -> "Strengthen the selected paragraph with original empirical support from uploaded materials only. Prefer concrete cases, data, questionnaire/interview findings, experiment results, or source-linked evidence. If the current materials are insufficient, state exactly what the author must upload or supplement; do not invent cases, numbers, citations, or fieldwork.";
             case "adjust_structure" -> "Improve paragraph order, topic sentences, transitions, and argumentative hierarchy without changing the core conclusion.";
             case "reduce_repetition" -> "Remove information repetition while preserving necessary structural recap in introductions, section summaries, and conclusions.";
-            case "improve_expression" -> "Make the prose clearer, more natural, and more student-authored; reduce generic AI tone and keep academic restraint.";
+            case "improve_expression" -> "Make the prose clearer, more natural, and more author-led; reduce generic AI tone and keep academic restraint.";
             case "expand_argument" -> "Expand the selected argument with mechanism, condition, evidence interpretation, or limitation, not empty filler.";
             case "shorten_text" -> "Compress the selected text by keeping claims and evidence, removing redundant modifiers and repeated explanations.";
             default -> "Rewrite the selected text or full draft according to the user's instruction while preserving meaning and evidence alignment.";

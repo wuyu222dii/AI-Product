@@ -7,4 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface RequirementSnapshotRepository extends JpaRepository<RequirementSnapshotEntity, UUID> {
     Optional<RequirementSnapshotEntity> findFirstByWorkspaceIdOrderByVersionDesc(UUID workspaceId);
+    Optional<RequirementSnapshotEntity> findFirstByWorkspaceIdAndDocumentIdOrderByVersionDesc(UUID workspaceId, UUID documentId);
+    Optional<RequirementSnapshotEntity> findFirstByWorkspaceIdAndDocumentIdIsNullOrderByVersionDesc(UUID workspaceId);
 }

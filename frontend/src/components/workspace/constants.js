@@ -27,7 +27,7 @@ export const REVIEW_TYPE_LABELS = {
 };
 
 export const APPEAL_REASON_PRESETS = [
-  "这条审查与老师要求不一致，请以我上传的要求为准复审。",
+  "这条审查与学校、导师、课程或期刊要求不一致，请以我上传并确认的要求为准复审。",
   "这里属于结构性重复，用于引言点题或结论回扣，请判断是否可以保留。",
   "该段已有来源支撑，只是表达比较隐含，请结合来源追溯重新判断。",
   "我接受风险，但希望 AI 降级为提示项而不是强制修改。"
@@ -47,7 +47,7 @@ export const RECOMMENDED_TASKS = [
   },
   {
     id: "requirements",
-    title: "确认老师格式要求",
+    title: "确认提交与格式要求",
     detail: "核对 Requirement Snapshot 中的引用格式与字数要求是否已确认。"
   }
 ];

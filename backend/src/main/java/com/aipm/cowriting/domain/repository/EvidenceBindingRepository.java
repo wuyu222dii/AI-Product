@@ -9,4 +9,12 @@ public interface EvidenceBindingRepository extends JpaRepository<EvidenceBinding
     List<EvidenceBindingEntity> findByDraftVersionIdOrderByCreatedAtAsc(UUID draftVersionId);
 
     void deleteByDraftVersionId(UUID draftVersionId);
+
+    List<EvidenceBindingEntity> findBySectionIdAndSectionVersionNoOrderByCreatedAtAsc(UUID sectionId, Integer sectionVersionNo);
+
+    List<EvidenceBindingEntity> findBySectionIdOrderBySectionVersionNoDescCreatedAtAsc(UUID sectionId);
+
+    List<EvidenceBindingEntity> findByDocumentIdOrderBySectionIdAscCreatedAtAsc(UUID documentId);
+
+    void deleteBySectionIdAndSectionVersionNo(UUID sectionId, Integer sectionVersionNo);
 }

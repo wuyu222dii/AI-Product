@@ -31,11 +31,158 @@ export const api = {
   listWorkspaces() {
     return request("/workspaces");
   },
-  createWorkspace(title) {
+  createWorkspace(input) {
+    const body = typeof input === "string" ? { title: input } : input;
     return request("/workspaces", {
       method: "POST",
-      body: JSON.stringify({ title })
+      body: JSON.stringify(body)
     });
+  },
+  getAcademicProfile(workspaceId) {
+    return request(`/workspaces/${workspaceId}/academic-profile`);
+  },
+  updateAcademicProfile(workspaceId, body) {
+    return request(`/workspaces/${workspaceId}/academic-profile`, {
+      method: "PATCH",
+      body: JSON.stringify(body)
+    });
+  },
+  listAcademicDocuments(workspaceId) {
+    return request(`/workspaces/${workspaceId}/documents`);
+  },
+  createAcademicDocument(workspaceId, body) {
+    return request(`/workspaces/${workspaceId}/documents`, {
+      method: "POST",
+      body: JSON.stringify(body)
+    });
+  },
+  getAcademicDocument(documentId) {
+    return request(`/documents/${documentId}`);
+  },
+  updateAcademicDocument(documentId, body) {
+    return request(`/documents/${documentId}`, {
+      method: "PATCH",
+      body: JSON.stringify(body)
+    });
+  },
+  activateAcademicDocument(documentId) {
+    return request(`/documents/${documentId}/activate`, { method: "POST" });
+  },
+  listDocumentSections(documentId) {
+    return request(`/documents/${documentId}/sections`);
+  },
+  createDocumentSection(documentId, body) {
+    return request(`/documents/${documentId}/sections`, {
+      method: "POST",
+      body: JSON.stringify(body)
+    });
+  },
+  reorderDocumentSections(documentId, sectionIds) {
+    return request(`/documents/${documentId}/sections/order`, {
+      method: "PATCH",
+      body: JSON.stringify({ sectionIds })
+    });
+  },
+  updateDocumentSection(sectionId, body) {
+    return request(`/sections/${sectionId}`, {
+      method: "PATCH",
+      body: JSON.stringify(body)
+    });
+  },
+  listDocumentSectionVersions(sectionId) {
+    return request(`/sections/${sectionId}/versions`);
+  },
+  restoreDocumentSectionVersion(versionId) {
+    return request(`/section-versions/${versionId}/restore`, { method: "POST" });
+  },
+  checkDocumentReadiness(documentId) {
+    return request(`/documents/${documentId}/readiness-check`, { method: "POST" });
+  },
+  checkSectionReadiness(sectionId) {
+    return request(`/sections/${sectionId}/readiness-check`, { method: "POST" });
+  },
+  generateDocumentSection(sectionId, body = {}) {
+    return request(`/sections/${sectionId}/generate`, {
+      method: "POST",
+      body: JSON.stringify(body)
+    });
+  },
+  previewSectionCoWrite(sectionId, body) {
+    return request(`/sections/${sectionId}/co-write/preview`, {
+      method: "POST",
+      body: JSON.stringify(body)
+    });
+  },
+  applySectionCoWritePreview(previewId, body = null) {
+    return request(`/section-co-write-previews/${previewId}/apply`, {
+      method: "POST",
+      ...(body ? { body: JSON.stringify(body) } : {})
+    });
+  },
+  discardSectionCoWritePreview(previewId) {
+    return request(`/section-co-write-previews/${previewId}/discard`, { method: "POST" });
+  },
+  getSectionEvidenceBindings(sectionId) {
+    return request(`/sections/${sectionId}/evidence-bindings`);
+  },
+  rebuildSectionEvidenceBindings(sectionId) {
+    return request(`/sections/${sectionId}/evidence-bindings/rebuild`, { method: "POST" });
+  },
+  getDocumentEvidenceSummary(documentId) {
+    return request(`/documents/${documentId}/evidence-summary`);
+  },
+  getSectionWritingRisks(sectionId) {
+    return request(`/sections/${sectionId}/writing-risks`);
+  },
+  getDocumentWritingRisks(documentId) {
+    return request(`/documents/${documentId}/writing-risks`);
+  },
+  getDocumentQualitySummary(documentId) {
+    return request(`/documents/${documentId}/quality-summary`);
+  },
+  listDocumentReviewItems(documentId, filters = {}) {
+    const query = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value != null && value !== "") query.set(key, value);
+    });
+    const suffix = query.size ? `?${query.toString()}` : "";
+    return request(`/documents/${documentId}/review-items${suffix}`);
+  },
+  refreshSectionReviewItems(sectionId) {
+    return request(`/sections/${sectionId}/review-items/refresh`, { method: "POST" });
+  },
+  refreshDocumentReviewItems(documentId) {
+    return request(`/documents/${documentId}/review-items/refresh`, { method: "POST" });
+  },
+  previewSectionSplit(sectionId) {
+    return request(`/sections/${sectionId}/split-preview`, { method: "POST" });
+  },
+  applySectionSplit(sectionId, body) {
+    return request(`/sections/${sectionId}/split`, {
+      method: "POST",
+      body: JSON.stringify(body)
+    });
+  },
+  assembleAcademicDocument(documentId) {
+    return request(`/documents/${documentId}/assemble`, { method: "POST" });
+  },
+  exportAcademicDocument(documentId, body) {
+    return request(`/documents/${documentId}/export`, {
+      method: "POST",
+      body: JSON.stringify(body)
+    });
+  },
+  listDocumentMaterialLinks(documentId) {
+    return request(`/documents/${documentId}/materials`);
+  },
+  linkDocumentMaterial(documentId, body) {
+    return request(`/documents/${documentId}/materials`, {
+      method: "POST",
+      body: JSON.stringify(body)
+    });
+  },
+  listDocumentAiActions(documentId) {
+    return request(`/documents/${documentId}/ai-actions`);
   },
   uploadMaterials(workspaceId, formData) {
     return request(`/workspaces/${workspaceId}/materials`, {
@@ -89,8 +236,8 @@ export const api = {
       body: JSON.stringify(body)
     });
   },
-  getRequirementSnapshot(workspaceId) {
-    return request(`/workspaces/${workspaceId}/requirement-snapshot`);
+  getRequirementSnapshot(workspaceId, optional = false) {
+    return request(`/workspaces/${workspaceId}/requirement-snapshot${optional ? "?optional=true" : ""}`);
   },
   checkMaterialSufficiency(workspaceId, requirementSnapshotId) {
     return request(`/workspaces/${workspaceId}/material-sufficiency-check`, {
@@ -127,10 +274,10 @@ export const api = {
   listKnowledgeChunks(workspaceId) {
     return request(`/workspaces/${workspaceId}/knowledge-base/chunks`);
   },
-  searchKnowledgeBase(workspaceId, query, limit = 8) {
+  searchKnowledgeBase(workspaceId, query, limit = 8, filters = {}) {
     return request(`/workspaces/${workspaceId}/knowledge-base/search`, {
       method: "POST",
-      body: JSON.stringify({ query, limit })
+      body: JSON.stringify({ query, limit, ...filters })
     });
   },
   listDrafts(workspaceId) {

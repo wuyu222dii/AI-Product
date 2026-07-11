@@ -8,6 +8,7 @@ import com.aipm.cowriting.application.dto.knowledge.KnowledgeBuildResponse;
 import com.aipm.cowriting.application.dto.knowledge.KnowledgeSearchRequest;
 import com.aipm.cowriting.application.dto.knowledge.KnowledgeSearchResponse;
 import com.aipm.cowriting.domain.entity.AiSemanticParseResultEntity;
+import com.aipm.cowriting.domain.entity.AcademicDocumentEntity;
 import com.aipm.cowriting.domain.entity.KnowledgeChunkEntity;
 import com.aipm.cowriting.domain.entity.MaterialEntity;
 import com.aipm.cowriting.domain.model.MaterialCategory;
@@ -39,6 +40,8 @@ class KnowledgeBaseApplicationServiceTest {
     private AiSemanticParseResultRepository aiSemanticParseResultRepository;
     @Mock
     private KnowledgeChunkRepository knowledgeChunkRepository;
+    @Mock
+    private AcademicDocumentApplicationService academicDocumentApplicationService;
 
     private KnowledgeBaseApplicationService knowledgeBaseApplicationService;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -50,6 +53,7 @@ class KnowledgeBaseApplicationServiceTest {
                 materialRepository,
                 aiSemanticParseResultRepository,
                 knowledgeChunkRepository,
+                academicDocumentApplicationService,
                 objectMapper
         );
     }
@@ -144,6 +148,53 @@ class KnowledgeBaseApplicationServiceTest {
         assertThat(response.total()).isEqualTo(1);
         assertThat(response.items().get(0).materialTitle()).isEqualTo("research-note.txt");
         assertThat(response.items().get(0).score()).isGreaterThan(0);
+    }
+
+    @Test
+    void searchShouldRespectDocumentMaterialScope() {
+        UUID workspaceId = UUID.randomUUID();
+        UUID documentId = UUID.randomUUID();
+        MaterialEntity included = material("included.pdf");
+        MaterialEntity excluded = material("excluded.pdf");
+        KnowledgeChunkEntity includedChunk = chunk(workspaceId, included.getId(), "研究方法采用问卷调查与回归分析");
+        KnowledgeChunkEntity excludedChunk = chunk(workspaceId, excluded.getId(), "研究方法采用问卷调查与回归分析");
+        AcademicDocumentEntity document = new AcademicDocumentEntity();
+        document.setId(documentId);
+        document.setWorkspaceId(workspaceId);
+
+        when(workspaceRepository.existsById(workspaceId)).thenReturn(true);
+        when(academicDocumentApplicationService.getDocument(documentId)).thenReturn(document);
+        when(academicDocumentApplicationService.resolveMaterials(document)).thenReturn(List.of(included));
+        when(knowledgeChunkRepository.findByWorkspaceIdOrderByCreatedAtDesc(workspaceId))
+                .thenReturn(List.of(includedChunk, excludedChunk));
+        when(materialRepository.findAllById(List.of(included.getId()))).thenReturn(List.of(included));
+
+        KnowledgeSearchResponse response = knowledgeBaseApplicationService.search(
+                workspaceId,
+                new KnowledgeSearchRequest("问卷调查", 8, documentId, List.of(), List.of())
+        );
+
+        assertThat(response.items()).extracting(item -> item.materialId()).containsExactly(included.getId());
+    }
+
+    private MaterialEntity material(String filename) {
+        MaterialEntity material = new MaterialEntity();
+        material.setId(UUID.randomUUID());
+        material.setFilename(filename);
+        return material;
+    }
+
+    private KnowledgeChunkEntity chunk(UUID workspaceId, UUID materialId, String text) {
+        KnowledgeChunkEntity chunk = new KnowledgeChunkEntity();
+        chunk.setId(UUID.randomUUID());
+        chunk.setWorkspaceId(workspaceId);
+        chunk.setMaterialId(materialId);
+        chunk.setChunkIndex(1);
+        chunk.setChunkText(text);
+        chunk.setSourceExcerpt(text);
+        chunk.setKeywordsJson("[\"问卷调查\",\"回归分析\"]");
+        chunk.setCreatedAt(OffsetDateTime.now());
+        return chunk;
     }
 
     private MaterialEntity parsedMaterial(UUID workspaceId) {

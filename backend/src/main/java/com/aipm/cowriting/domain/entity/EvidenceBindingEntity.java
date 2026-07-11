@@ -14,7 +14,8 @@ import java.util.UUID;
         name = "evidence_bindings",
         indexes = {
                 @Index(name = "idx_evidence_bindings_draft_paragraph", columnList = "draft_version_id, paragraph_id"),
-                @Index(name = "idx_evidence_bindings_material", columnList = "material_id")
+                @Index(name = "idx_evidence_bindings_material", columnList = "material_id"),
+                @Index(name = "idx_evidence_bindings_section_version_paragraph", columnList = "section_id, section_version_no, paragraph_id")
         }
 )
 public class EvidenceBindingEntity {
@@ -22,8 +23,23 @@ public class EvidenceBindingEntity {
     @Id
     private UUID id;
 
-    @Column(nullable = false)
+    @Column
     private UUID draftVersionId;
+
+    @Column(nullable = false, length = 32)
+    private String scopeType = "LEGACY_DRAFT";
+
+    @Column
+    private UUID documentId;
+
+    @Column
+    private UUID sectionId;
+
+    @Column
+    private Integer sectionVersionNo;
+
+    @Column(length = 64)
+    private String paragraphFingerprint;
 
     @Column(nullable = false)
     private String paragraphId;
@@ -73,6 +89,17 @@ public class EvidenceBindingEntity {
     public void setDraftVersionId(UUID draftVersionId) {
         this.draftVersionId = draftVersionId;
     }
+
+    public String getScopeType() { return scopeType; }
+    public void setScopeType(String scopeType) { this.scopeType = scopeType; }
+    public UUID getDocumentId() { return documentId; }
+    public void setDocumentId(UUID documentId) { this.documentId = documentId; }
+    public UUID getSectionId() { return sectionId; }
+    public void setSectionId(UUID sectionId) { this.sectionId = sectionId; }
+    public Integer getSectionVersionNo() { return sectionVersionNo; }
+    public void setSectionVersionNo(Integer sectionVersionNo) { this.sectionVersionNo = sectionVersionNo; }
+    public String getParagraphFingerprint() { return paragraphFingerprint; }
+    public void setParagraphFingerprint(String paragraphFingerprint) { this.paragraphFingerprint = paragraphFingerprint; }
 
     public String getParagraphId() {
         return paragraphId;

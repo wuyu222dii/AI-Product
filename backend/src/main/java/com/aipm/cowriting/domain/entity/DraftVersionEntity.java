@@ -20,6 +20,8 @@ public class DraftVersionEntity {
     @Column(nullable = false)
     private UUID workspaceId;
 
+    private UUID documentId;
+
     @Column(nullable = false)
     private Integer versionNo;
 
@@ -61,6 +63,14 @@ public class DraftVersionEntity {
 
     public void setWorkspaceId(UUID workspaceId) {
         this.workspaceId = workspaceId;
+    }
+
+    public UUID getDocumentId() {
+        return documentId;
+    }
+
+    public void setDocumentId(UUID documentId) {
+        this.documentId = documentId;
     }
 
     public Integer getVersionNo() {

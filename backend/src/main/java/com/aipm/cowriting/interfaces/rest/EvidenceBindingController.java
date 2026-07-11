@@ -6,12 +6,14 @@ import com.aipm.cowriting.application.dto.evidence.UpdateEvidenceBindingStatusRe
 import com.aipm.cowriting.application.dto.job.JobResponse;
 import com.aipm.cowriting.application.service.EvidenceBindingApplicationService;
 import com.aipm.cowriting.application.service.EvidenceBindingRebuildJobService;
+import com.aipm.cowriting.application.service.ScopedEvidenceBindingApplicationService;
 import com.aipm.cowriting.common.api.ApiResponse;
 import com.aipm.cowriting.common.web.RequestMetaUtil;
 import com.aipm.cowriting.common.web.RestConstants;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.util.UUID;
+import com.aipm.cowriting.domain.repository.EvidenceBindingRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,13 +28,19 @@ public class EvidenceBindingController {
 
     private final EvidenceBindingApplicationService evidenceBindingApplicationService;
     private final EvidenceBindingRebuildJobService evidenceBindingRebuildJobService;
+    private final ScopedEvidenceBindingApplicationService scopedEvidenceBindingApplicationService;
+    private final EvidenceBindingRepository evidenceBindingRepository;
 
     public EvidenceBindingController(
             EvidenceBindingApplicationService evidenceBindingApplicationService,
-            EvidenceBindingRebuildJobService evidenceBindingRebuildJobService
+            EvidenceBindingRebuildJobService evidenceBindingRebuildJobService,
+            ScopedEvidenceBindingApplicationService scopedEvidenceBindingApplicationService,
+            EvidenceBindingRepository evidenceBindingRepository
     ) {
         this.evidenceBindingApplicationService = evidenceBindingApplicationService;
         this.evidenceBindingRebuildJobService = evidenceBindingRebuildJobService;
+        this.scopedEvidenceBindingApplicationService = scopedEvidenceBindingApplicationService;
+        this.evidenceBindingRepository = evidenceBindingRepository;
     }
 
     @GetMapping(RestConstants.API_V1 + "/drafts/{id}/evidence-bindings")
@@ -60,7 +68,12 @@ public class EvidenceBindingController {
             @Valid @RequestBody UpdateEvidenceBindingStatusRequest requestBody,
             HttpServletRequest request
     ) {
-        EvidenceBindingItemResponse response = evidenceBindingApplicationService.updateStatus(bindingId, requestBody.status());
+        boolean sectionScoped = evidenceBindingRepository.findById(bindingId)
+                .map(item -> item.getSectionId() != null)
+                .orElse(false);
+        EvidenceBindingItemResponse response = sectionScoped
+                ? scopedEvidenceBindingApplicationService.updateStatus(bindingId, requestBody.status())
+                : evidenceBindingApplicationService.updateStatus(bindingId, requestBody.status());
         return ResponseEntity.ok(ApiResponse.success(response, RequestMetaUtil.meta(request)));
     }
 }

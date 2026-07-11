@@ -5,7 +5,7 @@ const root = resolve(import.meta.dirname, "..");
 const checks = [
   {
     file: "src/App.jsx",
-    tokens: ["/projects", "/upload", "/parsing", "/gate", "/knowledge-base", "/workspace", "/export"]
+    tokens: ["/projects", "/upload", "/parsing", "/gate", "/knowledge-base", "/documents", "/workspace", "/export"]
   },
   {
     file: "src/services/api.js",
@@ -18,11 +18,41 @@ const checks = [
       "applyCoWritePreview",
       "previewMaterial",
       "getEvidenceBindings",
+      "listAcademicDocuments",
+      "reorderDocumentSections",
+      "checkDocumentReadiness",
+      "checkSectionReadiness",
+      "previewSectionCoWrite",
+      "getSectionEvidenceBindings",
+      "getDocumentQualitySummary",
+      "listDocumentReviewItems",
+      "refreshSectionReviewItems",
+      "assembleAcademicDocument",
       "listReviewItems",
       "createAppeal",
       "exportDraft",
       "getJob"
     ]
+  },
+  {
+    file: "src/pages/AcademicDocumentsPage.jsx",
+    tokens: ["Academic project workspace", "AcademicDocumentSwitcher", "章节写作", "整篇检查", "AcademicChecksDrawer", "AcademicDocumentQualityView", "项目画像"]
+  },
+  {
+    file: "src/components/academic/AcademicSectionEditor.jsx",
+    tokens: ["基于材料生成本章", "共写预览", "AI 审查本章", "保留作者声音"]
+  },
+  {
+    file: "src/components/academic/AcademicCoWritePreviewDrawer.jsx",
+    tokens: ["章节修改预览", "逐段接受", "局部接受", "应用整章为新版本"]
+  },
+  {
+    file: "src/components/academic/AcademicDocumentQualityView.jsx",
+    tokens: ["整篇视图只用于检查与交付", "刷新全部可信链", "AI 审查整篇", "导出文档"]
+  },
+  {
+    file: "src/components/academic/AcademicSectionNavigator.jsx",
+    tokens: ["DndContext", "MouseSensor", "TouchSensor", "KeyboardSensor", "拖动调整章节顺序"]
   },
   {
     file: "src/pages/ExportPage.jsx",

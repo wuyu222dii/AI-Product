@@ -1,0 +1,13 @@
+package com.aipm.cowriting.domain.model;
+
+public enum AcademicDocumentType {
+    COURSE_PAPER,
+    RESEARCH_PROPOSAL,
+    UNDERGRADUATE_THESIS,
+    MASTER_THESIS,
+    DOCTORAL_DISSERTATION,
+    JOURNAL_ARTICLE,
+    CONFERENCE_PAPER,
+    LITERATURE_REVIEW,
+    RESEARCH_REPORT
+}

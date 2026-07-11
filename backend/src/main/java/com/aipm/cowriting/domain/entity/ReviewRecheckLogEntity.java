@@ -17,8 +17,17 @@ public class ReviewRecheckLogEntity {
     @Column(nullable = false)
     private UUID reviewItemId;
 
-    @Column(nullable = false)
+    @Column
     private UUID draftVersionId;
+
+    @Column(nullable = false, length = 32)
+    private String scopeType = "LEGACY_DRAFT";
+
+    private UUID documentId;
+
+    private UUID sectionId;
+
+    private Integer sectionVersionNo;
 
     @Column(nullable = false, length = 40)
     private String outcome;
@@ -67,6 +76,15 @@ public class ReviewRecheckLogEntity {
     public void setDraftVersionId(UUID draftVersionId) {
         this.draftVersionId = draftVersionId;
     }
+
+    public String getScopeType() { return scopeType; }
+    public void setScopeType(String scopeType) { this.scopeType = scopeType; }
+    public UUID getDocumentId() { return documentId; }
+    public void setDocumentId(UUID documentId) { this.documentId = documentId; }
+    public UUID getSectionId() { return sectionId; }
+    public void setSectionId(UUID sectionId) { this.sectionId = sectionId; }
+    public Integer getSectionVersionNo() { return sectionVersionNo; }
+    public void setSectionVersionNo(Integer sectionVersionNo) { this.sectionVersionNo = sectionVersionNo; }
 
     public String getOutcome() {
         return outcome;

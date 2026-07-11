@@ -92,7 +92,7 @@ export function KnowledgeBasePage({ workspace, draft, onContinue, onBackParsing,
             回到解析页
           </button>
           <button className="primary-btn" onClick={onContinue}>
-            {draft ? "进入共写工作台" : "跳过，先做材料检查"}
+            进入学术文档与章节工作台
           </button>
         </div>
       </div>
@@ -161,7 +161,7 @@ export function KnowledgeBasePage({ workspace, draft, onContinue, onBackParsing,
                     : "先查看当前知识库里已有的材料片段"}
               </p>
             </div>
-            <span className="hero-chip">v1.3 MVP</span>
+            <span className="hero-chip">v2.0 项目知识库</span>
           </div>
 
           <div className="knowledge-result-list">

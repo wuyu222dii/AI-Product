@@ -140,7 +140,7 @@ export function WorkspaceReviewDrawer({
           <div className="detail-card">
             <strong>可申诉边界</strong>
             <ul className="detail-list">
-              <li>老师要求、材料证据或结构性重复可以作为申诉理由。</li>
+              <li>学校、导师、课程或期刊要求，材料证据或结构性重复可以作为申诉理由。</li>
               <li>如果只是想保留个人表达，也可以说明保留原因并请求降级。</li>
               <li>涉及事实、数据或引用真实性时，建议补充来源后再复审。</li>
             </ul>

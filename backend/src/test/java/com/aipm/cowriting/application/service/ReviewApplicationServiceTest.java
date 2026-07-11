@@ -47,6 +47,8 @@ class ReviewApplicationServiceTest {
     private OpenAiReviewService openAiReviewService;
     @Mock
     private WritingRiskApplicationService writingRiskApplicationService;
+    @Mock
+    private ContentScopeResolverService contentScopeResolverService;
 
     private ReviewApplicationService reviewApplicationService;
 
@@ -61,9 +63,10 @@ class ReviewApplicationServiceTest {
                 reviewRecheckLogRepository,
                 openAiReviewService,
                 writingRiskApplicationService,
+                contentScopeResolverService,
                 new ObjectMapper()
         );
-        lenient().when(writingRiskApplicationService.reviewItems(any())).thenReturn(List.of());
+        lenient().when(writingRiskApplicationService.reviewItems(any(DraftVersionEntity.class))).thenReturn(List.of());
     }
 
     @Test

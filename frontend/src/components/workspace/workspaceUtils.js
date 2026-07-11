@@ -18,8 +18,10 @@ export function formatImpactLabel(level) {
 
 export function formatReviewStatusLabel(status) {
   const normalized = String(status || "OPEN").toUpperCase();
+  if (normalized === "MODIFIED_PENDING_RECHECK") return "已修改待复查";
   if (normalized === "RESOLVED") return "已解决";
   if (normalized === "IGNORED") return "已忽略";
+  if (normalized === "SUPERSEDED") return "已失效";
   return "待处理";
 }
 
@@ -287,7 +289,7 @@ export function buildReviewInstruction(review) {
   const message = review.message ? `问题说明：${review.message}` : "";
   const action = {
     missing_evidence: "请补充或强化证据解释，不要编造不存在的引用。",
-    requirement_conflict: "请按老师要求和作业说明修正这段内容。",
+    requirement_conflict: "请按已确认的学校、导师、课程或期刊要求修正这段内容。",
     repetition_issue: "请压缩信息重复，但保留必要的结构性回扣。",
     logic_gap: "请补足论证跳步，让观点、原因和结论衔接更自然。",
     factual_risk: "请降低事实性断言风险，并提示需要核实的地方。",
@@ -317,12 +319,12 @@ export function actionForReview(review) {
 export function summarizeReviewBasis(review) {
   const messages = {
     missing_evidence: "系统会优先检查论点是否能在来源追溯或正文附近找到支撑。",
-    requirement_conflict: "系统会把老师要求、字数、格式和特殊说明作为主要判断依据。",
+    requirement_conflict: "系统会把用户确认的学校、导师、课程或期刊要求，以及篇幅、格式和特殊说明作为主要判断依据。",
     repetition_issue: "系统会区分结构性回扣和信息重复，必要回扣可以申诉保留。",
     logic_gap: "系统会查看段落之间是否存在缺少解释、跳步或结论过快。",
     factual_risk: "系统会提示可能需要核实的事实、数据、概念或引用。",
     citation_missing: "系统会检查来源追溯中已有材料但正文缺少可识别引用的位置。",
-    citation_format_mismatch: "系统会对照老师要求或导出设置，检查 APA 与 GB/T 7714 是否混用。",
+    citation_format_mismatch: "系统会对照已确认要求或导出设置，检查 APA 与 GB/T 7714 是否混用。",
     reference_orphan: "系统会检查正文引用是否能对应到已上传并解析的材料，避免疑似编造来源。",
     reference_not_cited: "系统会检查参考文献区是否存在正文未实际引用的条目。",
     reference_metadata_incomplete: "系统会检查已引用材料是否缺少作者、年份、题名等关键文献信息。",
@@ -357,14 +359,14 @@ export function reviewEvidenceChecklist(review) {
     missing_evidence: ["优先检查该段是否缺少材料支撑。", "如果材料已上传但未绑定，可以先重建可信链。"],
     citation_missing: ["优先检查该段是否已有来源但缺少正文引用。", "可从材料可信链中插入引用。"],
     factual_risk: ["优先核对数据、年份、专有名词和事实性断言。", "如果不能确认，建议降低断言强度。"],
-    requirement_conflict: ["优先对照老师要求快照。", "如果老师要求本身模糊，建议补录要求后再复查。"],
+    requirement_conflict: ["优先对照已确认的提交要求快照。", "如果要求本身模糊，建议补录并确认后再复查。"],
     repetition_issue: ["区分必要的结构性回扣和真正的信息重复。", "如属于章节小结或结论回顾，可申诉保留。"],
     citation_format_mismatch: ["优先确认当前导出引用格式。", "建议统一 APA 或 GB/T 7714，不要混用。"],
     reference_metadata_incomplete: ["优先补全作者、年份、题名、期刊/出版社和链接。", "不要让 AI 自行编造缺失文献信息。"],
     aigc_style_risk: ["优先减少空泛套话和万能总结。", "如果缺少具体材料，建议先补充真实案例或数据。"],
     generic_unsupported_claim: ["优先把抽象判断改成具体对象、材料证据和分析解释。", "不要为了自然化而编造不存在的事实。"],
     original_evidence_missing: ["优先补充问卷、访谈、实验、课程案例或真实文献依据。", "已有材料不足时，应先上传或补充说明，再生成修改预览。"]
-  }[type] || ["结合正文、老师要求和材料可信链人工确认。"];
+  }[type] || ["结合正文、已确认要求和材料可信链人工确认。"];
   return [...typeSpecific, ...common];
 }
 

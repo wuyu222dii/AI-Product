@@ -2,6 +2,7 @@ package com.aipm.cowriting.application.service;
 
 import com.aipm.cowriting.application.dto.writingrisk.WritingRiskItemResponse;
 import com.aipm.cowriting.application.dto.writingrisk.WritingRiskSummaryResponse;
+import com.aipm.cowriting.application.model.ContentScope;
 import com.aipm.cowriting.common.error.BusinessException;
 import com.aipm.cowriting.common.error.ErrorCode;
 import com.aipm.cowriting.domain.entity.DraftVersionEntity;
@@ -68,7 +69,36 @@ public class WritingRiskApplicationService {
     }
 
     public WritingRiskSummaryResponse evaluate(DraftVersionEntity draft) {
-        List<ParagraphSlice> paragraphs = splitParagraphs(draft.getDraftText());
+        return evaluateText(
+                draft.getId(),
+                draft.getDraftText(),
+                "LEGACY_DRAFT",
+                draft.getDocumentId(),
+                null,
+                null
+        );
+    }
+
+    public WritingRiskSummaryResponse evaluate(ContentScope scope) {
+        return evaluateText(
+                scope.draftVersionId(),
+                scope.content(),
+                scope.scopeType(),
+                scope.documentId(),
+                scope.sectionId(),
+                scope.revision()
+        );
+    }
+
+    private WritingRiskSummaryResponse evaluateText(
+            UUID draftId,
+            String content,
+            String scopeType,
+            UUID documentId,
+            UUID sectionId,
+            Integer sectionVersionNo
+    ) {
+        List<ParagraphSlice> paragraphs = splitParagraphs(content);
         List<WritingRiskItemResponse> items = new ArrayList<>();
         Set<String> globalRecommendations = new LinkedHashSet<>();
 
@@ -78,23 +108,35 @@ public class WritingRiskApplicationService {
             if (signals.isEmpty()) {
                 continue;
             }
-            WritingRiskItemResponse item = toRiskItem("p" + (index + 1), paragraph, signals);
+            WritingRiskItemResponse item = toRiskItem("p" + (index + 1), paragraph, signals, sectionId);
             items.add(item);
             globalRecommendations.add(item.suggestedAction());
         }
 
         int overallScore = score(paragraphs.size(), items);
         return new WritingRiskSummaryResponse(
-                draft.getId(),
+                draftId,
                 status(overallScore, items),
                 overallScore,
                 items.stream().limit(12).toList(),
-                recommendations(globalRecommendations, items)
+                recommendations(globalRecommendations, items),
+                scopeType,
+                documentId,
+                sectionId,
+                sectionVersionNo
         );
     }
 
     public List<Map<String, Object>> reviewItems(DraftVersionEntity draft) {
         return evaluate(draft).items().stream()
+                .filter(item -> !"NOTICE".equals(item.level()))
+                .limit(5)
+                .map(this::toReviewItem)
+                .toList();
+    }
+
+    public List<Map<String, Object>> reviewItems(ContentScope scope) {
+        return evaluate(scope).items().stream()
                 .filter(item -> !"NOTICE".equals(item.level()))
                 .limit(5)
                 .map(this::toReviewItem)
@@ -128,7 +170,12 @@ public class WritingRiskApplicationService {
         return signals;
     }
 
-    private WritingRiskItemResponse toRiskItem(String paragraphId, ParagraphSlice paragraph, List<RiskSignal> signals) {
+    private WritingRiskItemResponse toRiskItem(
+            String paragraphId,
+            ParagraphSlice paragraph,
+            List<RiskSignal> signals,
+            UUID sectionId
+    ) {
         String riskType = strongestRiskType(signals);
         String level = signals.size() >= 3 || "original_evidence_missing".equals(riskType) ? "LOCAL_FIX" : "NOTICE";
         return new WritingRiskItemResponse(
@@ -140,7 +187,8 @@ public class WritingRiskApplicationService {
                 signals.stream().map(RiskSignal::message).distinct().toList(),
                 suggestedAction(riskType),
                 supplementPrompt(riskType),
-                coWriteInstruction(riskType)
+                coWriteInstruction(riskType),
+                sectionId
         );
     }
 

@@ -1,5 +1,7 @@
 # AI 论文共写工作台 v1 后端服务拆分与状态机时序图
 
+> 本文档保留 v1.x 服务设计。v2.0 学术画像、多文档、章节和 readiness 服务以 [v2_academic_workspace_api.md](v2_academic_workspace_api.md) 与当前源码为准。
+
 ## 1. 文档目标
 
 本文档用于补齐后端实现层的两类关键设计：

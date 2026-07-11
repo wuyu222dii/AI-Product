@@ -5,6 +5,7 @@ import { UploadPage } from "./pages/UploadPage.jsx";
 import { ParsingStatusPage } from "./pages/ParsingStatusPage.jsx";
 import { MaterialGatePage } from "./pages/MaterialGatePage.jsx";
 import { KnowledgeBasePage } from "./pages/KnowledgeBasePage.jsx";
+import { AcademicDocumentsPage } from "./pages/AcademicDocumentsPage.jsx";
 import { WorkspacePage } from "./pages/WorkspacePage.jsx";
 import { ExportPage } from "./pages/ExportPage.jsx";
 import { ErrorBanner } from "./components/ErrorBanner.jsx";
@@ -15,13 +16,13 @@ const STEPS = [
   { key: "parsing", label: "解析状态", path: "/parsing" },
   { key: "gate", label: "材料检查", path: "/gate" },
   { key: "knowledge", label: "知识库", path: "/knowledge-base" },
-  { key: "workspace", label: "共写工作台", path: "/workspace" },
-  { key: "export", label: "导出", path: "/export" }
+  { key: "documents", label: "学术文档", path: "/documents" }
 ];
 
 const STORAGE_KEYS = {
   workspace: "cowriting-demo-workspace",
-  draft: "cowriting-demo-draft"
+  draft: "cowriting-demo-draft",
+  activeDocument: "cowriting-active-document"
 };
 
 export default function App() {
@@ -37,6 +38,7 @@ function DemoApp() {
   const navigate = useNavigate();
   const [workspace, setWorkspace] = usePersistentState(STORAGE_KEYS.workspace, null);
   const [draft, setDraft] = usePersistentState(STORAGE_KEYS.draft, null);
+  const [activeDocument, setActiveDocument] = usePersistentState(STORAGE_KEYS.activeDocument, null);
   const [globalError, setGlobalError] = useState("");
 
   const layoutTitle = useMemo(() => {
@@ -44,7 +46,7 @@ function DemoApp() {
   }, [location.pathname]);
 
   useEffect(() => {
-    const routeWithoutState = ["/upload", "/parsing", "/gate", "/knowledge-base", "/workspace", "/export"].includes(location.pathname);
+    const routeWithoutState = ["/upload", "/parsing", "/gate", "/knowledge-base", "/documents", "/workspace", "/export"].includes(location.pathname);
     if (routeWithoutState && !workspace) {
       navigate("/projects", { replace: true });
     }
@@ -58,7 +60,7 @@ function DemoApp() {
       <aside className="app-sidebar">
         <div className="brand-block">
           <h1>AI 论文共写工作台</h1>
-          <p>当前已收口为真正的多页面演示应用，支持路径跳转、状态持久化和主链路深链访问。</p>
+          <p>面向本科、硕士、博士与科研人员的证据驱动型研究共创平台。</p>
         </div>
         <nav className="nav-list">
           {STEPS.map((step) => (
@@ -77,12 +79,13 @@ function DemoApp() {
         <header className="page-hero">
           <div>
             <h2>{layoutTitle}</h2>
-            <p>当前页面已按产品主线接入：上传 → 解析 → 材料检查 → 知识库 → 共写 → 导出。</p>
+            <p>研究项目 → 学术画像 → 共享材料与知识库 → 多文档 → 章节共写 → 审查与导出。</p>
           </div>
           {workspace && (
             <div className="hero-meta">
               <span className="hero-chip">{workspace.title}</span>
               <span className="hero-chip">{workspace.status}</span>
+              {activeDocument && <span className="hero-chip">{activeDocument.documentType}</span>}
               {draft && <span className="hero-chip">当前版本 v{draft.versionNo}</span>}
             </div>
           )}
@@ -99,11 +102,13 @@ function DemoApp() {
                 onWorkspaceCreated={(created) => {
                   setWorkspace(created);
                   setDraft(null);
+                  setActiveDocument(null);
                   navigate("/upload");
                 }}
                 onWorkspaceSelected={(selected) => {
                   setWorkspace(selected);
                   setDraft(null);
+                  setActiveDocument(null);
                   navigate("/upload");
                 }}
                 onError={setGlobalError}
@@ -144,6 +149,7 @@ function DemoApp() {
               workspace ? (
                 <MaterialGatePage
                   workspace={workspace}
+                  onReady={() => navigate("/knowledge-base")}
                   onEligible={(generatedDraft) => {
                     setDraft(generatedDraft);
                     navigate("/knowledge-base");
@@ -163,8 +169,24 @@ function DemoApp() {
                 <KnowledgeBasePage
                   workspace={workspace}
                   draft={draft}
-                  onContinue={() => navigate(draft ? "/workspace" : "/gate")}
+                  onContinue={() => navigate("/documents")}
                   onBackParsing={() => navigate("/parsing")}
+                  onError={setGlobalError}
+                />
+              ) : (
+                <Navigate to="/projects" replace />
+              )
+            }
+          />
+          <Route
+            path="/documents"
+            element={
+              workspace ? (
+                <AcademicDocumentsPage
+                  workspace={workspace}
+                  activeDocument={activeDocument}
+                  onActiveDocumentChange={setActiveDocument}
+                  onGoUpload={() => navigate("/upload")}
                   onError={setGlobalError}
                 />
               ) : (

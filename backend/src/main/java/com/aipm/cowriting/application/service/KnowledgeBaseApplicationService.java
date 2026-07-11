@@ -10,6 +10,7 @@ import com.aipm.cowriting.common.api.Pagination;
 import com.aipm.cowriting.common.error.BusinessException;
 import com.aipm.cowriting.common.error.ErrorCode;
 import com.aipm.cowriting.domain.entity.AiSemanticParseResultEntity;
+import com.aipm.cowriting.domain.entity.AcademicDocumentEntity;
 import com.aipm.cowriting.domain.entity.KnowledgeChunkEntity;
 import com.aipm.cowriting.domain.entity.MaterialEntity;
 import com.aipm.cowriting.domain.model.ParseStage;
@@ -55,6 +56,7 @@ public class KnowledgeBaseApplicationService {
     private final MaterialRepository materialRepository;
     private final AiSemanticParseResultRepository aiSemanticParseResultRepository;
     private final KnowledgeChunkRepository knowledgeChunkRepository;
+    private final AcademicDocumentApplicationService academicDocumentService;
     private final ObjectMapper objectMapper;
 
     public KnowledgeBaseApplicationService(
@@ -62,12 +64,14 @@ public class KnowledgeBaseApplicationService {
             MaterialRepository materialRepository,
             AiSemanticParseResultRepository aiSemanticParseResultRepository,
             KnowledgeChunkRepository knowledgeChunkRepository,
+            AcademicDocumentApplicationService academicDocumentService,
             ObjectMapper objectMapper
     ) {
         this.workspaceRepository = workspaceRepository;
         this.materialRepository = materialRepository;
         this.aiSemanticParseResultRepository = aiSemanticParseResultRepository;
         this.knowledgeChunkRepository = knowledgeChunkRepository;
+        this.academicDocumentService = academicDocumentService;
         this.objectMapper = objectMapper;
     }
 
@@ -125,9 +129,12 @@ public class KnowledgeBaseApplicationService {
         }
 
         int limit = normalizeLimit(request.limit());
+        Set<UUID> allowedMaterialIds = resolveSearchMaterialIds(workspaceId, request);
         List<KnowledgeChunkEntity> chunks = knowledgeChunkRepository.findByWorkspaceIdOrderByCreatedAtDesc(workspaceId);
 
         List<SearchCandidate> candidates = chunks.stream()
+                .filter(chunk -> allowedMaterialIds == null || allowedMaterialIds.contains(chunk.getMaterialId()))
+                .filter(chunk -> matchesTags(chunk, request.tags()))
                 .map(chunk -> new SearchCandidate(chunk, roundScore(lexicalScore(query, chunk))))
                 .filter(candidate -> candidate.score() > 0)
                 .sorted(Comparator.comparingDouble(SearchCandidate::score).reversed())
@@ -195,7 +202,7 @@ public class KnowledgeBaseApplicationService {
         appendIfPresent(lines, "主题关系", parseResult.getTopicRelation());
         appendList(lines, "观点", readStringList(parseResult.getDetectedClaimsJson()));
         appendList(lines, "证据", readStringList(parseResult.getDetectedEvidenceJson()));
-        appendList(lines, "老师要求", readStringList(parseResult.getDetectedRequirementsJson()));
+        appendList(lines, "写作与提交要求", readStringList(parseResult.getDetectedRequirementsJson()));
         appendIfPresent(lines, "文献信息", formatBibliographicMetadata(readBibliographicMetadata(parseResult)));
         return shorten(cleanChunkText(String.join("\n", lines)), CHUNK_SIZE);
     }
@@ -211,6 +218,43 @@ public class KnowledgeBaseApplicationService {
             parseResultMap.put(parseResult.getMaterialId(), parseResult);
         }
         return parseResultMap;
+    }
+
+    private Set<UUID> resolveSearchMaterialIds(UUID workspaceId, KnowledgeSearchRequest request) {
+        Set<UUID> allowedIds = null;
+        if (request.documentId() != null) {
+            AcademicDocumentEntity document = academicDocumentService.getDocument(request.documentId());
+            if (!document.getWorkspaceId().equals(workspaceId)) {
+                throw new BusinessException(
+                        ErrorCode.FORBIDDEN,
+                        HttpStatus.FORBIDDEN.value(),
+                        "学术文档不属于当前研究项目"
+                );
+            }
+            allowedIds = academicDocumentService.resolveMaterials(document).stream()
+                    .map(MaterialEntity::getId)
+                    .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+        }
+        if (request.materialIds() != null && !request.materialIds().isEmpty()) {
+            Set<UUID> requestedIds = new LinkedHashSet<>(request.materialIds());
+            if (allowedIds == null) {
+                allowedIds = requestedIds;
+            } else {
+                allowedIds.retainAll(requestedIds);
+            }
+        }
+        return allowedIds;
+    }
+
+    private boolean matchesTags(KnowledgeChunkEntity chunk, List<String> tags) {
+        if (tags == null || tags.isEmpty()) {
+            return true;
+        }
+        String searchable = normalizeForSearch(chunk.getChunkText() + " " + String.join(" ", readStringList(chunk.getKeywordsJson())));
+        return tags.stream()
+                .filter(this::hasText)
+                .map(this::normalizeForSearch)
+                .anyMatch(searchable::contains);
     }
 
     private Map<UUID, MaterialEntity> buildMaterialMap(List<KnowledgeChunkEntity> chunks) {

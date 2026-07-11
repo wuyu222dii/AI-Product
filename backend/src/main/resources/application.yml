@@ -20,7 +20,9 @@ spring:
     open-in-view: false
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: update
+      # Supabase schema is managed by versioned SQL migrations. Runtime auto-DDL can
+      # conflict with generated full-text columns and must stay disabled by default.
+      ddl-auto: ${HIBERNATE_DDL_AUTO:none}
     properties:
       hibernate:
         format_sql: true

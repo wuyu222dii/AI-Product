@@ -9,4 +9,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface DraftVersionRepository extends JpaRepository<DraftVersionEntity, UUID> {
     Optional<DraftVersionEntity> findFirstByWorkspaceIdOrderByVersionNoDesc(UUID workspaceId);
     List<DraftVersionEntity> findByWorkspaceIdOrderByVersionNoDesc(UUID workspaceId);
+    Optional<DraftVersionEntity> findFirstByDocumentIdOrderByVersionNoDesc(UUID documentId);
 }

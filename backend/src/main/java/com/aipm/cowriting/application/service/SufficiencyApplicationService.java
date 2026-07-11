@@ -86,7 +86,7 @@ public class SufficiencyApplicationService {
                     "type", "key_material",
                     "label", "核心材料尚未完成 AI 解析",
                     "message", "系统还没有找到任何一份“已标记为关键材料，并且已完成 AI 语义解析”的上传内容。",
-                    "action", "请在上传或解析页面确认 1-2 份最能支撑论文写作的材料，例如老师要求、研究笔记、已有草稿、数据图表或核心文献，并等待 AI 解析完成。"
+                    "action", "请在上传或解析页面确认 1-2 份最能支撑当前学术文档的材料，例如写作要求、研究笔记、已有草稿、数据图表或核心文献，并等待 AI 解析完成。"
             ));
             recommendedSupplements.add(Map.of(
                     "type", "key_material",
@@ -99,15 +99,15 @@ public class SufficiencyApplicationService {
         if (!hasRequirementMaterial) {
             missingItems.add(Map.of(
                     "type", "assignment_requirement",
-                    "label", "缺少老师要求或作业说明",
-                    "message", "系统还没有从已解析材料中识别到明确的论文题目、字数、格式、引用数量、提交要求等写作规则。",
-                    "action", "请上传课程作业说明、老师通知截图、论文要求文档，或在文本框中粘贴老师给出的要求。"
+                    "label", "缺少明确的写作与提交要求",
+                    "message", "系统还没有从已解析材料中识别到明确的题目、篇幅、格式、引用规范、提交或投稿要求。",
+                    "action", "请上传学校规范、导师说明、课程要求、期刊指南等文件，或在文本框中粘贴用户确认的要求。"
             ));
             recommendedSupplements.add(Map.of(
                     "type", "assignment_requirement",
                     "suggestedCount", "1",
-                    "label", "补充作业要求",
-                    "message", "请补充 1 份明确的作业要求或老师说明。"
+                    "label", "补充写作要求",
+                    "message", "请补充 1 份明确的学校、导师、课程、期刊或用户确认要求。"
             ));
         }
 

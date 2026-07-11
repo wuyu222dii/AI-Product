@@ -13,7 +13,9 @@ import com.aipm.cowriting.domain.entity.AiSemanticParseResultEntity;
 import com.aipm.cowriting.domain.entity.MaterialEntity;
 import com.aipm.cowriting.domain.entity.WorkspaceEntity;
 import com.aipm.cowriting.domain.model.MaterialCategory;
+import com.aipm.cowriting.domain.model.MaterialRole;
 import com.aipm.cowriting.domain.model.ParseStage;
+import com.aipm.cowriting.domain.model.ResearchArtifactType;
 import com.aipm.cowriting.domain.model.WorkspaceStatus;
 import com.aipm.cowriting.domain.repository.AiSemanticParseResultRepository;
 import com.aipm.cowriting.domain.repository.MaterialRepository;
@@ -130,6 +132,11 @@ public class MaterialApplicationService {
         parseResult.setMaterialCategory(parseResult.getMaterialCategory() == null
                 ? MaterialCategory.UNKNOWN
                 : parseResult.getMaterialCategory());
+        parseResult.setMaterialRole(parseResult.getMaterialRole() == null ? MaterialRole.UNKNOWN : parseResult.getMaterialRole());
+        parseResult.setResearchArtifactType(parseResult.getResearchArtifactType() == null
+                ? ResearchArtifactType.NONE
+                : parseResult.getResearchArtifactType());
+        parseResult.setMaterialTagsJson(defaultJson(parseResult.getMaterialTagsJson(), "[]"));
         parseResult.setDetectedClaimsJson(defaultJson(parseResult.getDetectedClaimsJson(), "[]"));
         parseResult.setDetectedEvidenceJson(defaultJson(parseResult.getDetectedEvidenceJson(), "[]"));
         parseResult.setDetectedRequirementsJson(defaultJson(parseResult.getDetectedRequirementsJson(), "[]"));
@@ -230,6 +237,9 @@ public class MaterialApplicationService {
         parseResult.setId(parseResult.getId() == null ? UUID.randomUUID() : parseResult.getId());
         parseResult.setMaterialId(materialId);
         parseResult.setMaterialCategory(parseMaterialCategory(result.materialCategory(), aiInput));
+        parseResult.setMaterialRole(parseMaterialRole(result.materialRole(), parseResult.getMaterialCategory()));
+        parseResult.setResearchArtifactType(parseResearchArtifactType(result.researchArtifactType()));
+        parseResult.setMaterialTagsJson(writeJson(result.materialTags()));
         parseResult.setSummary(result.summary());
         parseResult.setTopicRelation(result.topicRelation());
         parseResult.setDetectedClaimsJson(writeJson(result.detectedClaims()));
@@ -324,8 +334,35 @@ public class MaterialApplicationService {
     private boolean looksLikeAssignmentRequirement(String content) {
         return content.contains("课程论文要求")
                 || content.contains("作业要求")
+                || content.contains("投稿要求")
+                || content.contains("学校要求")
+                || content.contains("导师要求")
+                || content.contains("学位论文规范")
                 || (content.contains("字数") && content.contains("格式"))
                 || (content.contains("引用") && content.contains("参考资料"));
+    }
+
+    private MaterialRole parseMaterialRole(String value, MaterialCategory fallbackCategory) {
+        try {
+            return MaterialRole.valueOf(value == null ? "UNKNOWN" : value.trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            return switch (fallbackCategory) {
+                case ASSIGNMENT_REQUIREMENT -> MaterialRole.SUBMISSION_REQUIREMENT;
+                case REFERENCE_MATERIAL -> MaterialRole.LITERATURE;
+                case USER_DRAFT -> MaterialRole.AUTHOR_DRAFT;
+                case RESEARCH_RESULT, CHART_OR_DATA -> MaterialRole.RESEARCH_ARTIFACT;
+                case SUPPLEMENT_NOTE -> MaterialRole.SUPPLEMENT;
+                default -> MaterialRole.UNKNOWN;
+            };
+        }
+    }
+
+    private ResearchArtifactType parseResearchArtifactType(String value) {
+        try {
+            return ResearchArtifactType.valueOf(value == null ? "NONE" : value.trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            return ResearchArtifactType.OTHER;
+        }
     }
 
     private boolean looksLikeReferenceMaterial(String content) {
@@ -420,6 +457,7 @@ public class MaterialApplicationService {
         List<String> claims = parseResult == null ? List.of() : readStringList(parseResult.getDetectedClaimsJson());
         List<String> evidence = parseResult == null ? List.of() : readStringList(parseResult.getDetectedEvidenceJson());
         List<String> requirements = parseResult == null ? List.of() : readStringList(parseResult.getDetectedRequirementsJson());
+        List<String> materialTags = parseResult == null ? List.of() : readStringList(parseResult.getMaterialTagsJson());
         BibliographicMetadata bibliographicMetadata = readBibliographicMetadata(parseResult);
         return new MaterialResponse(
                 entity.getId(),
@@ -433,6 +471,9 @@ public class MaterialApplicationService {
                 parseResult == null ? null : parseResult.getMaterialCategory(),
                 effectiveCategory,
                 parseResult != null && parseResult.getManualMaterialCategory() != null,
+                parseResult == null ? null : parseResult.getMaterialRole(),
+                parseResult == null ? null : parseResult.getResearchArtifactType(),
+                materialTags,
                 parseResult == null ? null : parseResult.getSummary(),
                 parseResult == null ? null : parseResult.getTopicRelation(),
                 claims,

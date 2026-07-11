@@ -7,7 +7,7 @@
     <artifactId>cowriting-backend</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>cowriting-backend</name>
-    <description>AI 论文共写工作台 v1 backend</description>
+    <description>AI 论文共写工作台 v2.0 evidence-driven academic collaboration backend</description>
 
     <properties>
         <java.version>17</java.version>

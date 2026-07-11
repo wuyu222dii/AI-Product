@@ -8,6 +8,19 @@ public record WritingRiskSummaryResponse(
         String overallStatus,
         int overallScore,
         List<WritingRiskItemResponse> items,
-        List<String> recommendations
+        List<String> recommendations,
+        String scopeType,
+        UUID documentId,
+        UUID sectionId,
+        Integer sectionVersionNo
 ) {
+    public WritingRiskSummaryResponse(
+            UUID draftId,
+            String overallStatus,
+            int overallScore,
+            List<WritingRiskItemResponse> items,
+            List<String> recommendations
+    ) {
+        this(draftId, overallStatus, overallScore, items, recommendations, "LEGACY_DRAFT", null, null, null);
+    }
 }

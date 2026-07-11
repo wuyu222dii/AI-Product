@@ -10,6 +10,23 @@ public record EvidenceBindingSummaryResponse(
         List<EvidenceMaterialResponse> usedMaterials,
         List<EvidenceMaterialResponse> unusedMaterials,
         EvidenceCoverageReport coverage,
-        CitationConsistencyReport citationConsistency
+        CitationConsistencyReport citationConsistency,
+        String scopeType,
+        UUID documentId,
+        UUID sectionId,
+        Integer sectionVersionNo,
+        String analysisState
 ) {
+    public EvidenceBindingSummaryResponse(
+            UUID draftVersionId,
+            List<EvidenceParagraphResponse> paragraphs,
+            List<String> missingParagraphIds,
+            List<EvidenceMaterialResponse> usedMaterials,
+            List<EvidenceMaterialResponse> unusedMaterials,
+            EvidenceCoverageReport coverage,
+            CitationConsistencyReport citationConsistency
+    ) {
+        this(draftVersionId, paragraphs, missingParagraphIds, usedMaterials, unusedMaterials, coverage,
+                citationConsistency, "LEGACY_DRAFT", null, null, null, "CURRENT");
+    }
 }

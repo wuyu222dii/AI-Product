@@ -1,5 +1,7 @@
 # AI 论文共写工作台 v1.6 OpenAPI 风格接口契约
 
+> 本文档保留 v1.x 兼容接口。v2.0 学术画像、多文档、章节、readiness 和 AI 留痕接口见 [v2_academic_workspace_api.md](v2_academic_workspace_api.md)。
+
 本文档是当前实现的 OpenAPI 风格契约说明，不是可直接导入的 YAML 文件。字段级细节以 [api_field_spec.md](api_field_spec.md) 为准。
 
 ## 1. 基础信息

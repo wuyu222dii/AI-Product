@@ -5,6 +5,8 @@
 当前正式口径：
 
 - 当前完成度（唯一当前状态来源）：[PRODUCT_COMPLETION_STATUS-6-16.md](project/PRODUCT_COMPLETION_STATUS-6-16.md)
+- v2.0 产品规格：[V2_ACADEMIC_UPGRADE.md](product/V2_ACADEMIC_UPGRADE.md)
+- v2.0.1 数据与接口：[v2_academic_workspace_api.md](engineering/v2_academic_workspace_api.md)
 - 当前交付清单：[FINAL_DELIVERY_CHECKLIST.md](project/FINAL_DELIVERY_CHECKLIST.md)
 - Demo 跑通指南：[DEMO_GUIDE.md](guides/DEMO_GUIDE.md)
 
@@ -15,6 +17,7 @@
 | 文档 | 说明 |
 | --- | --- |
 | [PRD.md](product/PRD.md) | 产品与开发总规格 |
+| [V2_ACADEMIC_UPGRADE.md](product/V2_ACADEMIC_UPGRADE.md) | v2.0 全学术人群当前规格 |
 
 ## 设计与交互
 
@@ -33,10 +36,14 @@
 | [openapi_contract_draft.md](engineering/openapi_contract_draft.md) | OpenAPI 风格后端接口契约 |
 | [engineering_tasks.md](engineering/engineering_tasks.md) | 前后端任务拆分 |
 | [ai-cowriting-workbench-development-doc.md](engineering/ai-cowriting-workbench-development-doc.md) | 当前工程实现与版本演进汇总 |
+| [v2_academic_workspace_api.md](engineering/v2_academic_workspace_api.md) | v2.0.1 学术画像、多文档、章节、统一可信审查与选择性共写接口 |
 | [postgresql_schema.sql](../postgresql_schema.sql) | PostgreSQL 基础建表草案 |
 | [v1_4_trust_chain.sql](../backend/db/v1_4_trust_chain.sql) | v1.4 可信链迁移 |
 | [v1_6_trust_delivery_enhancement.sql](../backend/db/v1_6_trust_delivery_enhancement.sql) | v1.6 共写审查关联迁移 |
 | [v1_9_literature_candidates.sql](../backend/db/v1_9_literature_candidates.sql) | v1.9 候选文献清单迁移 SQL |
+| [20260711031857_v2_academic_workspace.sql](../supabase/migrations/20260711031857_v2_academic_workspace.sql) | v2.0 正式 Supabase 迁移、旧项目回填与索引 |
+| [20260711065932_repair_document_section_versions.sql](../supabase/migrations/20260711065932_repair_document_section_versions.sql) | 修复章节当前版本与历史最大版本不一致 |
+| [20260711092831_academic_document_quality_scopes.sql](../supabase/migrations/20260711092831_academic_document_quality_scopes.sql) | v2.0.1 章节/文档分析作用域、审查生命周期和选择性共写迁移 |
 
 ## 使用与部署
 
@@ -62,10 +69,10 @@
 
 ## 推荐阅读顺序
 
-**产品 / 设计：** PRD -> frontend_page_spec -> P7 工作台设计/视觉稿
+**产品 / 设计：** V2_ACADEMIC_UPGRADE -> PRD -> frontend_page_spec -> P7 工作台历史设计/视觉稿
 
-**前端：** PRD -> frontend_page_spec -> api_field_spec -> DEMO_GUIDE
+**前端：** V2_ACADEMIC_UPGRADE -> v2_academic_workspace_api -> frontend_page_spec -> DEMO_GUIDE
 
-**后端：** PRD -> backend_service_spec -> api_field_spec -> supabase-setup
+**后端：** V2_ACADEMIC_UPGRADE -> v2_academic_workspace_api -> Supabase v2 migration -> backend_service_spec
 
 **快速跑 Demo：** DEMO_GUIDE -> FINAL_DELIVERY_CHECKLIST

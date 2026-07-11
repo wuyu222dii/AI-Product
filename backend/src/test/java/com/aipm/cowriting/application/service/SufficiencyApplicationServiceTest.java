@@ -103,7 +103,7 @@ class SufficiencyApplicationServiceTest {
         assertThat(response.missingItems()).extracting(item -> item.get("type"))
                 .contains("key_material", "assignment_requirement", "reference_material", "research_result");
         assertThat(response.missingItems()).extracting(item -> item.get("label"))
-                .contains("核心材料尚未完成 AI 解析", "缺少老师要求或作业说明", "缺少可引用参考资料", "缺少你的研究内容或写作基础");
+                .contains("核心材料尚未完成 AI 解析", "缺少明确的写作与提交要求", "缺少可引用参考资料", "缺少你的研究内容或写作基础");
         assertThat(response.missingItems()).allSatisfy(item -> {
             assertThat(item.get("message")).isInstanceOf(String.class);
             assertThat((String) item.get("message")).doesNotContain("key_material", "assignment_requirement", "reference_material", "research_result");

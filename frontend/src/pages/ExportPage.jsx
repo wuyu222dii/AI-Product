@@ -32,7 +32,7 @@ export function ExportPage({ workspace, draft, onBack, onError }) {
         if (!cancelled) onError(error.message);
       }
       try {
-        const snapshot = await api.getRequirementSnapshot(workspace.id);
+        const snapshot = await api.getRequirementSnapshot(workspace.id, true);
         if (!cancelled && snapshot?.citationStyle) {
           setCitationStyle(normalizeCitationStyle(snapshot.citationStyle));
         }

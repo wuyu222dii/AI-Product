@@ -1,5 +1,7 @@
--- AI 论文共写工作台 v1
--- PostgreSQL schema draft
+-- AI 论文共写工作台 v1.x legacy base schema
+-- v2.0 current schema changes are managed by:
+-- supabase/migrations/20260711031857_v2_academic_workspace.sql
+-- Runtime Hibernate DDL is disabled; do not use this legacy draft instead of migrations.
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 

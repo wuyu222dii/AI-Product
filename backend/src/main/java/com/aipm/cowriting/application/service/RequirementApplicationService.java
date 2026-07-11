@@ -34,13 +34,17 @@ public class RequirementApplicationService {
 
     public RequirementSnapshotResponse create(UUID workspaceId, CreateRequirementSnapshotRequest request) {
         assertWorkspaceExists(workspaceId);
-        int nextVersion = snapshotRepository.findFirstByWorkspaceIdOrderByVersionDesc(workspaceId)
+        int nextVersion = latestForScope(workspaceId, request.documentId())
                 .map(snapshot -> snapshot.getVersion() + 1)
                 .orElse(1);
 
         RequirementSnapshotEntity entity = new RequirementSnapshotEntity();
         entity.setId(UUID.randomUUID());
         entity.setWorkspaceId(workspaceId);
+        entity.setDocumentId(request.documentId());
+        entity.setSourceType(request.sourceType() == null || request.sourceType().isBlank()
+                ? request.documentId() == null ? "PROJECT" : "DOCUMENT"
+                : request.sourceType().trim().toUpperCase());
         entity.setTopic(request.topic());
         entity.setWordCount(request.wordCount());
         entity.setDeadline(request.deadline());
@@ -55,13 +59,18 @@ public class RequirementApplicationService {
 
     public RequirementSnapshotResponse latest(UUID workspaceId) {
         assertWorkspaceExists(workspaceId);
-        RequirementSnapshotEntity entity = snapshotRepository.findFirstByWorkspaceIdOrderByVersionDesc(workspaceId)
+        RequirementSnapshotEntity entity = findLatest(workspaceId)
                 .orElseThrow(() -> new BusinessException(
                         ErrorCode.REQUIREMENT_SNAPSHOT_MISSING,
                         HttpStatus.NOT_FOUND.value(),
                         "requirement snapshot 不存在"
                 ));
         return toResponse(entity);
+    }
+
+    public RequirementSnapshotResponse latestOptional(UUID workspaceId) {
+        assertWorkspaceExists(workspaceId);
+        return findLatest(workspaceId).map(this::toResponse).orElse(null);
     }
 
     private void assertWorkspaceExists(UUID workspaceId) {
@@ -78,6 +87,8 @@ public class RequirementApplicationService {
         return new RequirementSnapshotResponse(
                 entity.getId(),
                 entity.getWorkspaceId(),
+                entity.getDocumentId(),
+                entity.getSourceType(),
                 entity.getTopic(),
                 entity.getWordCount(),
                 entity.getDeadline(),
@@ -86,6 +97,17 @@ public class RequirementApplicationService {
                 entity.getVersion(),
                 entity.getCreatedAt()
         );
+    }
+
+    private java.util.Optional<RequirementSnapshotEntity> latestForScope(UUID workspaceId, UUID documentId) {
+        return documentId == null
+                ? snapshotRepository.findFirstByWorkspaceIdAndDocumentIdIsNullOrderByVersionDesc(workspaceId)
+                : snapshotRepository.findFirstByWorkspaceIdAndDocumentIdOrderByVersionDesc(workspaceId, documentId);
+    }
+
+    private java.util.Optional<RequirementSnapshotEntity> findLatest(UUID workspaceId) {
+        return snapshotRepository.findFirstByWorkspaceIdAndDocumentIdIsNullOrderByVersionDesc(workspaceId)
+                .or(() -> snapshotRepository.findFirstByWorkspaceIdOrderByVersionDesc(workspaceId));
     }
 
     private String writeJson(Object value) {

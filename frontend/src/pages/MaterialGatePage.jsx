@@ -3,9 +3,9 @@ import { api } from "../services/api";
 
 const MISSING_ITEM_LABELS = {
   key_material: "核心材料尚未完成 AI 解析",
-  assignment_requirement: "缺少老师要求或作业说明",
+  assignment_requirement: "缺少明确的写作与提交要求",
   reference_material: "缺少可引用参考资料",
-  research_result: "缺少你的研究内容或写作基础"
+  research_result: "缺少当前文档所需的研究成果或分析依据"
 };
 
 const LITERATURE_SOURCE_LABELS = {
@@ -40,8 +40,9 @@ function formatMissingItemLabel(item) {
   return item?.label || MISSING_ITEM_LABELS[item?.type] || "材料信息不完整";
 }
 
-export function MaterialGatePage({ workspace, onEligible, onBackUpload, onError }) {
+export function MaterialGatePage({ workspace, onReady, onEligible, onBackUpload, onError }) {
   const [snapshot, setSnapshot] = useState(null);
+  const [academicDocument, setAcademicDocument] = useState(null);
   const [result, setResult] = useState(null);
   const [checking, setChecking] = useState(false);
   const [draftMode, setDraftMode] = useState("stable");
@@ -67,19 +68,27 @@ export function MaterialGatePage({ workspace, onEligible, onBackUpload, onError 
 
     async function bootstrap() {
       try {
-        let snapshotData;
-        try {
-          snapshotData = await api.getRequirementSnapshot(workspace.id);
-        } catch {
+        const documents = await api.listAcademicDocuments(workspace.id);
+        const selectedDocument = documents.find((item) => item.id === workspace.activeDocumentId)
+          ?? documents.find((item) => item.primaryDocument)
+          ?? documents[0]
+          ?? null;
+        let snapshotData = await api.getRequirementSnapshot(workspace.id, true);
+        if (!snapshotData) {
           snapshotData = await api.createRequirementSnapshot(workspace.id, {
-            topic: workspace.title,
-            wordCount: 3000,
+            documentId: selectedDocument?.id ?? null,
+            sourceType: selectedDocument ? "DOCUMENT" : "PROJECT",
+            topic: selectedDocument?.title ?? workspace.title,
+            wordCount: selectedDocument?.targetLength ?? 3000,
             deadline: null,
-            citationStyle: "APA",
+            citationStyle: selectedDocument?.citationStyle ?? workspace.academicProfile?.defaultCitationStyle ?? "APA",
             specialRequirements: { minReferences: 5 }
           });
         }
-        if (!cancelled) setSnapshot(snapshotData);
+        if (!cancelled) {
+          setAcademicDocument(selectedDocument);
+          setSnapshot(snapshotData);
+        }
       } catch (error) {
         if (!cancelled) onError(error.message);
       }
@@ -113,17 +122,30 @@ export function MaterialGatePage({ workspace, onEligible, onBackUpload, onError 
     if (!workspace?.id || !snapshot?.id) return;
     try {
       setChecking(true);
-      const checked = await api.checkMaterialSufficiency(workspace.id, snapshot.id);
+      const checked = academicDocument?.id
+        ? mapDocumentReadiness(await api.checkDocumentReadiness(academicDocument.id))
+        : await api.checkMaterialSufficiency(workspace.id, snapshot.id);
       setResult(checked);
-      if (checked.isGenerationEligible) {
-        await api.generateDraft(workspace.id, snapshot.id, draftMode);
-        const drafts = await api.listDrafts(workspace.id);
-        const latest = drafts.items?.[0];
-        if (latest) {
-          const draft = await api.getDraft(latest.id);
-          onEligible(draft);
-        }
+    } catch (error) {
+      onError(error.message);
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  async function handleLegacyDraftGeneration() {
+    if (!workspace?.id || !snapshot?.id) return;
+    try {
+      setChecking(true);
+      const legacyCheck = await api.checkMaterialSufficiency(workspace.id, snapshot.id);
+      if (!legacyCheck.isGenerationEligible) {
+        setResult(legacyCheck);
+        return;
       }
+      await api.generateDraft(workspace.id, snapshot.id, draftMode);
+      const drafts = await api.listDrafts(workspace.id);
+      const latest = drafts.items?.[0];
+      if (latest) onEligible(await api.getDraft(latest.id));
     } catch (error) {
       onError(error.message);
     } finally {
@@ -202,13 +224,13 @@ export function MaterialGatePage({ workspace, onEligible, onBackUpload, onError 
   return (
     <section className="page-card">
       <h3 className="page-section-title">材料充足性检查</h3>
-      <p className="section-help">系统先判断当前材料是否足以支撑正文生成。材料不足时不会兜底写作，但会帮你找到下一步可以补充的真实文献入口。</p>
+      <p className="section-help">系统按当前文档类型与研究范式判断材料是否足以支撑章节写作。材料不足时不会兜底写作，但会给出补充与真实文献检索入口。</p>
 
       <div className="card-block">
-        <h4>当前 Requirement Snapshot</h4>
+        <h4>当前写作与提交要求基准</h4>
         {snapshot ? (
           <p className="muted">
-            题目：{snapshot.topic} ｜ 字数：{snapshot.wordCount} ｜ 引用格式：{snapshot.citationStyle}
+            文档：{academicDocument?.title ?? snapshot.topic} ｜ 类型：{academicDocument?.documentType ?? "兼容项目"} ｜ 目标篇幅：{snapshot.wordCount} ｜ 引用格式：{snapshot.citationStyle}
           </p>
         ) : (
           <p className="muted">正在准备要求基准...</p>
@@ -216,21 +238,35 @@ export function MaterialGatePage({ workspace, onEligible, onBackUpload, onError 
       </div>
 
       <div className="button-row gate-action-row">
-        <div className="field gate-mode-field">
-          <label>初稿生成模式</label>
-          <select value={draftMode} onChange={(event) => setDraftMode(event.target.value)}>
-            <option value="stable">稳妥版</option>
-            <option value="academic">学术版</option>
-            <option value="quick">快速版</option>
-          </select>
-        </div>
         <button className="primary-btn" onClick={handleCheck} disabled={checking || !snapshot}>
-          {checking ? "检查中..." : "执行材料检查并生成初稿"}
+          {checking ? "检查中..." : "检查当前文档准备度"}
         </button>
         <button className="ghost-btn" onClick={onBackUpload}>
           返回继续补传
         </button>
       </div>
+
+      {result?.isGenerationEligible && (
+        <div className="gate-ready-panel">
+          <div>
+            <span className="status-badge ready">章节写作已就绪</span>
+            <h4>材料可以支撑当前文档继续推进</h4>
+            <p>{result.nextAction || "进入知识库确认材料片段后，可以按章节生成、共写和保存版本。"}</p>
+          </div>
+          <div className="gate-ready-actions">
+            <button className="primary-btn" type="button" onClick={onReady}>进入知识库与学术文档</button>
+            <div className="field gate-mode-field">
+              <label>旧版整篇初稿模式</label>
+              <select value={draftMode} onChange={(event) => setDraftMode(event.target.value)}>
+                <option value="stable">稳妥版</option>
+                <option value="academic">学术版</option>
+                <option value="quick">快速版</option>
+              </select>
+            </div>
+            <button className="ghost-btn" type="button" onClick={handleLegacyDraftGeneration} disabled={checking}>生成兼容整篇初稿</button>
+          </div>
+        </div>
+      )}
 
       {result && !result.isGenerationEligible && (
         <MaterialInsufficientPanel
@@ -254,6 +290,36 @@ export function MaterialGatePage({ workspace, onEligible, onBackUpload, onError 
       )}
     </section>
   );
+}
+
+function mapDocumentReadiness(readiness) {
+  const missingItems = (readiness.issues ?? [])
+    .filter((item) => item.level === "BLOCKING")
+    .map((item) => ({
+      type: readinessIssueType(item.code),
+      label: item.label,
+      message: item.message,
+      action: item.suggestedAction
+    }));
+  return {
+    isGenerationEligible: readiness.generationEligible,
+    missingItems,
+    recommendedSupplements: missingItems.map((item) => ({
+      type: item.type,
+      label: item.label,
+      suggestedCount: item.type === "reference_material" ? "3-5" : "1-2",
+      message: item.action
+    })),
+    nextAction: readiness.nextAction,
+    readiness
+  };
+}
+
+function readinessIssueType(code) {
+  if (code === "LITERATURE_MISSING") return "reference_material";
+  if (code === "KEY_MATERIAL_NOT_PARSED") return "key_material";
+  if (code === "REQUIREMENT_UNCONFIRMED") return "assignment_requirement";
+  return "research_result";
 }
 
 function MaterialInsufficientPanel({

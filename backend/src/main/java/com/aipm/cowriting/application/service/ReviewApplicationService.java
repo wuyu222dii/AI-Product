@@ -8,6 +8,7 @@ import com.aipm.cowriting.application.dto.review.AppealResponse;
 import com.aipm.cowriting.application.dto.review.ReviewItemResponse;
 import com.aipm.cowriting.application.dto.review.ReviewRecheckLogResponse;
 import com.aipm.cowriting.application.dto.review.UpdateReviewStatusRequest;
+import com.aipm.cowriting.application.model.ContentScope;
 import com.aipm.cowriting.common.error.BusinessException;
 import com.aipm.cowriting.common.error.ErrorCode;
 import com.aipm.cowriting.domain.entity.AppealCaseEntity;
@@ -55,6 +56,7 @@ public class ReviewApplicationService {
     private final ReviewRecheckLogRepository reviewRecheckLogRepository;
     private final OpenAiReviewService openAiReviewService;
     private final WritingRiskApplicationService writingRiskApplicationService;
+    private final ContentScopeResolverService contentScopeResolverService;
     private final ObjectMapper objectMapper;
 
     public ReviewApplicationService(
@@ -66,6 +68,7 @@ public class ReviewApplicationService {
             ReviewRecheckLogRepository reviewRecheckLogRepository,
             OpenAiReviewService openAiReviewService,
             WritingRiskApplicationService writingRiskApplicationService,
+            ContentScopeResolverService contentScopeResolverService,
             ObjectMapper objectMapper
     ) {
         this.draftVersionRepository = draftVersionRepository;
@@ -76,6 +79,7 @@ public class ReviewApplicationService {
         this.reviewRecheckLogRepository = reviewRecheckLogRepository;
         this.openAiReviewService = openAiReviewService;
         this.writingRiskApplicationService = writingRiskApplicationService;
+        this.contentScopeResolverService = contentScopeResolverService;
         this.objectMapper = objectMapper;
     }
 
@@ -94,8 +98,7 @@ public class ReviewApplicationService {
     public AppealResponse createAppeal(UUID reviewItemId, AppealRequest request) {
         ReviewItemEntity reviewItem = reviewItemRepository.findById(reviewItemId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.REVIEW_ITEM_NOT_FOUND, HttpStatus.NOT_FOUND.value(), "review item 不存在"));
-        DraftVersionEntity draft = draftVersionRepository.findById(reviewItem.getDraftVersionId())
-                .orElseThrow(() -> new BusinessException(ErrorCode.DRAFT_NOT_FOUND, HttpStatus.NOT_FOUND.value(), "draft 不存在"));
+        String reviewContent = currentContent(reviewItem);
 
         Map<String, Object> reviewItemMap = new LinkedHashMap<>();
         reviewItemMap.put("reviewType", reviewItem.getReviewType());
@@ -106,7 +109,7 @@ public class ReviewApplicationService {
 
         AppealReviewResult reviewed = openAiReviewService.reviewAppeal(
                 reviewItemMap,
-                draft.getDraftText(),
+                reviewContent,
                 request.userReason(),
                 request.evidence() == null ? Map.of() : request.evidence()
         );
@@ -174,8 +177,7 @@ public class ReviewApplicationService {
     public ReviewItemResponse recheck(UUID reviewItemId) {
         ReviewItemEntity reviewItem = reviewItemRepository.findById(reviewItemId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.REVIEW_ITEM_NOT_FOUND, HttpStatus.NOT_FOUND.value(), "review item 不存在"));
-        DraftVersionEntity draft = draftVersionRepository.findById(reviewItem.getDraftVersionId())
-                .orElseThrow(() -> new BusinessException(ErrorCode.DRAFT_NOT_FOUND, HttpStatus.NOT_FOUND.value(), "draft 不存在"));
+        ContentScope currentScope = currentScope(reviewItem);
 
         Map<String, Object> reviewItemMap = new LinkedHashMap<>();
         reviewItemMap.put("reviewType", reviewItem.getReviewType());
@@ -185,7 +187,7 @@ public class ReviewApplicationService {
         reviewItemMap.put("suggestedFix", reviewItem.getSuggestedFix());
         reviewItemMap.put("currentStatus", reviewItem.getReviewStatus());
 
-        ReviewRecheckResult result = openAiReviewService.recheckReviewItem(reviewItemMap, draft.getDraftText());
+        ReviewRecheckResult result = openAiReviewService.recheckReviewItem(reviewItemMap, currentScope.content());
         String outcome = normalizeRecheckOutcome(result.outcome());
         OffsetDateTime now = OffsetDateTime.now();
         String previousStatus = reviewItem.getReviewStatus() == null ? "OPEN" : reviewItem.getReviewStatus();
@@ -204,6 +206,9 @@ public class ReviewApplicationService {
         }
 
         reviewItem.setLastRecheckedAt(now);
+        if (currentScope.isSection()) {
+            reviewItem.setSectionVersionNo(currentScope.revision());
+        }
         String note = cleanNote(result.note());
         reviewItem.setRecheckNote(outcome + "：" + (note == null ? "无补充说明" : note));
         ReviewItemEntity saved = reviewItemRepository.save(reviewItem);
@@ -273,7 +278,7 @@ public class ReviewApplicationService {
                     "citation_format_mismatch",
                     "LOCAL_FIX",
                     targetRange(text, apaMatcher.start(), apaMatcher.end()),
-                    "老师要求或当前设置为 GB/T 7714 编号制，但正文中出现了作者-年份式引用。",
+                    "当前文档要求或导出设置为 GB/T 7714 编号制，但正文中出现了作者-年份式引用。",
                     "请将该处改为编号式引用，例如 [1]，并确认参考文献列表顺序一致。",
                     true
             ));
@@ -285,7 +290,7 @@ public class ReviewApplicationService {
                     "citation_format_mismatch",
                     "LOCAL_FIX",
                     targetRange(text, gbtMatcher.start(), gbtMatcher.end()),
-                    "老师要求或当前设置为 APA 作者-年份格式，但正文中出现了编号式引用。",
+                    "当前文档要求或导出设置为 APA 作者-年份格式，但正文中出现了编号式引用。",
                     "请将该处改为作者-年份式引用，例如（作者，年份）。",
                     true
             ));
@@ -503,6 +508,11 @@ public class ReviewApplicationService {
     }
 
     private ReviewItemResponse toResponse(ReviewItemEntity entity) {
+        String analysisState = "CURRENT";
+        if (entity.getSectionId() != null) {
+            ContentScope scope = contentScopeResolverService.section(entity.getSectionId());
+            if (!Objects.equals(scope.revision(), entity.getSectionVersionNo())) analysisState = "STALE";
+        }
         return new ReviewItemResponse(
                 entity.getId(),
                 entity.getReviewType(),
@@ -517,7 +527,13 @@ public class ReviewApplicationService {
                 entity.getLastRecheckedAt(),
                 entity.getRecheckNote(),
                 recheckHistory(entity.getId()),
-                entity.getCreatedAt()
+                entity.getCreatedAt(),
+                entity.getScopeType(),
+                entity.getDocumentId(),
+                entity.getSectionId(),
+                entity.getSectionVersionNo(),
+                entity.getIssueFingerprint(),
+                analysisState
         );
     }
 
@@ -541,6 +557,10 @@ public class ReviewApplicationService {
         log.setId(UUID.randomUUID());
         log.setReviewItemId(reviewItem.getId());
         log.setDraftVersionId(reviewItem.getDraftVersionId());
+        log.setScopeType(reviewItem.getScopeType());
+        log.setDocumentId(reviewItem.getDocumentId());
+        log.setSectionId(reviewItem.getSectionId());
+        log.setSectionVersionNo(reviewItem.getSectionVersionNo());
         log.setOutcome(outcome);
         log.setPreviousStatus(previousStatus);
         log.setNextStatus(reviewItem.getReviewStatus() == null ? "OPEN" : reviewItem.getReviewStatus());
@@ -573,14 +593,31 @@ public class ReviewApplicationService {
 
     private String normalizeReviewStatus(String status) {
         String normalized = status == null ? "" : status.trim().toUpperCase();
-        if (List.of("OPEN", "RESOLVED", "IGNORED").contains(normalized)) {
+        if (List.of("OPEN", "MODIFIED_PENDING_RECHECK", "RESOLVED", "IGNORED").contains(normalized)) {
             return normalized;
         }
         throw new BusinessException(
                 ErrorCode.INVALID_REQUEST_BODY,
                 HttpStatus.BAD_REQUEST.value(),
-                "review status 仅支持 OPEN / RESOLVED / IGNORED"
+                "review status 仅支持 OPEN / MODIFIED_PENDING_RECHECK / RESOLVED / IGNORED"
         );
+    }
+
+    private ContentScope currentScope(ReviewItemEntity reviewItem) {
+        if (reviewItem.getSectionId() != null) {
+            return contentScopeResolverService.section(reviewItem.getSectionId());
+        }
+        if (reviewItem.getDocumentId() != null && "DOCUMENT".equals(reviewItem.getScopeType())) {
+            return contentScopeResolverService.document(reviewItem.getDocumentId());
+        }
+        if (reviewItem.getDraftVersionId() != null) {
+            return contentScopeResolverService.draft(reviewItem.getDraftVersionId());
+        }
+        throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND.value(), "审查项对应的正文作用域不存在");
+    }
+
+    private String currentContent(ReviewItemEntity reviewItem) {
+        return currentScope(reviewItem).content();
     }
 
     private String cleanNote(String note) {

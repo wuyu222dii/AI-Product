@@ -69,6 +69,10 @@ public class ExportApplicationService {
     public JobResponse export(UUID draftId, ExportRequest request) {
         DraftVersionEntity draft = draftVersionRepository.findById(draftId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.DRAFT_NOT_FOUND, HttpStatus.NOT_FOUND.value(), "draft 不存在"));
+        return exportSnapshot(draft, request);
+    }
+
+    public JobResponse exportSnapshot(DraftVersionEntity draft, ExportRequest request) {
         if (!SUPPORTED_FORMATS.contains(request.format().toLowerCase())) {
             throw new BusinessException(
                     ErrorCode.EXPORT_FORMAT_UNSUPPORTED,
@@ -80,7 +84,7 @@ public class ExportApplicationService {
             Files.createDirectories(exportRoot);
             String format = request.format().toLowerCase();
             UUID jobId = jobApplicationService.createJob("export_" + format, "success", draft.getWorkspaceId());
-            Path outputFile = exportRoot.resolve(draftId + "-" + jobId + "." + format);
+            Path outputFile = exportRoot.resolve(draft.getId() + "-" + jobId + "." + format);
             List<String> referenceTexts = collectReferenceTexts(draft, request.citationStyle());
             if ("docx".equals(format)) {
                 writeDocx(draft, referenceTexts, outputFile);

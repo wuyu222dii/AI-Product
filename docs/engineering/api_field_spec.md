@@ -1,5 +1,7 @@
 # AI 论文共写工作台 v1.6 接口字段级定义
 
+> 本文档保留 v1.x 字段定义。v2.0 当前新增字段与接口见 [v2_academic_workspace_api.md](v2_academic_workspace_api.md)。
+
 本文档描述当前代码已经实现的 REST API 字段。历史设计中未落地的独立接口不再写入本文件，避免前后端按旧契约开发。
 
 ## 1. 通用约定

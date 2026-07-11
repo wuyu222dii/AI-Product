@@ -84,11 +84,16 @@ psql "postgresql://${SUPABASE_DB_USER}:${SUPABASE_DB_PASSWORD}@${SUPABASE_DB_HOS
 
 能进入 `postgres=#` 说明账号、密码、host 正确。
 
-## 五、初始化表结构（可选）
+## 五、执行版本化迁移
 
-项目根目录有 [postgresql_schema.sql](../../postgresql_schema.sql)。开发阶段 JPA 已设置 `ddl-auto: update`，一般会自动建表。
+项目运行时默认 `HIBERNATE_DDL_AUTO=none`，不会自动创建或修改表。这样可以避免 Hibernate 与 PostgreSQL JSONB、生成列和 GIN 索引发生冲突。
 
-若要在 Supabase SQL Editor 手动执行，可复制该文件内容到 Dashboard → **SQL** → New query 运行。
+v2.0 当前正式迁移：
+
+- [20260711031857_v2_academic_workspace.sql](../../supabase/migrations/20260711031857_v2_academic_workspace.sql)
+- [20260711065932_repair_document_section_versions.sql](../../supabase/migrations/20260711065932_repair_document_section_versions.sql)
+
+可在 Supabase SQL Editor 执行，或使用 `psql -v ON_ERROR_STOP=1 -1 -f ...` 以单事务方式执行。迁移失败时必须回滚，不要改回 `ddl-auto=update` 兜底。
 
 ## 六、常见错误
 
@@ -101,6 +106,7 @@ psql "postgresql://${SUPABASE_DB_USER}:${SUPABASE_DB_PASSWORD}@${SUPABASE_DB_HOS
 | 启动报找不到 `SUPABASE_DB_*` | 在 `backend` 目录启动，并确认存在 `backend/.env` |
 | `psql: command not found` | 安装 `libpq` 并把其 `bin` 加入 `PATH`（见第四节） |
 | `max clients reached in session mode` / `EMAXCONNSESSION` | Session pooler 总连接数有限（常见 15）。先结束多余的 `mvn spring-boot:run` / Java 进程；`application.yml` 已把 Hikari 池设为 5，勿再调大 |
+| `cannot alter type of a column used by a generated column` | 检查 `HIBERNATE_DDL_AUTO`，必须保持 `none`；不要让 JPA 自动修改全文检索生成列依赖的字段 |
 
 ## 七、检查清单
 

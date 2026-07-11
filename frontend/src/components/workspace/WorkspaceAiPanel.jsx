@@ -108,7 +108,7 @@ export function WorkspaceAiPanel({ coWriting, latestFeedback, selectedRange, onC
             value={customInstruction}
             onChange={(event) => setCustomInstruction(event.target.value)}
             onKeyDown={handleCustomKeyDown}
-            placeholder="例如：让这一段更像本科生自然表达，同时保留引用和数据。"
+            placeholder="例如：让这一段更贴近作者自然表达，同时保留引用和数据。"
             rows={4}
           />
           <button

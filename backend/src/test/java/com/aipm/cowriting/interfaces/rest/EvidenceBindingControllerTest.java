@@ -16,6 +16,8 @@ import com.aipm.cowriting.application.dto.evidence.EvidenceCoverageReport;
 import com.aipm.cowriting.application.dto.job.JobResponse;
 import com.aipm.cowriting.application.service.EvidenceBindingApplicationService;
 import com.aipm.cowriting.application.service.EvidenceBindingRebuildJobService;
+import com.aipm.cowriting.application.service.ScopedEvidenceBindingApplicationService;
+import com.aipm.cowriting.domain.repository.EvidenceBindingRepository;
 import com.aipm.cowriting.common.web.GlobalExceptionHandler;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -42,6 +44,12 @@ class EvidenceBindingControllerTest {
 
     @MockBean
     private EvidenceBindingRebuildJobService evidenceBindingRebuildJobService;
+
+    @MockBean
+    private ScopedEvidenceBindingApplicationService scopedEvidenceBindingApplicationService;
+
+    @MockBean
+    private EvidenceBindingRepository evidenceBindingRepository;
 
     @Test
     void getShouldReturnParagraphEvidenceMap() throws Exception {

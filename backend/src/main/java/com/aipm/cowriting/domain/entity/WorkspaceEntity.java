@@ -29,6 +29,8 @@ public class WorkspaceEntity {
 
     private UUID currentDraftVersionId;
 
+    private UUID activeDocumentId;
+
     @Column(nullable = false)
     private OffsetDateTime createdAt;
 
@@ -73,6 +75,14 @@ public class WorkspaceEntity {
 
     public void setCurrentDraftVersionId(UUID currentDraftVersionId) {
         this.currentDraftVersionId = currentDraftVersionId;
+    }
+
+    public UUID getActiveDocumentId() {
+        return activeDocumentId;
+    }
+
+    public void setActiveDocumentId(UUID activeDocumentId) {
+        this.activeDocumentId = activeDocumentId;
     }
 
     public OffsetDateTime getCreatedAt() {

@@ -40,7 +40,7 @@ public class OpenAiReviewService {
             Map<String, Object> sourceTraceMap
     ) {
         String prompt = """
-                Review this academic course paper draft and return strict JSON only.
+                Review this academic document draft and return strict JSON only.
                 Return JSON shape:
                 {
                   "items": [
@@ -64,6 +64,8 @@ public class OpenAiReviewService {
                 - Treat citation format mismatch or uncited references as LOCAL_FIX unless it affects source authenticity.
                 - Use aigc_style_risk / generic_unsupported_claim / original_evidence_missing only as writing-quality guidance.
                 - Do not claim to bypass AI detection or plagiarism checks; focus on concrete evidence, original cases, data, and academic rigor.
+                - Apply confirmed institution, supervisor, course, journal, or user submission requirements before platform defaults.
+                - Do not infer an academic stage or document type beyond the supplied project and document context.
                 - If no issue exists, return an empty items array.
 
                 Requirement snapshot:
@@ -124,7 +126,7 @@ public class OpenAiReviewService {
                 {
                   "outcome": "RESOLVED | STILL_OPEN | DOWNGRADED | NEEDS_MORE_EVIDENCE",
                   "downgradedImpactLevel": "NOTICE | LOCAL_FIX | MUST_CONFIRM | null",
-                  "note": "short Chinese explanation for the student"
+                  "note": "short Chinese explanation for the author"
                 }
 
                 Rules:

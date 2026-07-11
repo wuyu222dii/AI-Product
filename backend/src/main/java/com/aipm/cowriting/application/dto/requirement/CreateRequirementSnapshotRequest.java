@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
 import java.time.OffsetDateTime;
 import java.util.Map;
+import java.util.UUID;
 
 public record CreateRequirementSnapshotRequest(
         @Size(max = 300, message = "topic 长度不能超过 300")
@@ -15,6 +16,17 @@ public record CreateRequirementSnapshotRequest(
         OffsetDateTime deadline,
         @Size(max = 50, message = "citationStyle 长度不能超过 50")
         String citationStyle,
-        Map<String, Object> specialRequirements
+        Map<String, Object> specialRequirements,
+        UUID documentId,
+        @Size(max = 32) String sourceType
 ) {
+    public CreateRequirementSnapshotRequest(
+            String topic,
+            Integer wordCount,
+            OffsetDateTime deadline,
+            String citationStyle,
+            Map<String, Object> specialRequirements
+    ) {
+        this(topic, wordCount, deadline, citationStyle, specialRequirements, null, "PROJECT");
+    }
 }

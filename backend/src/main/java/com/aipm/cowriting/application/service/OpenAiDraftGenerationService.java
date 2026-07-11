@@ -70,12 +70,12 @@ public class OpenAiDraftGenerationService {
                     Mode: STABLE
                     - Prefer clear, requirement-aligned, conservative drafting.
                     - Keep structure steady and avoid unsupported expansion.
-                    - Optimize for a dependable course-paper first draft.
+                    - Optimize for a dependable evidence-grounded academic draft.
                     """;
         };
 
         String prompt = """
-                Generate a first academic draft in Chinese based only on the provided requirement context and parsed material context.
+                Generate an academic draft in Chinese based only on the provided academic profile, document/section requirement context, and parsed material context.
                 Return strict JSON only with exactly this shape:
                 {
                   "titleSuggestion": "string",
@@ -101,9 +101,13 @@ public class OpenAiDraftGenerationService {
                 - Use only the provided material context.
                 - Keep the draft aligned to the requirement context.
                 - Use Chinese.
-                - The draft should be suitable for a course paper first draft, not final polished output.
+                - Adapt depth, structure, terminology, and research expectations to academicStage, documentType, researchParadigm, and requested section.
+                - If requirementContext.generationScope is SECTION_ONLY, draftText must contain only the requested section, not a complete manuscript.
+                - Treat confirmed institution, supervisor, course, journal, and user requirements as higher priority than platform defaults.
+                - The output is a research co-creation draft for human review, not a final scholarly judgment.
                 - The sourceTraceMap and evidenceHints should reference the provided material ids when possible.
                 - Use bibliographicMetadata when referring to literature. Do not invent authors, years, titles, publishers, URLs, or DOI values.
+                - Do not invent research data, experiments, interviews, questionnaires, ethics approval, analysis results, or original contributions.
                 - Apply the selected mode guidance faithfully.
 
                 Selected mode guidance:

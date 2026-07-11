@@ -1,6 +1,8 @@
 package com.aipm.cowriting.domain.entity;
 
 import com.aipm.cowriting.domain.model.MaterialCategory;
+import com.aipm.cowriting.domain.model.MaterialRole;
+import com.aipm.cowriting.domain.model.ResearchArtifactType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -28,6 +30,17 @@ public class AiSemanticParseResultEntity {
     @Enumerated(EnumType.STRING)
     @Column(length = 64)
     private MaterialCategory manualMaterialCategory;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 64)
+    private MaterialRole materialRole;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 64)
+    private ResearchArtifactType researchArtifactType;
+
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private String materialTagsJson;
 
     @Column(columnDefinition = "TEXT")
     private String summary;
@@ -83,6 +96,30 @@ public class AiSemanticParseResultEntity {
 
     public void setManualMaterialCategory(MaterialCategory manualMaterialCategory) {
         this.manualMaterialCategory = manualMaterialCategory;
+    }
+
+    public MaterialRole getMaterialRole() {
+        return materialRole;
+    }
+
+    public void setMaterialRole(MaterialRole materialRole) {
+        this.materialRole = materialRole;
+    }
+
+    public ResearchArtifactType getResearchArtifactType() {
+        return researchArtifactType;
+    }
+
+    public void setResearchArtifactType(ResearchArtifactType researchArtifactType) {
+        this.researchArtifactType = researchArtifactType;
+    }
+
+    public String getMaterialTagsJson() {
+        return materialTagsJson;
+    }
+
+    public void setMaterialTagsJson(String materialTagsJson) {
+        this.materialTagsJson = materialTagsJson;
     }
 
     public String getSummary() {

@@ -20,8 +20,23 @@ public class ReviewItemEntity {
     @Column(nullable = false)
     private UUID workspaceId;
 
-    @Column(nullable = false)
+    @Column
     private UUID draftVersionId;
+
+    @Column(nullable = false, length = 32)
+    private String scopeType = "LEGACY_DRAFT";
+
+    @Column
+    private UUID documentId;
+
+    @Column
+    private UUID sectionId;
+
+    @Column
+    private Integer sectionVersionNo;
+
+    @Column(length = 64)
+    private String issueFingerprint;
 
     @Column(nullable = false)
     private String reviewType;
@@ -83,6 +98,17 @@ public class ReviewItemEntity {
     public void setDraftVersionId(UUID draftVersionId) {
         this.draftVersionId = draftVersionId;
     }
+
+    public String getScopeType() { return scopeType; }
+    public void setScopeType(String scopeType) { this.scopeType = scopeType; }
+    public UUID getDocumentId() { return documentId; }
+    public void setDocumentId(UUID documentId) { this.documentId = documentId; }
+    public UUID getSectionId() { return sectionId; }
+    public void setSectionId(UUID sectionId) { this.sectionId = sectionId; }
+    public Integer getSectionVersionNo() { return sectionVersionNo; }
+    public void setSectionVersionNo(Integer sectionVersionNo) { this.sectionVersionNo = sectionVersionNo; }
+    public String getIssueFingerprint() { return issueFingerprint; }
+    public void setIssueFingerprint(String issueFingerprint) { this.issueFingerprint = issueFingerprint; }
 
     public String getReviewType() {
         return reviewType;

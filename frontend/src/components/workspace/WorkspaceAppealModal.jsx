@@ -63,7 +63,7 @@ export function WorkspaceAppealModal({ review, onClose, onSubmit, loading }) {
             <textarea
               value={note}
               onChange={(event) => setNote(event.target.value)}
-              placeholder="可补充你对正文、引用或老师要求的说明"
+              placeholder="可补充你对正文、引用或学校、导师、课程、期刊要求的说明"
             />
           </div>
         </div>
