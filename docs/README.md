@@ -51,6 +51,8 @@
 | --- | --- |
 | [DEMO_GUIDE.md](guides/DEMO_GUIDE.md) | Demo 启动与演示路径 |
 | [supabase-setup.md](guides/supabase-setup.md) | Supabase / Postgres 配置 |
+| [aws-ec2-deploy.md](guides/aws-ec2-deploy.md) | AWS EC2 部署零基础手册（同域 Nginx + HTTPS，不改仓库代码） |
+| [vercel-deploy.md](guides/vercel-deploy.md) | Vercel 前端部署零基础手册（团队 harry-w-projects，API rewrite 到外部后端） |
 | [frontend/README.md](../frontend/README.md) | 前端模块说明 |
 
 ## 项目进度与交付
