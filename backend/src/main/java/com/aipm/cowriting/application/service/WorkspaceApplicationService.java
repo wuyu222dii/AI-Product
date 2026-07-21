@@ -21,26 +21,31 @@ import org.springframework.stereotype.Service;
 @Service
 public class WorkspaceApplicationService {
 
-    private static final UUID DEMO_USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
-
     private final WorkspaceRepository workspaceRepository;
     private final AcademicProfileApplicationService academicProfileService;
     private final AcademicDocumentApplicationService academicDocumentService;
+    private final CurrentUserService currentUserService;
+    private final LegacyDemoAccessPolicy legacyDemoAccessPolicy;
 
     public WorkspaceApplicationService(
             WorkspaceRepository workspaceRepository,
             AcademicProfileApplicationService academicProfileService,
-            AcademicDocumentApplicationService academicDocumentService
+            AcademicDocumentApplicationService academicDocumentService,
+            CurrentUserService currentUserService,
+            LegacyDemoAccessPolicy legacyDemoAccessPolicy
     ) {
         this.workspaceRepository = workspaceRepository;
         this.academicProfileService = academicProfileService;
         this.academicDocumentService = academicDocumentService;
+        this.currentUserService = currentUserService;
+        this.legacyDemoAccessPolicy = legacyDemoAccessPolicy;
     }
 
     public WorkspaceResponse create(CreateWorkspaceRequest request) {
         WorkspaceEntity entity = new WorkspaceEntity();
         entity.setId(UUID.randomUUID());
-        entity.setUserId(DEMO_USER_ID);
+        entity.setUserId(currentUserService.userId());
+        entity.setLegacyUnowned(false);
         entity.setTitle(request.title().trim());
         entity.setStatus(WorkspaceStatus.DRAFT);
         entity.setCreatedAt(OffsetDateTime.now());
@@ -58,7 +63,13 @@ public class WorkspaceApplicationService {
     }
 
     public List<WorkspaceResponse> list() {
-        List<WorkspaceEntity> workspaces = workspaceRepository.findAll();
+        UUID userId = currentUserService.userId();
+        List<WorkspaceEntity> workspaces = new java.util.ArrayList<>(
+                workspaceRepository.findByUserIdOrderByUpdatedAtDesc(userId)
+        );
+        if (legacyDemoAccessPolicy.allows(userId)) {
+            workspaces.addAll(workspaceRepository.findByLegacyUnownedTrueOrderByUpdatedAtDesc());
+        }
         Map<UUID, AcademicProfileResponse> profiles = academicProfileService.findExisting(
                 workspaces.stream().map(WorkspaceEntity::getId).toList()
         );
@@ -68,7 +79,10 @@ public class WorkspaceApplicationService {
     }
 
     public WorkspaceResponse get(UUID id) {
+        UUID userId = currentUserService.userId();
         WorkspaceEntity entity = workspaceRepository.findById(id)
+                .filter(workspace -> userId.equals(workspace.getUserId())
+                        || (workspace.isLegacyUnowned() && legacyDemoAccessPolicy.allows(userId)))
                 .orElseThrow(() -> new BusinessException(
                         ErrorCode.WORKSPACE_NOT_FOUND,
                         HttpStatus.NOT_FOUND.value(),

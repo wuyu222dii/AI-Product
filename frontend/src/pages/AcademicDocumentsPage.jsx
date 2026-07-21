@@ -475,7 +475,8 @@ export function AcademicDocumentsPage({
     try {
       const materialPreview = await api.previewMaterial(binding.materialId);
       const target = materialPreview.downloadUrl || materialPreview.externalLink;
-      if (target) window.open(target, "_blank", "noopener,noreferrer");
+      if (target?.startsWith("/api/")) await api.openProtectedFile(target);
+      else if (target) window.open(target, "_blank", "noopener,noreferrer");
     } catch (error) {
       onError(error.message);
     }
@@ -802,6 +803,10 @@ export function AcademicDocumentsPage({
           onExport={exportDocument}
           onRefreshReview={refreshDocumentReviews}
           onRefreshEvidence={rebuildDocumentEvidence}
+          onDownload={() => api.downloadProtectedFile(
+            downloadUrl,
+            downloadUrl.endsWith("/download") ? `${activeDocument?.title || "academic-document"}.docx` : "academic-document"
+          ).catch((error) => onError(error.message))}
           onOpenSection={(sectionId) => {
             setSelectedSectionId(sectionId);
             setWorkbenchMode("section");

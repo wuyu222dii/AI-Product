@@ -45,6 +45,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(controllers = {AcademicDocumentController.class, AcademicProfileController.class, AcademicSectionController.class})
 @Import(GlobalExceptionHandler.class)
+@AuthenticatedApiTest
 class AcademicV2ControllerTest {
 
     @Autowired private MockMvc mockMvc;

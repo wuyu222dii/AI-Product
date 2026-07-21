@@ -192,9 +192,12 @@ export function ExportPage({ workspace, draft, onBack, onError }) {
                 </div>
               </div>
               <div className="button-row" style={{ marginTop: 12 }}>
-                <a className="secondary-btn" href={downloadUrl} target="_blank" rel="noreferrer">
+                <button type="button" className="secondary-btn" onClick={() => api.downloadProtectedFile(
+                  downloadUrl,
+                  downloadMeta?.fileName?.split("/").pop() ?? `paper.${format}`
+                ).catch((error) => onError(error.message))}>
                   下载导出文件
-                </a>
+                </button>
                 <button type="button" className="ghost-btn" onClick={onBack}>
                   回到工作台继续修改
                 </button>

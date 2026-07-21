@@ -86,18 +86,28 @@ public class LiteratureCandidateApplicationService {
     }
 
     public void linkCandidateToMaterial(UUID workspaceId, UUID candidateId, UUID materialId) {
-        if (candidateId == null) {
-            return;
-        }
-        LiteratureCandidateEntity entity = literatureCandidateRepository.findById(candidateId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND.value(), "候选文献不存在"));
-        if (!workspaceId.equals(entity.getWorkspaceId())) {
-            throw new BusinessException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN.value(), "候选文献不属于当前项目");
-        }
+        LiteratureCandidateEntity entity = requireCandidateForWorkspace(workspaceId, candidateId);
+        if (entity == null) return;
         entity.setStatus("LINKED");
         entity.setMaterialId(materialId);
         entity.setUpdatedAt(OffsetDateTime.now());
         literatureCandidateRepository.save(entity);
+    }
+
+    public void validateCandidateForWorkspace(UUID workspaceId, UUID candidateId) {
+        requireCandidateForWorkspace(workspaceId, candidateId);
+    }
+
+    private LiteratureCandidateEntity requireCandidateForWorkspace(UUID workspaceId, UUID candidateId) {
+        if (candidateId == null) return null;
+        LiteratureCandidateEntity entity = literatureCandidateRepository.findById(candidateId)
+                .orElseThrow(() -> candidateNotFound());
+        if (!workspaceId.equals(entity.getWorkspaceId())) throw candidateNotFound();
+        return entity;
+    }
+
+    private BusinessException candidateNotFound() {
+        return new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND.value(), "候选文献不存在");
     }
 
     private LiteratureCandidateResponse toResponse(LiteratureCandidateEntity entity) {

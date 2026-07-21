@@ -17,8 +17,11 @@ public class WorkspaceEntity {
     @Id
     private UUID id;
 
-    @Column(nullable = false)
+    @Column
     private UUID userId;
+
+    @Column(nullable = false)
+    private boolean legacyUnowned;
 
     @Column(nullable = false, length = 120)
     private String title;
@@ -51,6 +54,14 @@ public class WorkspaceEntity {
 
     public void setUserId(UUID userId) {
         this.userId = userId;
+    }
+
+    public boolean isLegacyUnowned() {
+        return legacyUnowned;
+    }
+
+    public void setLegacyUnowned(boolean legacyUnowned) {
+        this.legacyUnowned = legacyUnowned;
     }
 
     public String getTitle() {

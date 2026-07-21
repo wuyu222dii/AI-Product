@@ -169,7 +169,7 @@ public class AcademicDocumentApplicationService {
         if (request.parentSectionId() != null) {
             DocumentSectionEntity parent = getSectionEntity(request.parentSectionId());
             if (!parent.getDocumentId().equals(documentId)) {
-                throw new BusinessException(ErrorCode.INVALID_REQUEST_BODY, HttpStatus.BAD_REQUEST.value(), "父章节不属于当前文档");
+                throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND.value(), "父章节不存在");
             }
         }
         DocumentSectionEntity section = new DocumentSectionEntity();
@@ -284,7 +284,7 @@ public class AcademicDocumentApplicationService {
         MaterialEntity material = materialRepository.findById(request.materialId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.MATERIAL_NOT_FOUND, HttpStatus.NOT_FOUND.value(), "material 不存在"));
         if (!material.getWorkspaceId().equals(document.getWorkspaceId())) {
-            throw new BusinessException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN.value(), "材料不属于当前研究项目");
+            throw new BusinessException(ErrorCode.MATERIAL_NOT_FOUND, HttpStatus.NOT_FOUND.value(), "material 不存在");
         }
         DocumentMaterialLinkEntity link = materialLinkRepository.findByDocumentIdAndMaterialId(documentId, material.getId())
                 .orElseGet(DocumentMaterialLinkEntity::new);

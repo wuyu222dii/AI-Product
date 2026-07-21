@@ -14,13 +14,25 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 public class LocalMaterialStorageService {
 
-    private final Path root = Paths.get(System.getProperty("user.dir"), "uploaded-materials");
+    private final Path root = Paths.get(System.getProperty("user.dir"), "uploaded-materials")
+            .toAbsolutePath().normalize();
+    private final CurrentUserService currentUserService;
+
+    public LocalMaterialStorageService(CurrentUserService currentUserService) {
+        this.currentUserService = currentUserService;
+    }
 
     public String store(UUID workspaceId, MultipartFile file) {
         try {
-            Files.createDirectories(root.resolve(workspaceId.toString()));
+            Path workspaceDirectory = root
+                    .resolve(currentUserService.userId().toString())
+                    .resolve(workspaceId.toString())
+                    .normalize();
+            requireInsideRoot(workspaceDirectory);
+            Files.createDirectories(workspaceDirectory);
             String safeName = UUID.randomUUID() + "-" + sanitize(file.getOriginalFilename());
-            Path path = root.resolve(workspaceId.toString()).resolve(safeName);
+            Path path = workspaceDirectory.resolve(safeName).normalize();
+            requireInsideRoot(path);
             file.transferTo(path);
             return path.toString();
         } catch (IOException e) {
@@ -33,7 +45,21 @@ public class LocalMaterialStorageService {
     }
 
     public Path resolve(String storagePath) {
-        return Paths.get(storagePath);
+        if (storagePath == null || storagePath.isBlank()) {
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND.value(), "文件不存在");
+        }
+        Path path = Paths.get(storagePath).toAbsolutePath().normalize();
+        requireInsideRoot(path);
+        if (!Files.isRegularFile(path)) {
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND.value(), "文件不存在");
+        }
+        return path;
+    }
+
+    private void requireInsideRoot(Path path) {
+        if (!path.startsWith(root)) {
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND.value(), "文件不存在");
+        }
     }
 
     private String sanitize(String originalFilename) {

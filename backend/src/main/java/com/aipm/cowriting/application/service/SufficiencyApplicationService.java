@@ -53,12 +53,19 @@ public class SufficiencyApplicationService {
         if (!workspaceRepository.existsById(workspaceId)) {
             throw new BusinessException(ErrorCode.WORKSPACE_NOT_FOUND, HttpStatus.NOT_FOUND.value(), "workspace 不存在");
         }
-        snapshotRepository.findById(requirementSnapshotId)
+        var snapshot = snapshotRepository.findById(requirementSnapshotId)
                 .orElseThrow(() -> new BusinessException(
                         ErrorCode.REQUIREMENT_SNAPSHOT_MISSING,
                         HttpStatus.NOT_FOUND.value(),
                         "requirement snapshot 不存在"
                 ));
+        if (!workspaceId.equals(snapshot.getWorkspaceId())) {
+            throw new BusinessException(
+                    ErrorCode.REQUIREMENT_SNAPSHOT_MISSING,
+                    HttpStatus.NOT_FOUND.value(),
+                    "requirement snapshot 不存在"
+            );
+        }
 
         List<MaterialEntity> materials = materialRepository.findByWorkspaceIdOrderByCreatedAtDesc(workspaceId);
         List<UUID> materialIds = materials.stream().map(MaterialEntity::getId).toList();

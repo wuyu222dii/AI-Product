@@ -36,6 +36,15 @@ spring:
 server:
   port: 8080
 
+supabase:
+  url: ${SUPABASE_URL:http://127.0.0.1:54321}
+  jwt:
+    audience: ${SUPABASE_JWT_AUDIENCE:authenticated}
+
+app:
+  environment: ${APP_ENV:development}
+  legacy-demo-owner-id: ${APP_LEGACY_DEMO_OWNER_ID:}
+
 logging:
   level:
     org.springframework.web: INFO

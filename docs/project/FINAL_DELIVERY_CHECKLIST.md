@@ -1,250 +1,147 @@
-# AI 论文共写工作台 v2.0.1 当前交付清单
+# AI 论文共写工作台 v2.2 当前交付清单
 
-更新时间：`2026-07-11`
+更新时间：`2026-07-21`
 
-当前交付结论：`v1.x MVP 能力完整保留 + v2.0 全学术人群升级 + v2.0.1 学术文档统一工作台首轮收口`。
+当前交付结论：`v2.1 用户隔离工程与数据库迁移完成 + v2.2 产品化界面首轮完成`。
 
-这里的 100% 指 PRD 中定义的 MVP 验收标准已经完成并通过自动化验证，不包含生产上线能力、完整用户权限、云对象存储、生产级队列和监控体系。
+Google/Resend 私密凭据不进入仓库，因此真实 Provider 与双用户登录验收单独列为环境待办，不计入代码缺陷。
 
-v2.0 基础迁移、章节版本修复和 v2.0.1 质量作用域迁移均已在真实 Supabase 执行并验证。运行时已关闭 JPA 自动建表，后续数据库变更必须继续通过版本化迁移完成。
+## 1. 文档交付
 
-## 1. 必交付文档
+- [x] [README.md](../../README.md)
+- [x] [PRODUCT_COMPLETION_STATUS-6-16.md](PRODUCT_COMPLETION_STATUS-6-16.md)
+- [x] [AUTH_SETUP.md](../guides/AUTH_SETUP.md)
+- [x] [DEMO_GUIDE.md](../guides/DEMO_GUIDE.md)
+- [x] [V2_ACADEMIC_UPGRADE.md](../product/V2_ACADEMIC_UPGRADE.md)
+- [x] [v2_academic_workspace_api.md](../engineering/v2_academic_workspace_api.md)
+- [x] [openapi_contract_draft.md](../engineering/openapi_contract_draft.md)
+- [x] [20260721002107_user_auth_and_workspace_isolation.sql](../../supabase/migrations/20260721002107_user_auth_and_workspace_isolation.sql)
 
-- [README.md](../../README.md)
-- [PRD.md](../product/PRD.md)
-- [V2_ACADEMIC_UPGRADE.md](../product/V2_ACADEMIC_UPGRADE.md)
-- [v2_academic_workspace_api.md](../engineering/v2_academic_workspace_api.md)
-- [DEMO_GUIDE.md](../guides/DEMO_GUIDE.md)
-- [PRODUCT_COMPLETION_STATUS-6-16.md](PRODUCT_COMPLETION_STATUS-6-16.md)
-- [frontend_page_spec.md](../design/frontend_page_spec.md)
-- [backend_service_spec.md](../engineering/backend_service_spec.md)
-- [api_field_spec.md](../engineering/api_field_spec.md)
-- [openapi_contract_draft.md](../engineering/openapi_contract_draft.md)
-- [engineering_tasks.md](../engineering/engineering_tasks.md)
-- [postgresql_schema.sql](../../postgresql_schema.sql)
-- [v1_4_trust_chain.sql](../../backend/db/v1_4_trust_chain.sql)
-- [v1_6_trust_delivery_enhancement.sql](../../backend/db/v1_6_trust_delivery_enhancement.sql)
-- [v1_9_literature_candidates.sql](../../backend/db/v1_9_literature_candidates.sql)
-- [20260711031857_v2_academic_workspace.sql](../../supabase/migrations/20260711031857_v2_academic_workspace.sql)
-- [20260711065932_repair_document_section_versions.sql](../../supabase/migrations/20260711065932_repair_document_section_versions.sql)
-- [20260711092831_academic_document_quality_scopes.sql](../../supabase/migrations/20260711092831_academic_document_quality_scopes.sql)
-- [supabase-setup.md](../guides/supabase-setup.md)
-- [frontend/README.md](../../frontend/README.md)
+## 2. v2.1 前端认证
 
-## 2. 必交付前端
+- [x] 固定版本 `@supabase/supabase-js` 已安装并锁定。
+- [x] `AuthProvider` 负责初始化、恢复、刷新和监听会话。
+- [x] `ProtectedRoute` 保护全部 `/app` 路由。
+- [x] Google OAuth 使用 `signInWithOAuth` 和 `/auth/callback`。
+- [x] 邮箱使用 6 位 OTP，支持数字过滤、粘贴、重发倒计时和错误提示。
+- [x] OAuth 回调恢复站内 `returnTo`。
+- [x] `returnTo` 阻止站外跳转、`//` 和反斜杠路径。
+- [x] API 客户端自动附加当前 access token。
+- [x] `401` 清理会话并返回登录页。
+- [x] 退出只清理当前设备会话和用户临时状态。
+- [x] 材料预览与导出使用 Bearer Token 获取 Blob，不暴露裸下载链接。
+- [x] 业务项目状态迁移到 URL，用户偏好按 UUID 隔离。
 
-前端目录：[frontend](../../frontend)
+关键文件：
 
-关键页面：
-
-- [App.jsx](../../frontend/src/App.jsx)
-- [ProjectListPage.jsx](../../frontend/src/pages/ProjectListPage.jsx)
-- [UploadPage.jsx](../../frontend/src/pages/UploadPage.jsx)
-- [ParsingStatusPage.jsx](../../frontend/src/pages/ParsingStatusPage.jsx)
-- [MaterialGatePage.jsx](../../frontend/src/pages/MaterialGatePage.jsx)
-- [KnowledgeBasePage.jsx](../../frontend/src/pages/KnowledgeBasePage.jsx)
-- [AcademicDocumentsPage.jsx](../../frontend/src/pages/AcademicDocumentsPage.jsx)
-- [WorkspacePage.jsx](../../frontend/src/pages/WorkspacePage.jsx)
-- [ExportPage.jsx](../../frontend/src/pages/ExportPage.jsx)
-
-关键组件与服务：
-
+- [supabaseClient.js](../../frontend/src/auth/supabaseClient.js)
+- [AuthProvider.jsx](../../frontend/src/auth/AuthProvider.jsx)
+- [ProtectedRoute.jsx](../../frontend/src/auth/ProtectedRoute.jsx)
+- [SignInPage.jsx](../../frontend/src/pages/SignInPage.jsx)
+- [AuthCallbackPage.jsx](../../frontend/src/pages/AuthCallbackPage.jsx)
 - [api.js](../../frontend/src/services/api.js)
-- [global.css](../../frontend/src/styles/global.css)
-- [WorkspaceEditorPanel.jsx](../../frontend/src/components/workspace/WorkspaceEditorPanel.jsx)
-- [WorkspaceAiPanel.jsx](../../frontend/src/components/workspace/WorkspaceAiPanel.jsx)
-- [WorkspaceReviewSidebar.jsx](../../frontend/src/components/workspace/WorkspaceReviewSidebar.jsx)
-- [WorkspaceReviewDrawer.jsx](../../frontend/src/components/workspace/WorkspaceReviewDrawer.jsx)
-- [WorkspaceAppealModal.jsx](../../frontend/src/components/workspace/WorkspaceAppealModal.jsx)
-- [WorkspaceCoWritePreviewDrawer.jsx](../../frontend/src/components/workspace/WorkspaceCoWritePreviewDrawer.jsx)
-- [WorkspaceVersionPanel.jsx](../../frontend/src/components/workspace/WorkspaceVersionPanel.jsx)
-- [AcademicDocumentSwitcher.jsx](../../frontend/src/components/academic/AcademicDocumentSwitcher.jsx)
-- [AcademicSectionNavigator.jsx](../../frontend/src/components/academic/AcademicSectionNavigator.jsx)
-- [AcademicSectionEditor.jsx](../../frontend/src/components/academic/AcademicSectionEditor.jsx)
-- [AcademicReadinessPanel.jsx](../../frontend/src/components/academic/AcademicReadinessPanel.jsx)
-- [AcademicInspector.jsx](../../frontend/src/components/academic/AcademicInspector.jsx)
-- [AcademicChecksDrawer.jsx](../../frontend/src/components/academic/AcademicChecksDrawer.jsx)
-- [AcademicCoWritePreviewDrawer.jsx](../../frontend/src/components/academic/AcademicCoWritePreviewDrawer.jsx)
-- [AcademicDocumentQualityView.jsx](../../frontend/src/components/academic/AcademicDocumentQualityView.jsx)
-- [AcademicSplitModal.jsx](../../frontend/src/components/academic/AcademicSplitModal.jsx)
-- [v2-academic-flow.spec.js](../../frontend/e2e/v2-academic-flow.spec.js)
-- [playwright.config.js](../../frontend/playwright.config.js)
 
-前端交付确认：
+## 3. v2.1 后端隔离
 
-- [x] 路由可正常访问项目列表、上传、解析、材料检查、知识库和学术文档；旧整篇工作台与导出页保留直接路由兼容，但已从导航隐藏。
-- [x] 项目创建支持学术阶段、学科、研究范式、首个文档和 AI 使用策略。
-- [x] 学术文档页支持多文档切换、章节树拖拽、章节写作 / 整篇检查、动态 readiness、材料范围、选择性章节共写、质量抽屉、版本和组装导出。
-- [x] 上传页支持文本、链接、文件、图片与多文件队列。
-- [x] 解析页展示真实解析进度、解析质量徽标、问题清单和补充说明入口。
-- [x] 材料检查页能阻断材料不足场景，并给出补充建议。
-- [x] 材料不足时可检索 Crossref / OpenAlex / Semantic Scholar 元数据候选，使用质量评分、待下载清单和上传关联回流补充真实文献。
-- [x] 工作台支持可信链地图、共写预览后应用、审查抽屉、申诉与复查。
-- [x] 工作台支持可信链覆盖率、引用一致性提示、原始材料预览入口、共写逐段接受和冲突提示。
-- [x] 工作台支持原创实证补强，能提示空泛论证、缺少案例 / 数据 / 来源和 AI 写作味风险。
-- [x] `DocumentSection` 是唯一可编辑正文源，整篇视图只读并可从问题跳回对应章节。
-- [x] 旧稿拆分必须先预览、再确认，拆分前正文保留在章节版本历史。
-- [x] 导出页显示真实下载链接、交付确认、参考文献风险、可信链风险和原创实证风险提示。
+- [x] Spring Security、OAuth2 Resource Server 和 security test 依赖已接入。
+- [x] Supabase JWKS 验证 ES256 JWT。
+- [x] issuer、audience、expiration 和 UUID subject 校验已启用。
+- [x] `/api/v1/**` 默认要求 Bearer Token。
+- [x] 未登录返回 `401`，他人资源返回 `404`。
+- [x] 工作区创建直接使用 JWT `sub`，列表只查询当前用户。
+- [x] workspace、material、document、section、version、draft、review、appeal、evidence、preview、job 和 export 归属检查已覆盖。
+- [x] 要求、材料、候选文献、版本和共写请求体跨资源关联会验证同一 workspace。
+- [x] 候选文献在文件落盘前验证，避免失败请求留下材料或文件。
+- [x] job 保存 ownerUserId，查询和下载均验证 owner。
+- [x] 文件路径包含 userId/workspaceId 并执行根目录规范化检查。
+- [x] `GET/PATCH /api/v1/me` 已完成，授权不依赖可编辑 metadata。
+- [x] 开发环境旧 Demo owner 配置在 production 自动失效。
 
-## 3. 必交付后端
+关键文件：
 
-后端目录：[backend](../../backend)
+- [SecurityConfig.java](../../backend/src/main/java/com/aipm/cowriting/config/SecurityConfig.java)
+- [OwnershipWebMvcConfig.java](../../backend/src/main/java/com/aipm/cowriting/config/OwnershipWebMvcConfig.java)
+- [CurrentUserService.java](../../backend/src/main/java/com/aipm/cowriting/application/service/CurrentUserService.java)
+- [ResourceOwnershipService.java](../../backend/src/main/java/com/aipm/cowriting/application/service/ResourceOwnershipService.java)
+- [CurrentUserController.java](../../backend/src/main/java/com/aipm/cowriting/interfaces/rest/CurrentUserController.java)
 
-关键 controller：
+## 4. v2.1 数据库
 
-- [WorkspaceController.java](../../backend/src/main/java/com/aipm/cowriting/interfaces/rest/WorkspaceController.java)
-- [MaterialController.java](../../backend/src/main/java/com/aipm/cowriting/interfaces/rest/MaterialController.java)
-- [RequirementController.java](../../backend/src/main/java/com/aipm/cowriting/interfaces/rest/RequirementController.java)
-- [SufficiencyController.java](../../backend/src/main/java/com/aipm/cowriting/interfaces/rest/SufficiencyController.java)
-- [DraftController.java](../../backend/src/main/java/com/aipm/cowriting/interfaces/rest/DraftController.java)
-- [CoWriteController.java](../../backend/src/main/java/com/aipm/cowriting/interfaces/rest/CoWriteController.java)
-- [EvidenceBindingController.java](../../backend/src/main/java/com/aipm/cowriting/interfaces/rest/EvidenceBindingController.java)
-- [KnowledgeBaseController.java](../../backend/src/main/java/com/aipm/cowriting/interfaces/rest/KnowledgeBaseController.java)
-- [ReviewController.java](../../backend/src/main/java/com/aipm/cowriting/interfaces/rest/ReviewController.java)
-- [ExportController.java](../../backend/src/main/java/com/aipm/cowriting/interfaces/rest/ExportController.java)
-- [JobController.java](../../backend/src/main/java/com/aipm/cowriting/interfaces/rest/JobController.java)
-- [LiteratureSearchController.java](../../backend/src/main/java/com/aipm/cowriting/interfaces/rest/LiteratureSearchController.java)
-- [WritingRiskController.java](../../backend/src/main/java/com/aipm/cowriting/interfaces/rest/WritingRiskController.java)
-- [AcademicProfileController.java](../../backend/src/main/java/com/aipm/cowriting/interfaces/rest/AcademicProfileController.java)
-- [AcademicDocumentController.java](../../backend/src/main/java/com/aipm/cowriting/interfaces/rest/AcademicDocumentController.java)
-- [AcademicSectionController.java](../../backend/src/main/java/com/aipm/cowriting/interfaces/rest/AcademicSectionController.java)
-- [AcademicQualityController.java](../../backend/src/main/java/com/aipm/cowriting/interfaces/rest/AcademicQualityController.java)
+- [x] `user_profiles` 已创建并引用 `auth.users(id)`。
+- [x] Auth 用户创建触发器已创建，函数权限已收紧。
+- [x] `workspaces.user_id` 外键已指向 `auth.users(id)`。
+- [x] `legacy_unowned` 与 owner 状态约束已生效。
+- [x] `(user_id, updated_at desc)` 部分索引已创建。
+- [x] 35 个旧 Demo workspace 已迁移为未归属。
+- [x] 普通用户无法看到未归属 workspace。
+- [x] `anon/authenticated` 对 public 业务表授权已撤销。
+- [x] user_profiles 和 workspaces RLS 已核验开启。
+- [x] 迁移已在真实 Supabase 执行并登记 history。
+- [x] `supabase db advisors` 无 warn/error。
+- [x] 管理员历史项目归属 SQL 已写入 Auth 指南。
 
-关键 AI 与业务服务：
+## 5. v2.2 页面与设计
 
-- [OpenAiSemanticParsingService.java](../../backend/src/main/java/com/aipm/cowriting/application/service/OpenAiSemanticParsingService.java)
-- [OpenAiImageOcrService.java](../../backend/src/main/java/com/aipm/cowriting/application/service/OpenAiImageOcrService.java)
-- [ParseQualityService.java](../../backend/src/main/java/com/aipm/cowriting/application/service/ParseQualityService.java)
-- [OpenAiDraftGenerationService.java](../../backend/src/main/java/com/aipm/cowriting/application/service/OpenAiDraftGenerationService.java)
-- [OpenAiCoWriteService.java](../../backend/src/main/java/com/aipm/cowriting/application/service/OpenAiCoWriteService.java)
-- [EvidenceBindingApplicationService.java](../../backend/src/main/java/com/aipm/cowriting/application/service/EvidenceBindingApplicationService.java)
-- [KnowledgeBaseApplicationService.java](../../backend/src/main/java/com/aipm/cowriting/application/service/KnowledgeBaseApplicationService.java)
-- [OpenAiReviewService.java](../../backend/src/main/java/com/aipm/cowriting/application/service/OpenAiReviewService.java)
-- [LiteratureSearchService.java](../../backend/src/main/java/com/aipm/cowriting/application/service/LiteratureSearchService.java)
-- [LiteratureCandidateApplicationService.java](../../backend/src/main/java/com/aipm/cowriting/application/service/LiteratureCandidateApplicationService.java)
-- [WritingRiskApplicationService.java](../../backend/src/main/java/com/aipm/cowriting/application/service/WritingRiskApplicationService.java)
-- [AcademicProfileApplicationService.java](../../backend/src/main/java/com/aipm/cowriting/application/service/AcademicProfileApplicationService.java)
-- [AcademicDocumentApplicationService.java](../../backend/src/main/java/com/aipm/cowriting/application/service/AcademicDocumentApplicationService.java)
-- [AcademicReadinessApplicationService.java](../../backend/src/main/java/com/aipm/cowriting/application/service/AcademicReadinessApplicationService.java)
-- [AcademicSectionApplicationService.java](../../backend/src/main/java/com/aipm/cowriting/application/service/AcademicSectionApplicationService.java)
-- [AiActionLogApplicationService.java](../../backend/src/main/java/com/aipm/cowriting/application/service/AiActionLogApplicationService.java)
-- [ContentScopeResolverService.java](../../backend/src/main/java/com/aipm/cowriting/application/service/ContentScopeResolverService.java)
-- [ScopedEvidenceBindingApplicationService.java](../../backend/src/main/java/com/aipm/cowriting/application/service/ScopedEvidenceBindingApplicationService.java)
-- [ScopedEvidenceBindingJobService.java](../../backend/src/main/java/com/aipm/cowriting/application/service/ScopedEvidenceBindingJobService.java)
-- [AcademicReviewApplicationService.java](../../backend/src/main/java/com/aipm/cowriting/application/service/AcademicReviewApplicationService.java)
-- [AcademicReviewJobService.java](../../backend/src/main/java/com/aipm/cowriting/application/service/AcademicReviewJobService.java)
-- [AcademicQualityApplicationService.java](../../backend/src/main/java/com/aipm/cowriting/application/service/AcademicQualityApplicationService.java)
-- [AcademicDocumentExportService.java](../../backend/src/main/java/com/aipm/cowriting/application/service/AcademicDocumentExportService.java)
-- [LegacySectionSplitApplicationService.java](../../backend/src/main/java/com/aipm/cowriting/application/service/LegacySectionSplitApplicationService.java)
+- [x] 公开首页以产品名称和真实工作台截图为首屏信号。
+- [x] About 页面说明产品理念、可信流程和 AI 边界。
+- [x] 登录、OAuth 回调、隐私、条款页面已完成。
+- [x] `/app/projects` Dashboard 支持统计、搜索、新建和最近项目。
+- [x] App Shell 使用紧凑左侧导航、顶部项目上下文和用户菜单。
+- [x] 上传、解析、材料检查和知识库页面已统一视觉层级。
+- [x] 学术文档保持章节树、正文、检查抽屉三栏工作台。
+- [x] 移动端导航、抽屉和正文优先布局已完成。
+- [x] Loading、Empty、Toast、错误和按钮层级已统一。
+- [x] Noto 字体已自托管，颜色全部由 CSS variables 管理。
+- [x] 原 5381 行全局 CSS 已拆为 6 个职责文件并删除旧文件。
+- [x] React、Supabase、拖拽和图标依赖已拆包，无 500 kB chunk 告警。
+- [x] 真实工作台截图已生成到 `frontend/public/assets/workspace-product.png`。
 
-后端交付确认：
+样式文件：
 
-- [x] Spring Boot 可启动。
-- [x] `.env` 配置可读取。
-- [x] Supabase PostgreSQL 可连接。
-- [x] OpenAI 兼容网关可调用。
-- [x] 核心 REST API 与前端主链路可联调。
-- [x] v2.0 学术画像、多文档、章节、readiness、材料隔离、组装导出和 AI 留痕 API 已接通。
-- [x] v2.0.1 章节 / 文档可信链、原创风险、审查复查、质量聚合和选择性共写 API 已接通。
-- [x] 真实 Supabase 已完成 v2.0 JSONB、索引、RLS 和旧项目回填迁移。
-- [x] 真实 Supabase 已完成 v2.0.1 作用域字段、审查生命周期、共写预览字段、关联表、索引和 RLS 迁移。
-- [x] 项目列表已批量读取学术画像，真实 Supabase 下不再逐项目执行兼容初始化查询。
-- [x] 章节版本写入使用行锁与历史最大版本，AI 生成期间发生并发修改时返回 `409`，不再触发重复版本 `500`。
-- [x] 要求快照支持可选读取；v2 项目没有旧版 snapshot 时返回 `200 + null`，不再记录缺失异常。
-- [x] 章节保存只自动重建可信链与本地风险；AI 深度审查仅在用户点击“审查本章 / 整篇”后触发。
-- [x] 章节版本变化后旧分析返回 `STALE`；共写预览基准版本冲突返回 `409`。
-- [x] 学术文档导出直接读取章节组装快照，不创建可编辑旧 draft。
+- [tokens.css](../../frontend/src/styles/tokens.css)
+- [base.css](../../frontend/src/styles/base.css)
+- [public.css](../../frontend/src/styles/public.css)
+- [app-shell.css](../../frontend/src/styles/app-shell.css)
+- [workflow.css](../../frontend/src/styles/workflow.css)
+- [academic-workspace.css](../../frontend/src/styles/academic-workspace.css)
 
-## 4. 已接真核心能力
+## 6. 自动化与真实环境验证
 
-- [x] 真实数据库连接。
-- [x] 文本材料真实 AI 语义解析。
-- [x] 文件材料真实文本抽取。
-- [x] 图片 OCR + 语义解析。
-- [x] 解析质量清单与补全引导。
-- [x] 材料充足性检查。
-- [x] 材料不足文献补充入口、多源元数据检索、候选评分与待下载清单。
-- [x] 候选文献上传关联；候选原文完成上传和 AI 解析后才进入生成链路。
-- [x] 初稿生成。
-- [x] 项目知识库构建与检索。
-- [x] 段落级材料可信链。
-- [x] 材料覆盖率评分与引用一致性检查。
-- [x] AI 共写预览后应用。
-- [x] 章节共写支持整版 / 逐段 / 差异行应用、冲突提示与审查项关联落库。
-- [x] AI 审查、申诉与手动复查。
-- [x] 章节 / 整篇可信链、质量聚合、审查和结果时效识别。
-- [x] 段落级原创实证不足、空泛论证和 AI 写作味风险提示。
-- [x] docx / pdf 导出。
+- [x] 后端 `mvn test`：`92` 个通过，0 失败、0 错误、0 跳过。
+- [x] Controller 测试统一使用 mock JWT。
+- [x] 跨租户 workspace、material、document、section、draft、review、evidence 与 job 行为已测试。
+- [x] 前端 Vitest：`6` 个通过。
+- [x] 前端生产构建与 MVP smoke 通过。
+- [x] Playwright：`10` 个通过。
+- [x] 视口：`1440x900`、`1024x768`、`390x844` 无横向溢出。
+- [x] 登录页基础 WCAG serious/critical 检查通过。
+- [x] `npm audit`：0 vulnerabilities。
+- [x] Spring Boot 真实 Supabase 启动成功。
+- [x] Supabase JWKS HTTP 200。
+- [x] 未登录业务 API 返回结构化 401。
+- [x] 真实数据库 owner/RLS/grants/migration history 已核验。
 
-## 5. 自动化测试清单
+## 7. 需要项目所有者完成
 
-后端测试覆盖：
+- [ ] 提供 Google OAuth Client ID/Secret 并启用 Supabase Provider。
+- [ ] 提供 Resend API Key、验证发送域名并启用 Supabase Custom SMTP。
+- [ ] 将邮件模板改为显示 `{{ .Token }}`。
+- [ ] 在 `frontend/.env.local` 填入 Supabase URL 与 publishable key。
+- [ ] 配置本地和生产 Redirect URLs。
+- [ ] 使用同一邮箱验证 Google/OTP 身份关联。
+- [ ] 使用用户 A/B 验证项目、文件、章节、job 和导出隔离。
 
-- service 层：workspace、material、parse quality、sufficiency、draft、knowledge base、evidence binding、co-write preview、review recheck、writing risk、literature search、export。
-- controller 层：workspace、material、draft、co-write、evidence binding、review、writing risk、literature search、export、job 等核心接口。
+完成方法：[AUTH_SETUP.md](../guides/AUTH_SETUP.md)。
 
-执行命令：
+## 8. 非本轮范围
 
-```bash
-cd backend
-mvn clean test
-```
+- [ ] Supabase Storage 或其他私有对象存储。
+- [ ] 持久化异步队列、重试和死信。
+- [ ] 项目分享、导师协作和细粒度角色。
+- [ ] 账号删除、数据导出和管理员后台。
+- [ ] 生产限流、反滥用、成本监控和告警。
+- [ ] CSL、RIS/BibTeX、LaTeX 和正式学位论文模板。
 
-当前要求：
+## 9. 交付判断
 
-- [x] `mvn test` 通过，当前 `78` 个后端测试成功，无失败或错误。
-- [x] service 层核心路径测试通过。
-- [x] controller 层核心接口测试通过。
-- [x] 前端 `npm run test` 通过，包含生产构建与 MVP smoke check。
-- [x] 前端 `npm run test:e2e` 通过，`2` 个 Chrome 用户流程覆盖画像、上传、多文档、章节生成、共写预览、审查复查与导出。
-
-前端验证命令：
-
-```bash
-cd frontend
-npm run test
-npm run test:e2e
-```
-
-## 6. Demo 演示清单
-
-演示前确认：
-
-- [x] 后端已启动。
-- [x] 前端已启动。
-- [x] OpenAI Key / Base URL / Model 可用。
-- [x] Supabase 连接正常。
-
-建议演示路径：
-
-1. 新建研究项目并选择学术阶段、研究范式和首个文档。
-2. 上传文本、文件或图片。
-3. 执行预处理与 AI 解析。
-4. 查看解析质量清单，并按提示补充材料。
-5. 执行材料充足性检查；材料不足时检索真实文献候选、加入待下载清单并回上传页关联原文。
-6. 上传候选文献原文并完成 AI 解析后，重新检查当前文档 readiness。
-7. 构建知识库后进入“学术文档”，切换开题或学位论文并查看默认章节树。
-8. 为当前文档选择材料，生成或手动编辑一个章节。
-9. 选中章节正文生成共写预览，演示逐段或差异行应用，以及旧基准版本 `409` 保护。
-10. 打开本章质量抽屉，查看可信链、原创补强、审查、申诉和单项复查。
-11. 切换“整篇检查”，查看聚合质量并点击问题返回对应章节。
-12. 组装并导出 docx 或 pdf；确认整篇视图不提供全文编辑。
-
-Demo 指南见：[DEMO_GUIDE.md](../guides/DEMO_GUIDE.md)
-
-## 7. 当前仍属后续增强项
-
-以下内容不阻塞当前 MVP 100% 交付：
-
-- [ ] 用户登录、租户隔离和权限体系。
-- [ ] 云对象存储正式化。
-- [ ] 生产级异步队列和失败重试。
-- [ ] 完整日志、监控与告警。
-- [ ] 前端组件级测试与更多异常路径 E2E。
-- [ ] PDF 页码级精准原文跳转。
-- [ ] 正式论文级 DOCX / PDF 排版增强。
-- [ ] 更细粒度词级 diff 与复杂冲突合并。
-
-## 8. 一句话交付结论
-
-`当前项目保留 v1.x 兼容能力，完成 v2.0 全学术人群升级与 v2.0.1 学术文档统一工作台首轮收口；章节已成为唯一正文源，可信审查、选择性共写和整篇交付已迁入主工作台。后端 78 个测试、前端 build/smoke、2 个 Playwright E2E、真实 Supabase 迁移和 API 冒烟均已通过，尚未达到生产上线标准。`
+`代码、数据库迁移、自动化测试和产品化界面已经交付。完成 Google/Resend 控制台配置与真实双用户验收后，可进入封闭内测；当前仍不应描述为生产上线完成。`

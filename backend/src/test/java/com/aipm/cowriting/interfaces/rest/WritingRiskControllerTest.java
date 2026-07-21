@@ -21,6 +21,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(controllers = WritingRiskController.class)
 @Import(GlobalExceptionHandler.class)
+@AuthenticatedApiTest
 class WritingRiskControllerTest {
 
     @Autowired

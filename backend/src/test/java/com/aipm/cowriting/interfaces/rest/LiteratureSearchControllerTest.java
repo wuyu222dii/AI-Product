@@ -29,6 +29,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(controllers = LiteratureSearchController.class)
 @Import(GlobalExceptionHandler.class)
+@AuthenticatedApiTest
 class LiteratureSearchControllerTest {
 
     @Autowired

@@ -1,3 +1,14 @@
+.DS_Store
+**/.DS_Store
+
 frontend/test-results/
 frontend/playwright-report/
 frontend/blob-report/
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+frontend/.env.*.local
+backend/target/
+backend/.env
+backend/uploaded-materials/
+backend/generated-exports/

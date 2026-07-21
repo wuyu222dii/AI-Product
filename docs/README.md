@@ -7,6 +7,7 @@
 - 当前完成度（唯一当前状态来源）：[PRODUCT_COMPLETION_STATUS-6-16.md](project/PRODUCT_COMPLETION_STATUS-6-16.md)
 - v2.0 产品规格：[V2_ACADEMIC_UPGRADE.md](product/V2_ACADEMIC_UPGRADE.md)
 - v2.0.1 数据与接口：[v2_academic_workspace_api.md](engineering/v2_academic_workspace_api.md)
+- v2.1 Auth 配置：[AUTH_SETUP.md](guides/AUTH_SETUP.md)
 - 当前交付清单：[FINAL_DELIVERY_CHECKLIST.md](project/FINAL_DELIVERY_CHECKLIST.md)
 - Demo 跑通指南：[DEMO_GUIDE.md](guides/DEMO_GUIDE.md)
 
@@ -44,6 +45,7 @@
 | [20260711031857_v2_academic_workspace.sql](../supabase/migrations/20260711031857_v2_academic_workspace.sql) | v2.0 正式 Supabase 迁移、旧项目回填与索引 |
 | [20260711065932_repair_document_section_versions.sql](../supabase/migrations/20260711065932_repair_document_section_versions.sql) | 修复章节当前版本与历史最大版本不一致 |
 | [20260711092831_academic_document_quality_scopes.sql](../supabase/migrations/20260711092831_academic_document_quality_scopes.sql) | v2.0.1 章节/文档分析作用域、审查生命周期和选择性共写迁移 |
+| [20260721002107_user_auth_and_workspace_isolation.sql](../supabase/migrations/20260721002107_user_auth_and_workspace_isolation.sql) | v2.1 Supabase Auth 用户资料、工作区归属、RLS 与权限收紧迁移 |
 
 ## 使用与部署
 
@@ -51,6 +53,7 @@
 | --- | --- |
 | [DEMO_GUIDE.md](guides/DEMO_GUIDE.md) | Demo 启动与演示路径 |
 | [supabase-setup.md](guides/supabase-setup.md) | Supabase / Postgres 配置 |
+| [AUTH_SETUP.md](guides/AUTH_SETUP.md) | Google OAuth、Resend 邮箱 OTP、JWT 与双用户隔离验收 |
 | [aws-ec2-deploy.md](guides/aws-ec2-deploy.md) | AWS EC2 部署零基础手册（同域 Nginx + HTTPS，不改仓库代码） |
 | [vercel-deploy.md](guides/vercel-deploy.md) | Vercel 前端部署零基础手册（团队 harry-w-projects，API rewrite 到外部后端） |
 | [frontend/README.md](../frontend/README.md) | 前端模块说明 |
@@ -73,8 +76,8 @@
 
 **产品 / 设计：** V2_ACADEMIC_UPGRADE -> PRD -> frontend_page_spec -> P7 工作台历史设计/视觉稿
 
-**前端：** V2_ACADEMIC_UPGRADE -> v2_academic_workspace_api -> frontend_page_spec -> DEMO_GUIDE
+**前端：** AUTH_SETUP -> V2_ACADEMIC_UPGRADE -> v2_academic_workspace_api -> DEMO_GUIDE
 
-**后端：** V2_ACADEMIC_UPGRADE -> v2_academic_workspace_api -> Supabase v2 migration -> backend_service_spec
+**后端：** AUTH_SETUP -> v2_academic_workspace_api -> Supabase v2/v2.1 migrations -> backend_service_spec
 
 **快速跑 Demo：** DEMO_GUIDE -> FINAL_DELIVERY_CHECKLIST

@@ -1,8 +1,16 @@
 # v2.0.1 学术文档统一工作台 API 契约
 
-更新时间：`2026-07-11`
+更新时间：`2026-07-21`
 
 统一前缀：`/api/v1`。响应继续使用现有 `ApiResponse<T>` 包装。
+
+## 鉴权前提
+
+- 所有接口必须携带 `Authorization: Bearer <supabase-access-token>`。
+- workspace 和全部子资源按 JWT `sub` 校验 owner。
+- 未登录返回 `401`；访问他人资源统一返回 `404`。
+- `GET/PATCH /me` 用于读取或更新当前用户展示资料。
+- 文件预览、job 查询和导出下载同样需要 Bearer Token。
 
 ## 0. 正文与分析作用域
 
@@ -289,6 +297,8 @@
 章节版本一致性修复：[20260711065932_repair_document_section_versions.sql](../../supabase/migrations/20260711065932_repair_document_section_versions.sql)。
 
 v2.0.1 统一质量作用域：[20260711092831_academic_document_quality_scopes.sql](../../supabase/migrations/20260711092831_academic_document_quality_scopes.sql)。
+
+v2.1 用户隔离：[20260721002107_user_auth_and_workspace_isolation.sql](../../supabase/migrations/20260721002107_user_auth_and_workspace_isolation.sql)。
 
 新增表：`academic_project_profiles / academic_documents / document_sections / document_section_versions / document_material_links / ai_action_logs / section_cowrite_previews`。
 

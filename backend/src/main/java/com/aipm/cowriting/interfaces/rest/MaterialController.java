@@ -81,6 +81,7 @@ public class MaterialController {
                     "files / plainText / externalLink 至少传一个"
             );
         }
+        literatureCandidateApplicationService.validateCandidateForWorkspace(workspaceId, literatureCandidateId);
 
         String filename = emptyFiles ? (emptyText ? "external-link.txt" : "pasted-text.txt") : files.get(0).getOriginalFilename();
         String fileType = emptyFiles ? (emptyText ? "txt" : "link") : safeFileType(files.get(0));

@@ -71,7 +71,11 @@ export function AcademicChecksDrawer({
             <section>
               <div className="academic-check-summary-line"><div><Sparkles size={18} /><strong>原创实证得分 {risks?.overallScore ?? 100}</strong></div></div>
               {(risks?.items ?? []).length === 0 ? <p className="muted">当前没有发现明显空泛无据段落，仍建议人工通读。</p> : (risks?.items ?? []).map((risk) => (
-                <article className="academic-risk-row" key={`${risk.paragraphId}-${risk.riskType}`}>
+                <article
+                  className="academic-risk-row"
+                  data-severity={risk.level === "LOCAL_FIX" ? "local_fix" : "notice"}
+                  key={`${risk.paragraphId}-${risk.riskType}`}
+                >
                   <header><strong>{riskLabel(risk.riskType)}</strong><span>{risk.level === "LOCAL_FIX" ? "建议处理" : "提醒"}</span></header>
                   <p>{risk.paragraphExcerpt}</p>
                   <small>{risk.suggestedAction}</small>

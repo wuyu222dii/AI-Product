@@ -27,7 +27,7 @@ public class JobController {
             @PathVariable("id") UUID jobId,
             HttpServletRequest request
     ) {
-        Map<String, Object> job = jobApplicationService.getJob(jobId);
+        Map<String, Object> job = jobApplicationService.getJobForCurrentUser(jobId);
         JobDetailResponse response = new JobDetailResponse(
                 (UUID) job.get("id"),
                 (UUID) job.get("workspaceId"),

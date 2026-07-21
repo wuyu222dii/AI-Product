@@ -114,7 +114,7 @@ frontend/
   src/components/workspace/
   src/hooks/useWorkspace.js
   src/services/api.js
-  src/styles/global.css
+  src/styles/{tokens,base,public,app-shell,workflow,academic-workspace}.css
 
 backend/
   src/main/java/com/aipm/cowriting/
@@ -1310,7 +1310,7 @@ v1.8 原创实证补强：
 - Export controller。
 - Job controller。
 
-当前后端测试报告为 `77` 个测试通过，`0` 失败、`0` 错误、`0` 跳过。文档中出现的 `37 / 49 / 51 / 55 / 60 / 62 / 69 / 74` 是对应历史阶段的当时验证数量，不代表当前测试总数。
+当前后端测试报告为 `92` 个测试通过，`0` 失败、`0` 错误、`0` 跳过。文档中出现的 `37 / 49 / 51 / 55 / 60 / 62 / 69 / 74 / 77 / 78` 是对应历史阶段的当时验证数量，不代表当前测试总数。
 
 运行命令：
 
@@ -1484,16 +1484,13 @@ OPENAI_TIMEOUT_SECONDS=...
 
 这些内容不属于当前 MVP 已完成范围：
 
-- 用户登录。
-- 租户隔离。
-- 权限体系。
-- Supabase RLS 系统化策略。
+- 项目分享、导师协作和细粒度角色权限。
+- 账号删除、个人数据导出和管理员后台。
 - 生产级对象存储。
 - 生产级异步队列。
 - job 持久化、失败重试、死信机制。
 - AI 调用日志、成本统计、监控告警。
-- 前端组件测试与更多异常路径 E2E。
-- 前端组件测试。
+- 更多真实 Provider 异常路径 E2E。
 - 正式上线部署流水线。
 - PDF 页码级精准跳转。
 - 原文截图定位。
@@ -1510,7 +1507,7 @@ OPENAI_TIMEOUT_SECONDS=...
 - SQL 草案里有 `generation_jobs`，但当前 job 是内存实现。
 - SQL 草案里有 `preprocessed_contents`，但当前预处理文本存在 `materials` 表字段。
 - `api_field_spec.md` 和 `openapi_contract_draft.md` 继续作为 v1.x 历史规格；v2.0 以独立 API 契约补齐。
-- 历史文档保留了 `37 / 49 / 51 / 55 / 60 / 62 / 69 / 74` 等阶段测试数量；当前统一验证口径是 `77` 个测试通过。
+- 历史文档保留了 `37 / 49 / 51 / 55 / 60 / 62 / 69 / 74 / 77 / 78` 等阶段测试数量；当前统一验证口径是后端 `92` 个测试通过。
 - v2.0 正式 Supabase 迁移已经执行；JPA `ddl-auto` 默认关闭，后续不再依赖自动建表。
 - 前端依赖里 `react-router-dom` 标注 `^7.16.0`，实际 API 仍按 BrowserRouter / Route / Routes 常规方式使用。
 
@@ -1534,10 +1531,10 @@ P1：
 
 P2：
 
-- 前端组件测试与更多异常路径 E2E。
+- 真实 Google / Resend Provider 与双用户异常路径 E2E。
 - 生产级异步队列。
 - AI 调用日志与成本统计。
-- 用户体系与权限隔离。
+- 项目分享、导师协作和角色权限。
 - 云对象存储。
 
 ## 12. 最终状态判断
@@ -1589,3 +1586,34 @@ P2：
 最终判断：
 
 `这已经是一套能演示、能联调、能从研究项目到多文档章节写作和导出跑通的证据驱动型研究共创平台。v1.x 可信交付能力被完整保留，v2.0 又补上学术画像、多文档、动态 readiness、章节版本、材料隔离和 AI 使用留痕。当前适合完整 Demo 和用户验证，但尚未达到生产上线标准。`
+
+## 13. v2.1 / v2.2 工程补充（2026-07-21）
+
+本节覆盖前文中已经过期的“无登录、无租户隔离、单一全局 CSS”等描述。
+
+### 13.1 v2.1 身份与隔离
+
+- React 接入 Supabase Auth，支持 Google OAuth、6 位邮箱 OTP、PKCE 回调、会话恢复和当前设备退出。
+- Spring Boot 接入 Resource Server，通过 Supabase JWKS 校验 ES256 JWT。
+- `CurrentUserService` 只信任 JWT `sub`；`ResourceOwnershipService` 沿 workspace 外键链校验所有业务资源。
+- 业务 API 默认要求登录，跨租户 UUID 统一返回 404。
+- job、原文件和导出下载全部纳入 owner 校验；本地路径增加 userId/workspaceId 和根目录规范化检查。
+- 新增 user_profiles 与 `/api/v1/me`，展示资料与授权身份分离。
+- 真实 Supabase 已执行 `20260721002107_user_auth_and_workspace_isolation.sql`，35 个旧项目转为未归属，公开角色业务表授权为 0，advisors 无问题。
+
+### 13.2 v2.2 产品化界面
+
+- 新增公开首页、About、登录、OAuth callback、隐私和条款页面。
+- 登录后统一使用项目 Dashboard 与紧凑 App Shell，不再每页重复大型 Hero。
+- 工作流页面共享统一任务视觉，学术文档保持三栏正文工作台。
+- 设计变量、基础样式、公开站点、App Shell、工作流和学术工作台 CSS 已拆分。
+- 自托管 Noto 字体，首页使用真实工作台截图。
+- 已验证桌面、平板和手机布局，并完成基础无障碍检查。
+
+### 13.3 最新验证口径
+
+- 后端：92 个测试通过。
+- 前端：6 个 Vitest、生产构建、smoke 和 10 个 Playwright 场景通过。
+- npm audit：0 vulnerabilities。
+- 真实环境：Spring Boot 连接 Supabase 成功，JWKS 200，未登录 API 401，数据库 advisors 无问题。
+- 外部待验收：Google Client、Resend SMTP 和真实双用户流程需要项目所有者配置私密凭据。

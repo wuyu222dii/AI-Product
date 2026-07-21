@@ -20,6 +20,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(controllers = JobController.class)
 @Import(GlobalExceptionHandler.class)
+@AuthenticatedApiTest
 class JobControllerTest {
 
     @Autowired
@@ -43,7 +44,7 @@ class JobControllerTest {
         job.put("errorMessage", null);
         job.put("createdAt", OffsetDateTime.now().toString());
         job.put("updatedAt", OffsetDateTime.now().toString());
-        when(jobApplicationService.getJob(jobId)).thenReturn(job);
+        when(jobApplicationService.getJobForCurrentUser(jobId)).thenReturn(job);
 
         mockMvc.perform(get("/api/v1/jobs/{id}", jobId))
                 .andExpect(status().isOk())

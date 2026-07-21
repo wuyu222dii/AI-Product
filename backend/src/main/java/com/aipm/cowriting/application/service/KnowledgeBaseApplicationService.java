@@ -226,9 +226,9 @@ public class KnowledgeBaseApplicationService {
             AcademicDocumentEntity document = academicDocumentService.getDocument(request.documentId());
             if (!document.getWorkspaceId().equals(workspaceId)) {
                 throw new BusinessException(
-                        ErrorCode.FORBIDDEN,
-                        HttpStatus.FORBIDDEN.value(),
-                        "学术文档不属于当前研究项目"
+                        ErrorCode.RESOURCE_NOT_FOUND,
+                        HttpStatus.NOT_FOUND.value(),
+                        "学术文档不存在"
                 );
             }
             allowedIds = academicDocumentService.resolveMaterials(document).stream()

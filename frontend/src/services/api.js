@@ -1,7 +1,26 @@
+import { safeReturnTo } from "../auth/returnTo.js";
+import { supabase } from "../auth/supabaseClient.js";
+
 const API_BASE = "/api/v1";
+const activeBlobUrls = new Set();
+
+function protectedObjectUrl(blob) {
+  const objectUrl = URL.createObjectURL(blob);
+  activeBlobUrls.add(objectUrl);
+  return objectUrl;
+}
+
+function releaseProtectedObjectUrl(objectUrl) {
+  if (!activeBlobUrls.delete(objectUrl)) return;
+  URL.revokeObjectURL(objectUrl);
+}
+
+export function revokeProtectedBlobUrls() {
+  [...activeBlobUrls].forEach(releaseProtectedObjectUrl);
+}
 
 async function request(path, options = {}) {
-  const response = await fetch(`${API_BASE}${path}`, {
+  const response = await authenticatedFetch(`${API_BASE}${path}`, {
     headers: {
       ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
       ...(options.headers || {})
@@ -12,24 +31,74 @@ async function request(path, options = {}) {
   const payload = await response.json().catch(() => ({}));
 
   if (!response.ok || payload.success === false) {
-    const error = normalizeApiError(response.status, payload?.error?.message);
-    throw new Error(error);
+    const error = new Error(normalizeApiError(response.status, payload?.error?.message));
+    error.status = response.status;
+    error.code = payload?.error?.code;
+    throw error;
   }
 
   return payload.data;
 }
 
+async function authenticatedFetch(url, options = {}) {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      ...(options.headers || {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    }
+  });
+  if (response.status === 401 && window.location.pathname.startsWith("/app")) {
+    const { data: refreshed, error } = await supabase.auth.refreshSession();
+    if (!error && refreshed.session?.access_token) {
+      return fetch(url, {
+        ...options,
+        headers: {
+          ...(options.headers || {}),
+          Authorization: `Bearer ${refreshed.session.access_token}`
+        }
+      });
+    }
+    await supabase.auth.signOut({ scope: "local" });
+    const returnTo = safeReturnTo(`${window.location.pathname}${window.location.search}`);
+    window.location.assign(`/sign-in?returnTo=${encodeURIComponent(returnTo)}`);
+  }
+  return response;
+}
+
+async function protectedBlob(path) {
+  const response = await authenticatedFetch(path.startsWith("/api/") ? path : `${API_BASE}${path}`);
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(normalizeApiError(response.status, payload?.error?.message));
+  }
+  return response.blob();
+}
+
 function normalizeApiError(status, message) {
   if (message) return message;
-  if (status === 502) return "AI 服务暂时没有正确响应，请稍后重试；如果正文较长，请先选中一小段再执行。";
-  if (status === 503) return "AI 服务暂时不可用，请检查配置或稍后重试。";
-  if (status === 504) return "AI 请求超时，请稍后重试；如果正文较长，请先缩小处理范围。";
+  if (status === 401) return "登录已失效，请重新登录";
+  if (status === 502) return "后端或 AI 服务暂时没有正确响应，请确认 backend 已启动；如果正文较长，请先选中一小段再执行。";
+  if (status === 503) return "后端或 AI 服务暂时不可用，请检查配置或稍后重试。";
+  if (status === 504) return "请求超时，请稍后重试；如果正文较长，请先缩小处理范围。";
+  if (status === 0) return "无法连接后端服务，请确认 backend 已在 8080 端口运行。";
   return "请求失败";
 }
 
 export const api = {
+  getCurrentUser() {
+    return request("/me");
+  },
+  updateCurrentUser(displayName) {
+    return request("/me", { method: "PATCH", body: JSON.stringify({ displayName }) });
+  },
   listWorkspaces() {
     return request("/workspaces");
+  },
+  getWorkspace(workspaceId) {
+    return request(`/workspaces/${workspaceId}`);
   },
   createWorkspace(input) {
     const body = typeof input === "string" ? { title: input } : input;
@@ -367,5 +436,30 @@ export const api = {
   },
   getJob(jobId) {
     return request(`/jobs/${jobId}`);
+  },
+  async openProtectedFile(path) {
+    const popup = window.open("about:blank", "_blank");
+    if (popup) popup.opener = null;
+    try {
+      const blob = await protectedBlob(path);
+      const objectUrl = protectedObjectUrl(blob);
+      if (popup) popup.location = objectUrl;
+      else window.open(objectUrl, "_blank", "noopener,noreferrer");
+      window.setTimeout(() => releaseProtectedObjectUrl(objectUrl), 60_000);
+    } catch (error) {
+      popup?.close();
+      throw error;
+    }
+  },
+  async downloadProtectedFile(path, filename = "download") {
+    const blob = await protectedBlob(path);
+    const objectUrl = protectedObjectUrl(blob);
+    const anchor = document.createElement("a");
+    anchor.href = objectUrl;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    releaseProtectedObjectUrl(objectUrl);
   }
 };

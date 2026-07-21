@@ -28,6 +28,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(controllers = KnowledgeBaseController.class)
 @Import(GlobalExceptionHandler.class)
+@AuthenticatedApiTest
 class KnowledgeBaseControllerTest {
 
     @Autowired

@@ -337,7 +337,7 @@ export function useWorkspace({ workspace, draft, onDraftChange, onError }) {
     try {
       const preview = await api.previewMaterial(materialId);
       if (preview.downloadUrl) {
-        window.open(preview.downloadUrl, "_blank", "noopener,noreferrer");
+        await api.openProtectedFile(preview.downloadUrl);
         setLatestFeedback(`已打开原始材料「${preview.filename}」，请结合页码或片段线索核对。`);
         return;
       }

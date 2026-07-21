@@ -28,6 +28,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(controllers = CoWriteController.class)
 @Import(GlobalExceptionHandler.class)
+@AuthenticatedApiTest
 class CoWriteControllerTest {
 
     @Autowired

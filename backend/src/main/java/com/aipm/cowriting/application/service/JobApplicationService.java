@@ -14,6 +14,11 @@ import org.springframework.stereotype.Service;
 public class JobApplicationService {
 
     private final Map<UUID, Map<String, Object>> jobStore = new ConcurrentHashMap<>();
+    private final CurrentUserService currentUserService;
+
+    public JobApplicationService(CurrentUserService currentUserService) {
+        this.currentUserService = currentUserService;
+    }
 
     public UUID createJob(String jobType, String status, UUID workspaceId) {
         return createJob(jobType, status, workspaceId, Map.of());
@@ -25,6 +30,7 @@ public class JobApplicationService {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("id", id);
         data.put("workspaceId", workspaceId);
+        data.put("ownerUserId", currentUserService.userId());
         data.put("jobType", jobType);
         data.put("status", status);
         data.put("progress", initialProgress(status));
@@ -43,6 +49,19 @@ public class JobApplicationService {
             throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND.value(), "job 不存在");
         }
         return job;
+    }
+
+    public Map<String, Object> getJobForCurrentUser(UUID jobId) {
+        Map<String, Object> job = getJob(jobId);
+        UUID ownerId = (UUID) job.get("ownerUserId");
+        if (!currentUserService.userId().equals(ownerId)) {
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND.value(), "job 不存在");
+        }
+        return job;
+    }
+
+    public void requireCurrentUser(UUID jobId) {
+        getJobForCurrentUser(jobId);
     }
 
     public void attachOutput(UUID jobId, Map<String, Object> outputRef) {

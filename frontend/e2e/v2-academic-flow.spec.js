@@ -4,9 +4,10 @@ const NOW = "2026-07-11T05:00:00Z";
 
 test("创建学术画像、上传材料并完成章节级生成与共写", async ({ page }) => {
   const state = createState();
+  await installAuthenticatedSession(page);
   await installApiMock(page, state);
 
-  await page.goto("/projects");
+  await page.goto("/app/projects");
   await page.getByRole("button", { name: "新建研究项目" }).click();
   await fieldControl(page, "研究项目名称", "input").fill("硕士研究项目 E2E");
   await fieldControl(page, "学术阶段", "select").selectOption("MASTER");
@@ -15,13 +16,13 @@ test("创建学术画像、上传材料并完成章节级生成与共写", async
   await fieldControl(page, "学校 / 机构（可选）", "input").fill("示例大学");
   await page.getByRole("button", { name: "创建并进入材料准备" }).click();
 
-  await expect(page).toHaveURL(/\/upload$/);
+  await expect(page).toHaveURL(/\/app\/projects\/workspace-e2e\/upload$/);
   await page.locator(".upload-source-card").filter({ hasText: "粘贴文字" }).locator("textarea").fill("研究样本为 120 名学生，包含问卷数据、访谈摘要和能源消耗记录。");
   await page.getByRole("button", { name: "提交并进入解析" }).click();
   await expect(page).toHaveURL(/\/parsing$/);
 
   await page.getByRole("link", { name: "学术文档" }).click();
-  await expect(page).toHaveURL(/\/documents$/);
+  await expect(page).toHaveURL(/\/documents(?:\/[^/]+)?$/);
   await expect(page.getByRole("heading", { name: "硕士研究项目 E2E" })).toBeVisible();
   await expect(page.getByRole("tab", { name: /硕士研究项目 E2E/ })).toBeVisible();
 
@@ -42,12 +43,15 @@ test("创建学术画像、上传材料并完成章节级生成与共写", async
   await expect(page.getByText("AI 候选", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "应用整章为新版本" }).click();
   await expect(editor).toHaveValue(/明确对应 120 名学生样本/);
+  await page.getByRole("button", { name: "AI 助手" }).click();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({ path: "public/assets/workspace-product.png", animations: "disabled" });
 
   await page.getByRole("tab", { name: "整篇检查" }).click();
   await page.getByRole("button", { name: "组装预览" }).click();
   await expect(page.getByText(/组装预览 ·/)).toBeVisible();
   await page.getByRole("button", { name: "导出文档" }).click();
-  await expect(page.getByRole("link", { name: "下载导出文件" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "下载导出文件" })).toBeVisible();
 
   await page.getByRole("tab", { name: "章节写作" }).click();
   await page.locator("summary").filter({ hasText: "AI 使用记录" }).click();
@@ -87,13 +91,10 @@ test("兼容工作台可复查审查项并完成导出", async ({ page }) => {
   state.reviews = [createReviewFixture()];
   state.draft = createDraftFixture();
 
-  await page.addInitScript(({ workspace, draft }) => {
-    window.localStorage.setItem("cowriting-demo-workspace", JSON.stringify(workspace));
-    window.localStorage.setItem("cowriting-demo-draft", JSON.stringify(draft));
-  }, { workspace: state.workspace, draft: state.draft });
+  await installAuthenticatedSession(page);
   await installApiMock(page, state);
 
-  await page.goto("/workspace");
+  await page.goto("/app/projects/workspace-legacy/legacy-workspace/draft-legacy");
   await expect(page.getByText("该段论证缺少样本数据支撑。", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "审查列表" }).click();
   await expect(page.getByRole("heading", { name: "审查详情" })).toBeVisible();
@@ -102,10 +103,19 @@ test("兼容工作台可复查审查项并完成导出", async ({ page }) => {
   await page.getByRole("button", { name: "关闭" }).click();
 
   await page.getByRole("button", { name: "导出定稿" }).click();
-  await expect(page).toHaveURL(/\/export$/);
+  await expect(page).toHaveURL(/\/legacy-export\/draft-legacy$/);
   await page.getByRole("button", { name: "发起导出" }).click();
   await expect(page.getByText("导出成功")).toBeVisible();
-  await expect(page.getByRole("link", { name: "下载导出文件" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "下载导出文件" })).toBeVisible();
+});
+
+test("匿名用户被送回登录页并可请求六位邮箱验证码", async ({ page }) => {
+  await page.route("**/auth/v1/otp", (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }));
+  await page.goto("/app/projects");
+  await expect(page).toHaveURL(/\/sign-in\?returnTo=/);
+  await page.getByLabel("邮箱地址").fill("student@example.edu");
+  await page.getByRole("button", { name: "发送 6 位验证码" }).click();
+  await expect(page.getByLabel("6 位验证码")).toBeVisible();
 });
 
 function createState() {
@@ -132,6 +142,19 @@ async function installApiMock(page, state) {
     const method = request.method();
     const path = new URL(request.url()).pathname.replace(/^\/api\/v1/, "");
     const body = readJsonBody(request);
+
+    expect(request.headers().authorization).toBe("Bearer e2e-access-token");
+
+    if (path === "/me" && method === "GET") {
+      return reply(route, {
+        id: "11111111-1111-1111-1111-111111111111",
+        email: "student@example.edu",
+        displayName: "E2E 研究者",
+        avatarUrl: null,
+        createdAt: NOW,
+        updatedAt: NOW
+      });
+    }
 
     if (path === "/workspaces" && method === "GET") {
       return reply(route, { items: state.workspaces });
@@ -169,6 +192,8 @@ async function installApiMock(page, state) {
       state.workspaces = [state.workspace];
       return reply(route, state.workspace);
     }
+    const workspaceMatch = path.match(/^\/workspaces\/([^/]+)$/);
+    if (workspaceMatch && method === "GET") return reply(route, state.workspace);
 
     const workspaceProfileMatch = path.match(/^\/workspaces\/([^/]+)\/academic-profile$/);
     if (workspaceProfileMatch && method === "GET") return reply(route, state.profile);
@@ -392,6 +417,8 @@ async function installApiMock(page, state) {
     if (writingRisksMatch && method === "GET") return reply(route, { overallStatus: "READY", overallScore: 92, items: [], recommendations: [] });
     const legacyExportMatch = path.match(/^\/drafts\/([^/]+)\/export$/);
     if (legacyExportMatch && method === "POST") return reply(route, { jobId: "job-legacy-export", status: "PENDING" });
+    const draftMatch = path.match(/^\/drafts\/([^/]+)$/);
+    if (draftMatch && method === "GET") return reply(route, state.draft);
 
     const jobMatch = path.match(/^\/jobs\/([^/]+)$/);
     if (jobMatch && method === "GET") {
@@ -407,6 +434,28 @@ async function installApiMock(page, state) {
     }
 
     return reply(route, {});
+  });
+}
+
+async function installAuthenticatedSession(page) {
+  await page.addInitScript(({ key, session }) => {
+    window.localStorage.setItem(key, JSON.stringify(session));
+  }, {
+    key: "sb-lrxkcxhftjnkpolezuvh-auth-token",
+    session: {
+      access_token: "e2e-access-token",
+      refresh_token: "e2e-refresh-token",
+      expires_in: 3600,
+      expires_at: Math.floor(Date.now() / 1000) + 3600,
+      token_type: "bearer",
+      user: {
+        id: "11111111-1111-1111-1111-111111111111",
+        aud: "authenticated",
+        role: "authenticated",
+        email: "student@example.edu",
+        user_metadata: { full_name: "E2E 研究者" }
+      }
+    }
   });
 }
 

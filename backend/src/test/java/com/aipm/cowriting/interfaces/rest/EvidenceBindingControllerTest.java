@@ -34,6 +34,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(controllers = EvidenceBindingController.class)
 @Import(GlobalExceptionHandler.class)
+@AuthenticatedApiTest
 class EvidenceBindingControllerTest {
 
     @Autowired

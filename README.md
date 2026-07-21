@@ -1,68 +1,74 @@
-# AI 论文共写工作台 v2.0.1
+# AI 论文共写工作台 v2.2
 
-当前项目基线：`v1.x MVP 能力完整保留 + v2.0 全学术人群升级 + v2.0.1 学术文档统一工作台首轮收口`。
+面向本科生、硕士生、博士生与科研人员的证据驱动型研究共创平台。系统以真实材料、章节版本、来源追溯和人工确认为基础，支持从研究输入到学术文档交付的完整流程；不承诺规避 AI 检测或论文查重。
 
-产品定位：`面向本科生、硕士生、博士生与科研人员的证据驱动型研究共创平台`。AI 可以基于真实材料生成和修改学术文档，但必须保留材料范围、来源追溯、章节版本、人工确认和 AI 使用记录；产品不承诺规避 AI 检测或论文查重。
+当前基线：`v1.x 可信写作能力 + v2.0 全学术人群升级 + v2.0.1 学术文档统一工作台 + v2.1 用户隔离 + v2.2 产品化界面`。
 
-当前正式状态以 [PRODUCT_COMPLETION_STATUS-6-16.md](docs/project/PRODUCT_COMPLETION_STATUS-6-16.md) 为准，产品边界见 [V2_ACADEMIC_UPGRADE.md](docs/product/V2_ACADEMIC_UPGRADE.md)，最新接口与统一工作台契约见 [v2_academic_workspace_api.md](docs/engineering/v2_academic_workspace_api.md)。
+当前状态唯一事实来源：[PRODUCT_COMPLETION_STATUS-6-16.md](docs/project/PRODUCT_COMPLETION_STATUS-6-16.md)。Supabase Auth 控制台配置见 [AUTH_SETUP.md](docs/guides/AUTH_SETUP.md)。
 
-## v2.0.1 已完成
+## 最新交付
 
-- 学术项目画像：本科、硕士、博士、科研人员；学科方向、研究范式、语言、引用格式和 AI 使用策略。
-- 多文档研究项目：同一项目共享材料和知识库，可创建开题、学位论文、期刊稿、综述、研究报告等独立文档。
-- 章节树写作：支持拖拽整理章节顺序，以及章节级正文、状态、目标篇幅、版本恢复、AI 生成、共写预览、组装与导出。
-- 动态 readiness：按文档类型、研究范式和章节类型判断材料门槛；研究计划不要求已有结果，系统综述不要求实验数据。
-- 文档材料隔离：每个文档可选择自己的材料集，知识检索、章节生成和共写不会串用其他文档材料。
-- 通用学术要求：要求优先级为 `用户确认的学校/导师/课程/期刊要求 > 文档设置 > 研究范式规则 > 平台默认`。
-- AI 使用留痕：记录操作类型、目标章节、材料依据、模型、采纳状态与披露要求。
-- 统一正文源：`DocumentSection` 是唯一可编辑正文；整篇视图只负责组装预览、全篇检查、审查和导出。
-- 统一分析作用域：`ContentScope` 同时支持章节、整篇文档和旧草稿，可信链、原创风险、审查与复查不再绑定单一 draft 模型。
-- 章节可信审查闭环：章节保存后异步重建可信链，本地风险实时派生；AI 深度审查由用户手动发起，旧结果会按章节版本标记为 `STALE`。
-- 可控章节共写：支持选区共写、整版/逐段/差异行应用、引用与数据冲突提示；基准版本变化时返回 `409`，不会覆盖用户新修改。
-- 整篇只读交付：聚合章节准备度、证据覆盖率、原创实证风险、审查状态和引用一致性，并直接按章节组装导出，不创建可编辑旧 draft。
-- 旧入口退场：导航已隐藏“整篇共写（兼容）”；旧 `/workspace`、`/export` 路由和旧 API 仅保留历史回归兼容。
-- 旧稿可选拆分：可识别标题并预览，用户确认后才生成章节，拆分前正文保留在版本历史。
-- Supabase 正式迁移：v2.0 基础迁移、章节版本修复和 v2.0.1 作用域迁移均已在真实数据库执行。
+### v2.1 用户隔离
 
-## 保留能力
+- Supabase Auth：Google OAuth、6 位邮箱 OTP、PKCE 会话恢复与当前设备退出。
+- Spring Security：通过 Supabase JWKS 校验 ES256 JWT，同时校验 issuer、`aud=authenticated`、有效期与 UUID `sub`。
+- API 保护：`/api/v1/**` 必须携带 Bearer Token；未登录返回 `401`，访问他人资源统一返回 `404`。
+- 资源隔离：workspace、material、document、section、version、draft、review、evidence、preview、job 与 export 均沿工作区归属校验。
+- 文件隔离：上传与导出路径包含 `{userId}/{workspaceId}`，并执行规范化路径检查；预览和下载均使用带 Token 的 Blob 请求。
+- 数据迁移：新增 `user_profiles`，35 个历史 Demo 项目已转为未归属且对普通用户不可见，业务表不向 `anon/authenticated` 开放 Data API 权限。
+- 用户接口：`GET /api/v1/me`、`PATCH /api/v1/me`。
 
-v1.1-v1.9 的上传与 OCR、AI 语义解析、解析质量清单、材料不足文献检索、项目知识库、材料可信链、原创实证补强、审查复查和 DOCX/PDF 导出继续可用。旧整篇共写路由和接口保留兼容，但不再作为默认产品入口。
+迁移文件：[20260721002107_user_auth_and_workspace_isolation.sql](supabase/migrations/20260721002107_user_auth_and_workspace_isolation.sql)。迁移已在真实 Supabase 执行并登记到 migration history。
 
-## 当前主流程
+### v2.2 产品化界面
+
+- 新增品牌首页、产品理念、登录、OAuth 回调、隐私与条款页面。
+- 登录后统一为 `/app/projects` 信息架构，旧路径保留重定向或隐藏兼容入口。
+- 项目首页升级为 Dashboard，App Shell 使用紧凑侧边栏、项目导航与用户菜单。
+- 上传、解析、材料检查、知识库和学术文档使用统一任务视觉系统。
+- 学术文档保持章节树、正文编辑器、按需检查抽屉的三栏工作台；整篇检查只读。
+- 设计系统改为青绿主色、琥珀强调、6/8px 圆角、细边框和浅色学术阅读界面。
+- 自托管 Noto Sans SC、Noto Sans Mono、Noto Serif SC；CSS 已拆为 tokens、base、public、app-shell、workflow 和 academic-workspace。
+- 已完成桌面、平板、手机响应式检查、基础无障碍检查和真实产品截图。
+
+## 产品主流程
 
 ```text
-创建研究项目与学术画像
+登录
+-> 创建研究项目与学术画像
 -> 上传并 AI 解析真实材料
--> 按当前文档执行动态 readiness
--> 材料不足时检索和补传真实文献/研究成果
+-> 查看解析质量和动态 readiness
+-> 材料不足时检索并补传真实文献或研究成果
 -> 构建项目知识库
 -> 创建或切换学术文档
--> 按章节生成、编辑和共写预览
--> 选择性应用为章节新版本
--> 查看本章可信链、原创风险、审查与复查
--> 在整篇检查中聚合质量问题并跳回对应章节
+-> 按章节生成、编辑和可控共写
+-> 查看可信链、原创风险、审查与复查
+-> 整篇质量检查
 -> 按章节组装并导出
 ```
 
-旧版“整篇初稿 -> 整篇共写”流程只保留直接路由和 API 兼容，导航已隐藏。学术文档工作台是唯一主入口，整篇内容不可直接编辑。
+`DocumentSection` 是唯一可编辑正文源。整篇视图只负责组装、检查、审查与导出，旧整篇工作台仅保留兼容。
 
 ## 目录
 
 | 路径 | 用途 |
 | --- | --- |
 | [backend](backend) | Spring Boot 3 / Java 17 REST 后端 |
-| [frontend](frontend) | React / Vite 多页面前端 |
-| [supabase/migrations/20260711031857_v2_academic_workspace.sql](supabase/migrations/20260711031857_v2_academic_workspace.sql) | v2.0 正式 Supabase 迁移 |
-| [supabase/migrations/20260711065932_repair_document_section_versions.sql](supabase/migrations/20260711065932_repair_document_section_versions.sql) | 章节历史版本一致性修复迁移 |
-| [supabase/migrations/20260711092831_academic_document_quality_scopes.sql](supabase/migrations/20260711092831_academic_document_quality_scopes.sql) | v2.0.1 章节/文档可信链、审查和选择性共写作用域迁移 |
-| [docs/README.md](docs/README.md) | 文档总索引 |
-| [docs/product/PRD.md](docs/product/PRD.md) | 产品总规格与历史兼容规格 |
-| [docs/product/V2_ACADEMIC_UPGRADE.md](docs/product/V2_ACADEMIC_UPGRADE.md) | v2.0 当前产品规格 |
-| [docs/engineering/v2_academic_workspace_api.md](docs/engineering/v2_academic_workspace_api.md) | v2.0 数据与接口契约 |
-| [docs/guides/DEMO_GUIDE.md](docs/guides/DEMO_GUIDE.md) | 启动与演示说明 |
+| [frontend](frontend) | React / Vite 前端与 Playwright E2E |
+| [supabase/migrations](supabase/migrations) | Supabase 版本化迁移 |
+| [docs/README.md](docs/README.md) | 研发文档索引 |
+| [docs/guides/AUTH_SETUP.md](docs/guides/AUTH_SETUP.md) | Google、Resend、Supabase Auth 配置 |
+| [docs/guides/DEMO_GUIDE.md](docs/guides/DEMO_GUIDE.md) | 启动与演示路径 |
 | [docs/project/FINAL_DELIVERY_CHECKLIST.md](docs/project/FINAL_DELIVERY_CHECKLIST.md) | 当前交付清单 |
 
-## 启动
+## 配置与启动
+
+复制示例变量后填写本机私密值，不要提交真实密钥：
+
+```bash
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env.local
+```
 
 后端：
 
@@ -79,29 +85,28 @@ npm install
 npm run dev
 ```
 
-默认地址：后端 `http://localhost:8080`，前端 `http://localhost:5173`。可通过 `VITE_API_PROXY_TARGET` 覆盖前端代理目标。
-
-数据库结构只通过版本化 SQL 迁移维护，运行时默认 `HIBERNATE_DDL_AUTO=none`，避免 Hibernate 与 PostgreSQL 生成列或索引冲突。
+默认地址：前端 `http://localhost:5173`，后端 `http://localhost:8080`。数据库结构仅通过迁移维护，运行时保持 `HIBERNATE_DDL_AUTO=none`。
 
 ## 验证
 
 ```bash
 cd backend && mvn test
-cd frontend && npm run test
-cd frontend && npm run test:e2e
+cd frontend && npm run test:all
 ```
 
-当前验证结果：
+最近一次验证（2026-07-21）：
 
-- 后端 `78` 个 service / controller 测试通过，无失败或错误。
-- 前端生产构建与 smoke test 通过。
-- 前端 Playwright E2E `2` 个 Chrome 用户流程通过，覆盖统一学术文档工作台、章节共写、审查复查与导出。
-- `npm audit` 与 `npm audit --omit=dev` 均为 `0 vulnerabilities`。
-- 真实 Supabase 已完成 v2.0.1 迁移和 API 冒烟：章节可信链异步重建、整篇质量聚合、AI 审查与单项复查、基准版本冲突、逐段应用、章节组装和 DOCX 导出均通过。
+- 后端 `92` 个测试通过，`0` 失败、`0` 错误、`0` 跳过。
+- 前端 `6` 个 Vitest 测试、生产构建和 smoke test 通过。
+- Playwright `10` 个场景通过，覆盖认证、核心流程、`1440x900 / 1024x768 / 390x844` 与基础无障碍检查。
+- `npm audit` 为 `0 vulnerabilities`。
+- Spring Boot 已连接真实 Supabase；JWKS 返回 `200`，未登录业务 API 返回结构化 `401`。
+- 真实数据库中 35 个历史工作区均为未归属；RLS 开启，`anon/authenticated` 对业务表授权数为 0。
+- `supabase db advisors` 返回 `No issues found`。
 
 ## 当前边界
 
-- 尚未实现登录、租户隔离、协作者权限和导师批注。
-- 尚未接入对象存储、生产级任务队列和监控告警；前端组件级测试与更多异常路径 E2E 仍可继续扩充。
-- v2.0 使用 PostgreSQL 全文检索、元数据和结构化筛选；混合向量检索留到 v2.1 以后。
-- CSL、RIS/BibTeX、LaTeX 和正式学位论文模板仍属于下一阶段。
+- Google Client ID/Secret、Resend SMTP 和发送域名仍需在对应控制台配置；仓库不包含这些私密值，因此真实 Google/OTP 双用户冒烟尚待环境配置后执行。
+- 当前文件仍保存在本机，job 仍为内存实现；对象存储、持久化队列、限流、监控和账号删除不属于本轮。
+- 项目暂不支持分享、导师协作和管理员后台。
+- CSL、RIS/BibTeX、LaTeX 与正式学位论文模板仍属于后续交付质量增强。

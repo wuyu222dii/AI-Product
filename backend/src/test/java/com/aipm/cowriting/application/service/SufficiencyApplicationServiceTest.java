@@ -63,7 +63,7 @@ class SufficiencyApplicationServiceTest {
         UUID snapshotId = UUID.randomUUID();
 
         when(workspaceRepository.existsById(workspaceId)).thenReturn(true);
-        when(snapshotRepository.findById(snapshotId)).thenReturn(Optional.of(new RequirementSnapshotEntity()));
+        when(snapshotRepository.findById(snapshotId)).thenReturn(Optional.of(snapshot(workspaceId)));
 
         MaterialEntity keyMaterial = new MaterialEntity();
         keyMaterial.setId(UUID.randomUUID());
@@ -93,7 +93,7 @@ class SufficiencyApplicationServiceTest {
         UUID snapshotId = UUID.randomUUID();
 
         when(workspaceRepository.existsById(workspaceId)).thenReturn(true);
-        when(snapshotRepository.findById(snapshotId)).thenReturn(Optional.of(new RequirementSnapshotEntity()));
+        when(snapshotRepository.findById(snapshotId)).thenReturn(Optional.of(snapshot(workspaceId)));
         when(materialRepository.findByWorkspaceIdOrderByCreatedAtDesc(workspaceId)).thenReturn(List.of());
         when(resultRepository.save(any(MaterialSufficiencyResultEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -131,6 +131,13 @@ class SufficiencyApplicationServiceTest {
         entity.setDetectedClaimsJson("[]");
         entity.setDetectedEvidenceJson("[]");
         entity.setDetectedRequirementsJson("[]");
+        return entity;
+    }
+
+    private RequirementSnapshotEntity snapshot(UUID workspaceId) {
+        RequirementSnapshotEntity entity = new RequirementSnapshotEntity();
+        entity.setId(UUID.randomUUID());
+        entity.setWorkspaceId(workspaceId);
         return entity;
     }
 }

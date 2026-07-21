@@ -10,6 +10,7 @@ export function AcademicDocumentQualityView({
   onExport,
   onRefreshReview,
   onRefreshEvidence,
+  onDownload,
   onOpenSection,
   onOpenReview
 }) {
@@ -51,7 +52,7 @@ export function AcademicDocumentQualityView({
       </div>
 
       {assembled && <details open className="academic-assembled-preview"><summary>组装预览 · {assembled.characterCount} 字符</summary><pre>{assembled.content}</pre></details>}
-      {downloadUrl && <a className="primary-btn academic-download-link" href={downloadUrl} target="_blank" rel="noreferrer"><Download size={16} /> 下载导出文件</a>}
+      {downloadUrl && <button type="button" className="primary-btn academic-download-link" onClick={onDownload}><Download size={16} /> 下载导出文件</button>}
     </section>
   );
 }

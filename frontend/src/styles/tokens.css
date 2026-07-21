@@ -1,0 +1,82 @@
+:root {
+  color-scheme: light;
+
+  /* Shared semantic colors */
+  --success: #3d6b52;
+  --success-soft: #e8f2ec;
+  --warning: #9a7a1d;
+  --warning-soft: #fbf4e0;
+  --danger: #9b3d38;
+  --danger-soft: #fceae8;
+  --info: #356a84;
+  --info-soft: #eaf3f7;
+  --gold: #c9a227;
+  --gold-soft: #f5edd6;
+  --gold-accent: #b8922a;
+
+  /* Product theme (default) — ink indigo on warm paper */
+  --canvas: #f7f4ee;
+  --surface: #fdfcf8;
+  --surface-subtle: #edeae3;
+  --surface-strong: #e2ddd4;
+  --ink: #1a2332;
+  --ink-soft: #3d4a5c;
+  --muted: #6b7585;
+  --muted-light: #5f6b7a;
+  --line: #d5dce8;
+  --line-strong: #a8b4c8;
+  --primary: #2b4c7e;
+  --primary-hover: #1e3254;
+  --primary-soft: #e8eef7;
+  --amber: var(--gold-accent);
+  --amber-soft: var(--gold-soft);
+
+  /* Public theme tokens */
+  --public-canvas: #f7f4ee;
+  --public-canvas-end: #eef2f8;
+  --public-surface: #fdfcf8;
+  --public-ink: #1a2332;
+  --public-ink-soft: #3d4a5c;
+  --public-muted: #6b7585;
+  --public-line: #d5dce8;
+  --public-gold: #c9a227;
+
+  /* Layout */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --shadow-xs: 0 1px 2px rgba(26, 35, 50, 0.05);
+  --shadow-sm: 0 8px 24px rgba(26, 35, 50, 0.06);
+  --shadow-md: 0 16px 40px rgba(26, 35, 50, 0.1);
+  --shadow-lg: 0 24px 56px rgba(15, 27, 45, 0.18);
+  --sidebar-width: 232px;
+  --topbar-height: 58px;
+
+  /* Typography */
+  --font-ui: "Noto Sans SC Variable", sans-serif;
+  --font-mono: "Noto Sans Mono Variable", monospace;
+  --font-document: "Noto Serif SC Variable", serif;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-fast: 160ms;
+  --duration-normal: 240ms;
+}
+
+[data-surface="public"] {
+  color-scheme: light;
+  --canvas: var(--public-canvas);
+  --surface: var(--public-surface);
+  --surface-subtle: #f4f1ea;
+  --surface-strong: #e7e3db;
+  --ink: var(--public-ink);
+  --ink-soft: var(--public-ink-soft);
+  --muted: var(--public-muted);
+  --muted-light: #7c8797;
+  --line: var(--public-line);
+  --line-strong: #a8b4c8;
+  --primary: #2b4c7e;
+  --primary-hover: #1e3254;
+  --primary-soft: #e8eef7;
+}

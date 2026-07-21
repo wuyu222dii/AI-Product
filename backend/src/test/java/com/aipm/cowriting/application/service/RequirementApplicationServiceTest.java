@@ -6,6 +6,7 @@ import static org.mockito.Mockito.when;
 
 import com.aipm.cowriting.common.error.BusinessException;
 import com.aipm.cowriting.domain.repository.RequirementSnapshotRepository;
+import com.aipm.cowriting.domain.repository.AcademicDocumentRepository;
 import com.aipm.cowriting.domain.repository.WorkspaceRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Optional;
@@ -21,13 +22,16 @@ class RequirementApplicationServiceTest {
 
     @Mock private RequirementSnapshotRepository snapshotRepository;
     @Mock private WorkspaceRepository workspaceRepository;
+    @Mock private AcademicDocumentRepository academicDocumentRepository;
 
     private RequirementApplicationService service;
     private UUID workspaceId;
 
     @BeforeEach
     void setUp() {
-        service = new RequirementApplicationService(snapshotRepository, workspaceRepository, new ObjectMapper());
+        service = new RequirementApplicationService(
+                snapshotRepository, workspaceRepository, academicDocumentRepository, new ObjectMapper()
+        );
         workspaceId = UUID.randomUUID();
         when(workspaceRepository.existsById(workspaceId)).thenReturn(true);
         when(snapshotRepository.findFirstByWorkspaceIdAndDocumentIdIsNullOrderByVersionDesc(workspaceId))

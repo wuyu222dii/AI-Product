@@ -4,6 +4,9 @@ import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -22,6 +25,8 @@ import com.aipm.cowriting.application.dto.reference.BibliographicMetadata;
 import com.aipm.cowriting.application.service.LiteratureCandidateApplicationService;
 import com.aipm.cowriting.application.service.LocalMaterialStorageService;
 import com.aipm.cowriting.application.service.MaterialApplicationService;
+import com.aipm.cowriting.common.error.BusinessException;
+import com.aipm.cowriting.common.error.ErrorCode;
 import com.aipm.cowriting.common.web.GlobalExceptionHandler;
 import com.aipm.cowriting.domain.entity.MaterialEntity;
 import com.aipm.cowriting.domain.model.MaterialCategory;
@@ -41,12 +46,14 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.junit.jupiter.api.io.TempDir;
 
 @WebMvcTest(controllers = MaterialController.class)
 @Import(GlobalExceptionHandler.class)
+@AuthenticatedApiTest
 class MaterialControllerTest {
 
     @Autowired
@@ -103,6 +110,30 @@ class MaterialControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.items[0].filename").value("test-material.txt"));
+    }
+
+    @Test
+    void foreignLiteratureCandidateShouldBeRejectedBeforeFileStorage() throws Exception {
+        UUID workspaceId = UUID.randomUUID();
+        UUID candidateId = UUID.randomUUID();
+        MockMultipartFile file = new MockMultipartFile(
+                "files", "paper.pdf", MediaType.APPLICATION_PDF_VALUE, "pdf".getBytes()
+        );
+        doThrow(new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND.value(), "候选文献不存在"))
+                .when(literatureCandidateApplicationService)
+                .validateCandidateForWorkspace(workspaceId, candidateId);
+
+        mockMvc.perform(multipart("/api/v1/workspaces/{id}/materials", workspaceId)
+                        .file(file)
+                        .param("sourceType", "upload")
+                        .param("literatureCandidateId", candidateId.toString()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("RESOURCE_NOT_FOUND"));
+
+        verify(localMaterialStorageService, never()).store(eq(workspaceId), any());
+        verify(materialApplicationService, never()).createStub(
+                eq(workspaceId), any(), any(), any(), any(Boolean.class), any(), any(), any()
+        );
     }
 
     @Test

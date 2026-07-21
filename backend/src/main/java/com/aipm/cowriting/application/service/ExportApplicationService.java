@@ -49,20 +49,24 @@ public class ExportApplicationService {
     private final MaterialRepository materialRepository;
     private final AiSemanticParseResultRepository aiSemanticParseResultRepository;
     private final JobApplicationService jobApplicationService;
+    private final CurrentUserService currentUserService;
     private final ObjectMapper objectMapper;
-    private final Path exportRoot = Paths.get(System.getProperty("user.dir"), "generated-exports");
+    private final Path exportRoot = Paths.get(System.getProperty("user.dir"), "generated-exports")
+            .toAbsolutePath().normalize();
 
     public ExportApplicationService(
             DraftVersionRepository draftVersionRepository,
             MaterialRepository materialRepository,
             AiSemanticParseResultRepository aiSemanticParseResultRepository,
             JobApplicationService jobApplicationService,
+            CurrentUserService currentUserService,
             ObjectMapper objectMapper
     ) {
         this.draftVersionRepository = draftVersionRepository;
         this.materialRepository = materialRepository;
         this.aiSemanticParseResultRepository = aiSemanticParseResultRepository;
         this.jobApplicationService = jobApplicationService;
+        this.currentUserService = currentUserService;
         this.objectMapper = objectMapper;
     }
 
@@ -81,10 +85,16 @@ public class ExportApplicationService {
             );
         }
         try {
-            Files.createDirectories(exportRoot);
             String format = request.format().toLowerCase();
             UUID jobId = jobApplicationService.createJob("export_" + format, "success", draft.getWorkspaceId());
-            Path outputFile = exportRoot.resolve(draft.getId() + "-" + jobId + "." + format);
+            Path relativeFile = Path.of(
+                    currentUserService.userId().toString(),
+                    draft.getWorkspaceId().toString(),
+                    draft.getId() + "-" + jobId + "." + format
+            );
+            Path outputFile = exportRoot.resolve(relativeFile).normalize();
+            requireInsideExportRoot(outputFile);
+            Files.createDirectories(outputFile.getParent());
             List<String> referenceTexts = collectReferenceTexts(draft, request.citationStyle());
             if ("docx".equals(format)) {
                 writeDocx(draft, referenceTexts, outputFile);
@@ -93,7 +103,7 @@ public class ExportApplicationService {
             }
             jobApplicationService.attachOutput(jobId, java.util.Map.of(
                     "downloadUrl", "/api/v1/exports/" + jobId + "/download",
-                    "fileName", outputFile.getFileName().toString(),
+                    "fileName", relativeFile.toString(),
                     "format", format
             ));
             return new JobResponse(jobId.toString(), "success");
@@ -107,17 +117,24 @@ public class ExportApplicationService {
     }
 
     public Resource loadExport(UUID jobId) {
-        java.util.Map<String, Object> job = jobApplicationService.getJob(jobId);
+        java.util.Map<String, Object> job = jobApplicationService.getJobForCurrentUser(jobId);
         @SuppressWarnings("unchecked")
         java.util.Map<String, Object> outputRef = (java.util.Map<String, Object>) job.get("outputRef");
         if (outputRef == null || outputRef.get("fileName") == null) {
             throw new BusinessException(ErrorCode.DRAFT_NOT_FOUND, HttpStatus.NOT_FOUND.value(), "draft 不存在");
         }
-        Path file = exportRoot.resolve(String.valueOf(outputRef.get("fileName")));
+        Path file = exportRoot.resolve(String.valueOf(outputRef.get("fileName"))).normalize();
+        requireInsideExportRoot(file);
         if (!Files.exists(file)) {
             throw new BusinessException(ErrorCode.EXPORT_FAILED, HttpStatus.NOT_FOUND.value(), "导出文件不存在");
         }
         return new FileSystemResource(file);
+    }
+
+    private void requireInsideExportRoot(Path file) {
+        if (!file.startsWith(exportRoot)) {
+            throw new BusinessException(ErrorCode.EXPORT_FAILED, HttpStatus.NOT_FOUND.value(), "导出文件不存在");
+        }
     }
 
     private void writeDocx(DraftVersionEntity draft, List<String> referenceTexts, Path outputFile) throws IOException {

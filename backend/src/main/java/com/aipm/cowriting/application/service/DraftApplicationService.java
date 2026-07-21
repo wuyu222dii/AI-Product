@@ -81,6 +81,13 @@ public class DraftApplicationService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.WORKSPACE_NOT_FOUND, HttpStatus.NOT_FOUND.value(), "workspace 不存在"));
         RequirementSnapshotEntity snapshot = snapshotRepository.findById(requirementSnapshotId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.REQUIREMENT_SNAPSHOT_MISSING, HttpStatus.NOT_FOUND.value(), "requirement snapshot 不存在"));
+        if (!workspaceId.equals(snapshot.getWorkspaceId())) {
+            throw new BusinessException(
+                    ErrorCode.REQUIREMENT_SNAPSHOT_MISSING,
+                    HttpStatus.NOT_FOUND.value(),
+                    "requirement snapshot 不存在"
+            );
+        }
         MaterialSufficiencyResultEntity sufficiency = sufficiencyResultRepository.findFirstByWorkspaceIdOrderByCreatedAtDesc(workspaceId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.INSUFFICIENT_MATERIAL, HttpStatus.UNPROCESSABLE_ENTITY.value(), "尚未完成材料充足性检查"));
 

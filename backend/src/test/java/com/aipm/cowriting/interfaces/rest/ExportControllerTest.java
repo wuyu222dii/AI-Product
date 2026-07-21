@@ -26,6 +26,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(controllers = ExportController.class)
 @Import(GlobalExceptionHandler.class)
+@AuthenticatedApiTest
 class ExportControllerTest {
 
     @Autowired

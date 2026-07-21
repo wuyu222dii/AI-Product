@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, BookOpenText, GraduationCap, Plus } from "lucide-react";
+import { ArrowRight, BookOpenText, FolderKanban, GraduationCap, Plus, Search } from "lucide-react";
+import { useAuth } from "../auth/AuthProvider.jsx";
 import { api } from "../services/api";
 import { StatusBadge } from "../components/StatusBadge";
 import {
@@ -15,15 +16,26 @@ import {
 } from "../components/academic/academicOptions.js";
 
 export function ProjectListPage({ onWorkspaceCreated, onWorkspaceSelected, onError }) {
+  const { user } = useAuth();
   const [form, setForm] = useState(() => initialForm());
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
+  const [search, setSearch] = useState("");
 
   async function load() {
     try {
       const data = await api.listWorkspaces();
-      setItems(data.items ?? []);
+      const workspaces = data.items ?? [];
+      const enriched = await Promise.all(workspaces.map(async (workspace) => {
+        try {
+          const documents = await api.listAcademicDocuments(workspace.id);
+          return { ...workspace, documentCount: documents.length };
+        } catch {
+          return { ...workspace, documentCount: workspace.activeDocumentId ? 1 : 0 };
+        }
+      }));
+      setItems(enriched);
     } catch (error) {
       onError(error.message);
     }
@@ -87,10 +99,13 @@ export function ProjectListPage({ onWorkspaceCreated, onWorkspaceSelected, onErr
     }));
   }
 
+  const visibleItems = items.filter((item) => item.title.toLowerCase().includes(search.trim().toLowerCase()));
+
   return (
     <section className="project-hub">
       <div className="project-hub-head">
         <div>
+          {user?.email && <p className="project-hub-welcome">欢迎回来，{user.email.split("@")[0]}</p>}
           <span className="eyebrow">Evidence-driven research</span>
           <h3>研究项目</h3>
           <p>一个项目可以共享材料与知识库，并包含开题、学位论文、论文稿件等多个学术文档。</p>
@@ -99,6 +114,11 @@ export function ProjectListPage({ onWorkspaceCreated, onWorkspaceSelected, onErr
           <Plus size={17} aria-hidden="true" />
           {showCreate ? "收起创建" : "新建研究项目"}
         </button>
+      </div>
+
+      <div className="project-dashboard-toolbar">
+        <div className="project-dashboard-stats"><span><strong>{items.length}</strong>研究项目</span><span><strong>{items.reduce((sum, item) => sum + (item.documentCount ?? 0), 0)}</strong>学术文档</span><span><strong>{items.filter((item) => String(item.status).toUpperCase() === "READY").length}</strong>可继续写作</span></div>
+        <label className="project-search"><Search size={16} aria-hidden="true" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜索项目" aria-label="搜索研究项目" /></label>
       </div>
 
       {showCreate && (
@@ -186,12 +206,17 @@ export function ProjectListPage({ onWorkspaceCreated, onWorkspaceSelected, onErr
             <p>创建项目后，先上传真实研究材料，再进入多文档和章节级共写。</p>
           </div>
         ) : (
-          items.map((item) => (
+          visibleItems.length === 0 ? (
+            <div className="project-empty-state"><FolderKanban size={27} /><strong>没有匹配的项目</strong><p>请调整搜索关键词。</p></div>
+          ) : visibleItems.map((item) => (
             <article className="project-list-item" key={item.id}>
               <div className="project-list-item-top">
                 <div>
                   <span className="project-stage-label">{STAGE_LABELS[item.academicProfile?.academicStage] ?? "旧版项目"}</span>
                   <h4>{item.title}</h4>
+                  {!(item.status === "READY" || item.status === "ready") && (
+                    <span className="project-list-next-hint">建议：先补充研究材料</span>
+                  )}
                 </div>
                 <StatusBadge level={item.status === "READY" || item.status === "ready" ? "ready" : "notice"}>
                   {item.status}
@@ -200,7 +225,7 @@ export function ProjectListPage({ onWorkspaceCreated, onWorkspaceSelected, onErr
               <div className="project-list-meta">
                 <span>{PARADIGM_LABELS[item.academicProfile?.researchParadigm] ?? "研究范式待确认"}</span>
                 <span>{item.academicProfile?.defaultCitationStyle ?? "APA"}</span>
-                <span>{item.activeDocumentId ? "已建立主文档" : DOCUMENT_TYPE_LABELS.COURSE_PAPER}</span>
+                <span>{item.documentCount ?? 0} 个文档</span>
               </div>
               <div className="project-list-item-footer">
                 <span>更新于 {formatDate(item.updatedAt)}</span>

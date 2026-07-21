@@ -36,12 +36,18 @@ class WorkspaceApplicationServiceTest {
     private AcademicProfileApplicationService academicProfileService;
     @Mock
     private AcademicDocumentApplicationService academicDocumentService;
+    @Mock
+    private CurrentUserService currentUserService;
+    @Mock
+    private LegacyDemoAccessPolicy legacyDemoAccessPolicy;
 
     @InjectMocks
     private WorkspaceApplicationService workspaceApplicationService;
 
     @Test
     void createShouldPersistDraftWorkspace() {
+        UUID userId = UUID.randomUUID();
+        when(currentUserService.userId()).thenReturn(userId);
         when(workspaceRepository.save(any(WorkspaceEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(academicProfileService.getOrCreateDefault(any())).thenReturn(profile());
 
@@ -54,6 +60,8 @@ class WorkspaceApplicationServiceTest {
         assertThat(saved.getId()).isNotNull();
         assertThat(saved.getTitle()).isEqualTo("AI 课程论文项目");
         assertThat(saved.getStatus()).isEqualTo(WorkspaceStatus.DRAFT);
+        assertThat(saved.getUserId()).isEqualTo(userId);
+        assertThat(saved.isLegacyUnowned()).isFalse();
         assertThat(saved.getCreatedAt()).isNotNull();
         assertThat(saved.getUpdatedAt()).isNotNull();
 
@@ -65,13 +73,15 @@ class WorkspaceApplicationServiceTest {
     void listShouldMapRepositoryEntities() {
         WorkspaceEntity entity = new WorkspaceEntity();
         entity.setId(UUID.randomUUID());
-        entity.setUserId(UUID.randomUUID());
+        UUID userId = UUID.randomUUID();
+        entity.setUserId(userId);
         entity.setTitle("现有项目");
         entity.setStatus(WorkspaceStatus.READY);
         entity.setCreatedAt(OffsetDateTime.now());
         entity.setUpdatedAt(OffsetDateTime.now());
 
-        when(workspaceRepository.findAll()).thenReturn(List.of(entity));
+        when(currentUserService.userId()).thenReturn(userId);
+        when(workspaceRepository.findByUserIdOrderByUpdatedAtDesc(userId)).thenReturn(List.of(entity));
         AcademicProfileResponse profile = profile();
         when(academicProfileService.findExisting(List.of(entity.getId()))).thenReturn(Map.of(entity.getId(), profile));
 

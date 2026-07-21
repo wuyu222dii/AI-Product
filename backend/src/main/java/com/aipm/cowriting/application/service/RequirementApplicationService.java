@@ -6,6 +6,7 @@ import com.aipm.cowriting.common.error.BusinessException;
 import com.aipm.cowriting.common.error.ErrorCode;
 import com.aipm.cowriting.domain.entity.RequirementSnapshotEntity;
 import com.aipm.cowriting.domain.repository.RequirementSnapshotRepository;
+import com.aipm.cowriting.domain.repository.AcademicDocumentRepository;
 import com.aipm.cowriting.domain.repository.WorkspaceRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -21,19 +22,30 @@ public class RequirementApplicationService {
     private final RequirementSnapshotRepository snapshotRepository;
     private final WorkspaceRepository workspaceRepository;
     private final ObjectMapper objectMapper;
+    private final AcademicDocumentRepository documentRepository;
 
     public RequirementApplicationService(
             RequirementSnapshotRepository snapshotRepository,
             WorkspaceRepository workspaceRepository,
+            AcademicDocumentRepository documentRepository,
             ObjectMapper objectMapper
     ) {
         this.snapshotRepository = snapshotRepository;
         this.workspaceRepository = workspaceRepository;
+        this.documentRepository = documentRepository;
         this.objectMapper = objectMapper;
     }
 
     public RequirementSnapshotResponse create(UUID workspaceId, CreateRequirementSnapshotRequest request) {
         assertWorkspaceExists(workspaceId);
+        if (request.documentId() != null) {
+            boolean sameWorkspace = documentRepository.findById(request.documentId())
+                    .map(document -> workspaceId.equals(document.getWorkspaceId()))
+                    .orElse(false);
+            if (!sameWorkspace) {
+                throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND.value(), "学术文档不存在");
+            }
+        }
         int nextVersion = latestForScope(workspaceId, request.documentId())
                 .map(snapshot -> snapshot.getVersion() + 1)
                 .orElse(1);

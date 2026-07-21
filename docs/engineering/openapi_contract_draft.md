@@ -1,14 +1,16 @@
-# AI 论文共写工作台 v1.6 OpenAPI 风格接口契约
+# AI 论文共写工作台 v2.2 OpenAPI 风格接口契约
 
-> 本文档保留 v1.x 兼容接口。v2.0 学术画像、多文档、章节、readiness 和 AI 留痕接口见 [v2_academic_workspace_api.md](v2_academic_workspace_api.md)。
+> 本文档保留 v1.x 兼容接口，并统一说明 v2.1 鉴权。v2 学术画像、多文档、章节、readiness 和 AI 留痕接口见 [v2_academic_workspace_api.md](v2_academic_workspace_api.md)。
 
 本文档是当前实现的 OpenAPI 风格契约说明，不是可直接导入的 YAML 文件。字段级细节以 [api_field_spec.md](api_field_spec.md) 为准。
 
 ## 1. 基础信息
 
 - Base URL：`http://localhost:8080/api/v1`
-- 当前认证：MVP 暂无登录态、令牌鉴权、权限隔离和 RLS 强制策略。
-- 后续生产化：需要补用户体系、资源归属校验、Supabase RLS、审计日志和限流。
+- 当前认证：除非另有说明，所有 `/api/v1/**` 请求必须携带 Supabase access token：`Authorization: Bearer <token>`。
+- JWT 校验：Supabase JWKS / ES256，校验 issuer、`aud=authenticated`、有效期和 UUID `sub`。
+- 用户隔离：工作区及其所有子资源按 JWT `sub` 验证归属；访问他人资源与不存在资源统一返回 `404`。
+- Data API：前端不直接访问业务表，`anon/authenticated` 对业务表权限已撤销，业务访问统一经过 Spring Boot。
 - 响应封装：所有成功响应统一为 `ApiResponse<T>`。
 
 成功响应：
@@ -39,6 +41,13 @@
 ```
 
 ## 2. 当前端点总览
+
+### Current User
+
+| Method | Path | 状态码 | 说明 |
+| --- | --- | --- | --- |
+| `GET` | `/me` | `200` | 获取当前用户身份和展示资料 |
+| `PATCH` | `/me` | `200` | 更新当前用户展示名称 |
 
 ### Workspace
 
@@ -474,8 +483,10 @@ pageRef=3
 
 | HTTP 状态 | 使用场景 |
 | --- | --- |
+| `401` | 未携带 Token、Token 无效或会话过期 |
+| `403` | 已认证但不允许执行该类操作；业务资源归属错误通常隐藏为 404 |
 | `400` | 参数错误、状态不允许 |
-| `404` | 资源不存在 |
+| `404` | 资源不存在或不属于当前用户 |
 | `409` | 状态冲突，例如材料不足却生成 |
 | `500` | 服务端异常 |
 | `502` | 外部 AI 网关调用失败 |
@@ -491,6 +502,6 @@ pageRef=3
 以下能力不是当前 API 已实现契约：
 
 - 独立的旧版“改写 / 补证据 / 降重复”草稿端点；当前统一走 `co-write` 与 `co-write/preview`。
-- 用户登录、注册、刷新令牌。
-- 多用户权限隔离。
+- Spring Boot 自建注册、密码或刷新令牌接口；这些会话能力由 Supabase Auth SDK 提供。
+- 项目分享、导师协作和角色权限。
 - 生产级异步队列回调。
