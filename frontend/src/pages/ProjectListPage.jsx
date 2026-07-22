@@ -107,7 +107,7 @@ export function ProjectListPage({ onWorkspaceCreated, onWorkspaceSelected, onErr
         <div>
           {user?.email && <p className="project-hub-welcome">欢迎回来，{user.email.split("@")[0]}</p>}
           <span className="eyebrow">Evidence-driven research</span>
-          <h3>研究项目</h3>
+          <h1>研究项目</h1>
           <p>一个项目可以共享材料与知识库，并包含开题、学位论文、论文稿件等多个学术文档。</p>
         </div>
         <button className="primary-btn icon-text-btn" type="button" onClick={() => setShowCreate((value) => !value)}>

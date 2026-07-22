@@ -33,8 +33,12 @@
 
 .product-sidebar > nav {
   display: grid;
+  flex: 1;
+  align-content: start;
   gap: 4px;
+  min-height: 0;
   padding-top: 14px;
+  overflow-y: auto;
 }
 
 .product-sidebar nav a {
@@ -78,9 +82,13 @@
 .sidebar-nav-group {
   display: grid;
   gap: 3px;
-  margin-top: 15px;
-  padding-top: 14px;
+  margin-top: 8px;
+  padding-top: 9px;
   border-top: 1px solid var(--line);
+}
+
+.sidebar-nav-group--project {
+  margin-top: 12px;
 }
 
 .sidebar-nav-group > span {
@@ -96,7 +104,7 @@
 .sidebar-boundary-note {
   display: flex;
   gap: 9px;
-  margin-top: auto;
+  margin-top: 12px;
   padding: 12px 11px;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
@@ -137,10 +145,40 @@
 }
 
 .topbar-context {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
   color: var(--ink-soft);
   font-family: var(--font-mono);
   font-size: 12px;
   font-weight: 700;
+}
+
+.topbar-context a,
+.topbar-context span {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topbar-context a:hover {
+  color: var(--primary);
+}
+
+.topbar-context svg {
+  flex: 0 0 auto;
+  color: var(--muted-light);
+}
+
+.topbar-context [aria-current="page"] {
+  color: var(--ink);
+}
+
+.topbar-project-name {
+  max-width: min(34vw, 360px);
 }
 
 .user-menu-summary {
@@ -287,6 +325,13 @@
   }
 
   .user-menu-summary > span:nth-child(2) {
+    display: none;
+  }
+
+  .topbar-context > a:first-child,
+  .topbar-context > a:first-child + svg,
+  .topbar-project-name,
+  .topbar-project-name + svg {
     display: none;
   }
 

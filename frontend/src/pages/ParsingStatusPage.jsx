@@ -180,10 +180,13 @@ export function ParsingStatusPage({ workspace, onParsed, onError }) {
 
   return (
     <section className="page-card">
-      <h3 className="page-section-title">解析质量检查</h3>
-      <p className="section-help">
-        系统会先对上传输入做预处理，再执行 AI 语义解析。解析完成后会给出质量清单：可直接使用、建议确认、需要补充或解析失败。
-      </p>
+      <header className="workflow-page-header">
+        <span className="eyebrow">研究准备 · 02</span>
+        <h1 className="page-section-title">解析质量检查</h1>
+        <p className="section-help">
+          确认系统是否准确理解每份输入。解析完成后会标记可直接使用、建议确认、需要补充或解析失败。
+        </p>
+      </header>
 
       <div className="parsing-summary-grid">
         <div className="summary-card">

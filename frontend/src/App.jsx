@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, BookOpenText, Database, FileCheck2, FileSearch, FolderKanban, Library, LogOut, Menu, ShieldCheck, Upload, X } from "lucide-react";
+import { ArrowRight, BookOpenText, ChevronRight, Database, FileCheck2, FileSearch, FolderKanban, LayoutDashboard, Library, LogOut, Menu, ShieldCheck, Upload, X } from "lucide-react";
 import { BrowserRouter, Link, Navigate, NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import { AuthProvider, useAuth } from "./auth/AuthProvider.jsx";
 import { OAuthCodeCatcher } from "./auth/OAuthCodeCatcher.jsx";
@@ -15,6 +15,7 @@ import { KnowledgeBasePage } from "./pages/KnowledgeBasePage.jsx";
 import { MaterialGatePage } from "./pages/MaterialGatePage.jsx";
 import { ParsingStatusPage } from "./pages/ParsingStatusPage.jsx";
 import { ProjectListPage } from "./pages/ProjectListPage.jsx";
+import { ProjectOverviewPage } from "./pages/ProjectOverviewPage.jsx";
 import { SignInPage } from "./pages/SignInPage.jsx";
 import { UploadPage } from "./pages/UploadPage.jsx";
 import { WorkspacePage } from "./pages/WorkspacePage.jsx";
@@ -67,12 +68,34 @@ function AuthenticatedApp() {
   const [profile, setProfile] = useState(null);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [globalError, setGlobalError] = useState("");
+  const [currentWorkspace, setCurrentWorkspace] = useState(null);
   const workspaceId = location.pathname.match(/^\/app\/projects\/([^/]+)/)?.[1];
   const projectRoot = workspaceId ? `/app/projects/${workspaceId}` : null;
+  const pageMeta = appPageMeta(location.pathname);
 
   useEffect(() => {
     api.getCurrentUser().then(setProfile).catch((error) => setGlobalError(error.message));
   }, [user?.id]);
+
+  useEffect(() => {
+    if (!workspaceId) {
+      setCurrentWorkspace(null);
+      return undefined;
+    }
+    let active = true;
+    api.getWorkspace(workspaceId)
+      .then((workspace) => {
+        if (active) setCurrentWorkspace(workspace);
+      })
+      .catch(() => {
+        if (active) setCurrentWorkspace(null);
+      });
+    return () => { active = false; };
+  }, [workspaceId]);
+
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [location.pathname]);
 
   async function handleSignOut() {
     await signOut();
@@ -87,24 +110,56 @@ function AuthenticatedApp() {
     <div className="product-shell">
       <button className="mobile-nav-toggle" type="button" aria-label="打开导航" onClick={() => setMobileNavOpen(true)}><Menu size={20} /></button>
       <aside className={`product-sidebar ${mobileNavOpen ? "is-open" : ""}`}>
-        <div className="sidebar-brand"><span>AI</span><strong>论文共写工作台</strong></div>
+        <Link className="sidebar-brand" to="/app/projects"><span>AI</span><strong>论文共写工作台</strong></Link>
         <button className="sidebar-close" type="button" aria-label="关闭导航" onClick={() => setMobileNavOpen(false)}><X size={19} /></button>
         <nav aria-label="主导航">
-          <NavLink to="/app/projects" onClick={() => setMobileNavOpen(false)}><FolderKanban size={18} />研究项目</NavLink>
-          {projectRoot && <div className="sidebar-nav-group"><span>当前项目</span><NavLink to={`${projectRoot}/upload`}><Upload size={17} />研究输入</NavLink><NavLink to={`${projectRoot}/parsing`}><FileSearch size={17} />解析质量</NavLink><NavLink to={`${projectRoot}/materials`}><ShieldCheck size={17} />材料检查</NavLink><NavLink to={`${projectRoot}/knowledge`}><Library size={17} />知识库</NavLink><NavLink to={`${projectRoot}/documents`}><BookOpenText size={17} />学术文档</NavLink></div>}
+          <NavLink to="/app/projects" end><FolderKanban size={18} />研究项目</NavLink>
+          {projectRoot && (
+            <>
+              <div className="sidebar-nav-group sidebar-nav-group--project">
+                <span>当前项目</span>
+                <NavLink to={projectRoot} end><LayoutDashboard size={17} />项目概览</NavLink>
+              </div>
+              <div className="sidebar-nav-group">
+                <span>研究准备</span>
+                <NavLink to={`${projectRoot}/upload`}><Upload size={17} />研究输入</NavLink>
+                <NavLink to={`${projectRoot}/parsing`}><FileSearch size={17} />解析质量</NavLink>
+                <NavLink to={`${projectRoot}/materials`}><ShieldCheck size={17} />材料检查</NavLink>
+              </div>
+              <div className="sidebar-nav-group">
+                <span>研究资产</span>
+                <NavLink to={`${projectRoot}/knowledge`}><Library size={17} />知识库</NavLink>
+              </div>
+              <div className="sidebar-nav-group">
+                <span>写作交付</span>
+                <NavLink to={`${projectRoot}/documents`}><BookOpenText size={17} />学术文档</NavLink>
+              </div>
+            </>
+          )}
         </nav>
         <div className="sidebar-boundary-note"><FileSearch size={17} /><span>生成内容仅使用已选择并完成解析的真实材料。</span></div>
       </aside>
 
       <div className="product-main">
         <header className="product-topbar">
-          <Link to="/app/projects" className="topbar-context">研究空间</Link>
+          <nav className="topbar-context" aria-label="页面位置">
+            <Link to="/app/projects">研究项目</Link>
+            {projectRoot && (
+              <>
+                <ChevronRight size={14} aria-hidden="true" />
+                <Link to={projectRoot} className="topbar-project-name">{currentWorkspace?.title || "当前项目"}</Link>
+                <ChevronRight size={14} aria-hidden="true" />
+                <span aria-current="page">{pageMeta.label}</span>
+              </>
+            )}
+          </nav>
           <div className="user-menu-summary"><span className="user-avatar">{initial(profile?.displayName || user?.email)}</span><span><strong>{profile?.displayName || user?.email || "学术用户"}</strong><small>{user?.email}</small></span><button type="button" onClick={handleSignOut} title="退出登录" aria-label="退出登录"><LogOut size={17} /></button></div>
         </header>
         {globalError && <ErrorBanner message={globalError} onClose={() => setGlobalError("")} />}
         <main className="product-content">
           <Routes>
             <Route path="projects" element={<ProjectListRoute onError={setGlobalError} />} />
+            <Route path="projects/:workspaceId" element={<ProjectFlowRoute page="overview" onError={setGlobalError} />} />
             <Route path="projects/:workspaceId/upload" element={<ProjectFlowRoute page="upload" onError={setGlobalError} />} />
             <Route path="projects/:workspaceId/parsing" element={<ProjectFlowRoute page="parsing" onError={setGlobalError} />} />
             <Route path="projects/:workspaceId/materials" element={<ProjectFlowRoute page="materials" onError={setGlobalError} />} />
@@ -123,8 +178,13 @@ function AuthenticatedApp() {
 
 function ProjectListRoute({ onError }) {
   const navigate = useNavigate();
-  const openWorkspace = (workspace) => navigate(`/app/projects/${workspace.id}/upload`);
-  return <ProjectListPage onWorkspaceCreated={openWorkspace} onWorkspaceSelected={openWorkspace} onError={onError} />;
+  return (
+    <ProjectListPage
+      onWorkspaceCreated={(workspace) => navigate(`/app/projects/${workspace.id}/upload`)}
+      onWorkspaceSelected={(workspace) => navigate(`/app/projects/${workspace.id}`)}
+      onError={onError}
+    />
+  );
 }
 
 function ProjectFlowRoute({ page, onError }) {
@@ -157,10 +217,19 @@ function ProjectFlowRoute({ page, onError }) {
   if (!workspace) return <ProjectMissing />;
 
   const root = `/app/projects/${workspace.id}`;
+  if (page === "overview") {
+    return (
+      <ProjectOverviewPage
+        workspace={workspace}
+        onNavigate={(target) => navigate(`${root}/${target}`)}
+        onError={onError}
+      />
+    );
+  }
   if (page === "upload") return <UploadPage workspace={workspace} onContinue={() => navigate(`${root}/parsing`)} onError={onError} />;
   if (page === "parsing") return <ParsingStatusPage workspace={workspace} onParsed={() => navigate(`${root}/materials`)} onError={onError} />;
   if (page === "materials") return <MaterialGatePage workspace={workspace} onReady={() => navigate(`${root}/knowledge`)} onEligible={() => navigate(`${root}/knowledge`)} onBackUpload={() => navigate(`${root}/upload`)} onError={onError} />;
-  if (page === "knowledge") return <KnowledgeBasePage workspace={workspace} draft={null} onContinue={() => navigate(`${root}/documents`)} onBackParsing={() => navigate(`${root}/parsing`)} onError={onError} />;
+  if (page === "knowledge") return <KnowledgeBasePage workspace={workspace} draft={null} onContinue={() => navigate(`${root}/documents`)} onBackMaterials={() => navigate(`${root}/materials`)} onError={onError} />;
   return (
     <AcademicDocumentsPage
       workspace={workspace}
@@ -334,6 +403,7 @@ function titleForPath(pathname) {
   if (pathname === "/sign-in") return "登录研究空间 · AI 论文共写工作台";
   if (pathname === "/auth/callback") return "登录处理中 · AI 论文共写工作台";
   if (pathname === "/app/projects") return "研究项目 · AI 论文共写工作台";
+  if (/^\/app\/projects\/[^/]+$/.test(pathname)) return "项目概览 · AI 论文共写工作台";
   if (/^\/app\/projects\/[^/]+\/upload$/.test(pathname)) return "研究输入 · AI 论文共写工作台";
   if (/^\/app\/projects\/[^/]+\/parsing$/.test(pathname)) return "解析质量 · AI 论文共写工作台";
   if (/^\/app\/projects\/[^/]+\/materials$/.test(pathname)) return "材料检查 · AI 论文共写工作台";
@@ -342,4 +412,17 @@ function titleForPath(pathname) {
   if (/^\/app\/projects\/[^/]+\/legacy-workspace\/[^/]+$/.test(pathname)) return "写作工作台 · AI 论文共写工作台";
   if (/^\/app\/projects\/[^/]+\/legacy-export\/[^/]+$/.test(pathname)) return "导出文稿 · AI 论文共写工作台";
   return "AI 论文共写工作台 · Evidence-driven Research";
+}
+
+function appPageMeta(pathname) {
+  if (pathname === "/app/projects") return { label: "研究项目" };
+  if (/\/upload$/.test(pathname)) return { label: "研究输入" };
+  if (/\/parsing$/.test(pathname)) return { label: "解析质量" };
+  if (/\/materials$/.test(pathname)) return { label: "材料检查" };
+  if (/\/knowledge$/.test(pathname)) return { label: "知识库" };
+  if (/\/documents(?:\/[^/]+)?$/.test(pathname)) return { label: "学术文档" };
+  if (/\/legacy-workspace\//.test(pathname)) return { label: "兼容工作台" };
+  if (/\/legacy-export\//.test(pathname)) return { label: "兼容导出" };
+  if (/^\/app\/projects\/[^/]+$/.test(pathname)) return { label: "项目概览" };
+  return { label: "研究空间" };
 }

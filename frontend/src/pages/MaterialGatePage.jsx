@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { ExternalLink, Search, SlidersHorizontal, Sparkles, Upload } from "lucide-react";
 import { api } from "../services/api";
 
 const MISSING_ITEM_LABELS = {
@@ -223,8 +224,11 @@ export function MaterialGatePage({ workspace, onReady, onEligible, onBackUpload,
 
   return (
     <section className="page-card">
-      <h3 className="page-section-title">材料充足性检查</h3>
-      <p className="section-help">系统按当前文档类型与研究范式判断材料是否足以支撑章节写作。材料不足时不会兜底写作，但会给出补充与真实文献检索入口。</p>
+      <header className="workflow-page-header">
+        <span className="eyebrow">研究准备 · 03</span>
+        <h1 className="page-section-title">材料充足性检查</h1>
+        <p className="section-help">系统按当前文档类型与研究范式判断材料是否足以支撑章节写作。材料不足时不会兜底写作，但会给出补充与真实文献检索入口。</p>
+      </header>
 
       <div className="card-block">
         <h4>当前写作与提交要求基准</h4>
@@ -254,16 +258,20 @@ export function MaterialGatePage({ workspace, onReady, onEligible, onBackUpload,
             <p>{result.nextAction || "进入知识库确认材料片段后，可以按章节生成、共写和保存版本。"}</p>
           </div>
           <div className="gate-ready-actions">
-            <button className="primary-btn" type="button" onClick={onReady}>进入知识库与学术文档</button>
-            <div className="field gate-mode-field">
-              <label>旧版整篇初稿模式</label>
-              <select value={draftMode} onChange={(event) => setDraftMode(event.target.value)}>
-                <option value="stable">稳妥版</option>
-                <option value="academic">学术版</option>
-                <option value="quick">快速版</option>
-              </select>
-            </div>
-            <button className="ghost-btn" type="button" onClick={handleLegacyDraftGeneration} disabled={checking}>生成兼容整篇初稿</button>
+            <button className="primary-btn" type="button" onClick={onReady}>进入项目知识库</button>
+            <details className="legacy-action-disclosure">
+              <summary>旧项目兼容操作</summary>
+              <p>仅用于回归历史整篇草稿；新项目请进入学术文档按章节写作。</p>
+              <div className="field gate-mode-field">
+                <label>整篇初稿模式</label>
+                <select value={draftMode} onChange={(event) => setDraftMode(event.target.value)}>
+                  <option value="stable">稳妥版</option>
+                  <option value="academic">学术版</option>
+                  <option value="quick">快速版</option>
+                </select>
+              </div>
+              <button className="ghost-btn" type="button" onClick={handleLegacyDraftGeneration} disabled={checking}>生成兼容整篇初稿</button>
+            </details>
           </div>
         </div>
       )}
@@ -371,50 +379,65 @@ function MaterialInsufficientPanel({
       <div className={`literature-rescue-panel ${hasReferenceGap ? "is-highlighted" : ""}`}>
         <div className="literature-rescue-intro">
           <div>
-            <h4>去找可引用文献</h4>
+            <div className="literature-rescue-title-row">
+              <h4>去找可引用文献</h4>
+              <span>{hasReferenceGap ? "推荐先处理" : "可选补强"}</span>
+            </div>
             <p className="muted">
-              站内先检索 Crossref 公开元数据；Google Scholar 和知网会作为外部入口打开，你可以用自己的学校账号下载原文。
+              站内检索 Crossref、OpenAlex 等公开元数据；需要全文时，再使用学校账号前往 Google Scholar 或知网下载。
             </p>
           </div>
-          <span>{hasReferenceGap ? "推荐先处理" : "可选补强"}</span>
         </div>
 
         <form className="literature-search-form" onSubmit={onLiteratureSearch}>
-          <div className="field">
-            <label>检索关键词</label>
-            <textarea
-              value={literatureQuery}
-              onChange={(event) => setLiteratureQuery(event.target.value)}
-              placeholder="例如：智能教室 能源管理 机器学习 预测"
-            />
+          <div className="literature-query-row">
+            <div className="field">
+              <label>检索关键词</label>
+              <textarea
+                value={literatureQuery}
+                onChange={(event) => setLiteratureQuery(event.target.value)}
+                placeholder="例如：智能教室 能源管理 机器学习 预测"
+              />
+            </div>
+            <div className="literature-query-actions">
+              <button className="primary-btn" disabled={literatureSearching}>
+                <Search size={16} aria-hidden="true" />
+                {literatureSearching ? "检索中..." : "检索文献线索"}
+              </button>
+              <button className="secondary-btn" type="button" onClick={() => setLiteratureQuery(suggestedLiteratureQuery)}>
+                <Sparkles size={16} aria-hidden="true" />填入推荐词
+              </button>
+            </div>
           </div>
           <LiteratureSearchFilters
             filters={literatureFilters}
             setFilters={setLiteratureFilters}
-            suggestedLiteratureQuery={suggestedLiteratureQuery}
-            setLiteratureQuery={setLiteratureQuery}
           />
-          <div className="button-row">
-            <button className="primary-btn" disabled={literatureSearching}>
-              {literatureSearching ? "检索中..." : "检索真实文献线索"}
-            </button>
-            <button className="ghost-btn" type="button" onClick={() => setLiteratureQuery(suggestedLiteratureQuery)}>
-              填入推荐关键词
-            </button>
+          <div className="literature-upload-handoff">
+            <div>
+              <strong>已经下载到原文？</strong>
+              <span>上传并完成 AI 解析后，文献才会进入材料库与可信链。</span>
+            </div>
             <button className="ghost-btn" type="button" onClick={onBackUpload}>
-              我已下载，去上传
+              <Upload size={16} aria-hidden="true" />去上传原文
             </button>
           </div>
         </form>
 
         {literatureError && <p className="literature-error">{literatureError}</p>}
 
-        <div className="external-search-strip">
-          {externalLinks.map((link) => (
-            <a key={link.provider} className="external-search-link" href={link.url} target="_blank" rel="noreferrer">
-              打开 {LITERATURE_SOURCE_LABELS[link.provider] || link.provider}
-            </a>
-          ))}
+        <div className="external-search-block">
+          <div className="external-search-head">
+            <strong>外部全文入口</strong>
+            <span>站内结果不足时，带着当前关键词继续检索。</span>
+          </div>
+          <div className="external-search-strip">
+            {externalLinks.map((link) => (
+              <a key={link.provider} className="external-search-link" href={link.url} target="_blank" rel="noreferrer">
+                {LITERATURE_SOURCE_LABELS[link.provider] || link.provider}<ExternalLink size={14} aria-hidden="true" />
+              </a>
+            ))}
+          </div>
         </div>
 
         <LiteratureSearchResults
@@ -430,26 +453,11 @@ function MaterialInsufficientPanel({
         <LiteratureCandidateList candidates={literatureCandidates} onBackUpload={onBackUpload} />
       </div>
 
-      {(result.recommendedSupplements ?? []).length > 0 && (
-        <div className="recommended-supplements">
-          <h4>建议补充数量</h4>
-          <div className="list-stack">
-            {result.recommendedSupplements.map((item, index) => (
-              <div className="mini-card" key={`recommend-${item.type}-${index}`}>
-                <strong>{item.label || formatMissingItemLabel(item)}</strong>
-                <p className="muted">
-                  建议数量：{item.suggestedCount || "-"} ｜ {item.message}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
-function LiteratureSearchFilters({ filters, setFilters, suggestedLiteratureQuery, setLiteratureQuery }) {
+function LiteratureSearchFilters({ filters, setFilters }) {
   function toggleProvider(provider) {
     setFilters((current) => {
       const nextProviders = current.providers.includes(provider)
@@ -471,16 +479,20 @@ function LiteratureSearchFilters({ filters, setFilters, suggestedLiteratureQuery
     }));
   }
 
+  const filterSummary = [
+    `${filters.providers.length} 个站内来源`,
+    filters.workTypes.length > 0 ? `${filters.workTypes.length} 类文献` : "全部文献类型",
+    filters.yearFrom || filters.yearTo ? `${filters.yearFrom || "不限"}-${filters.yearTo || "至今"}` : "年份不限",
+    filters.languageHint ? (filters.languageHint === "zh" ? "优先中文" : "优先英文") : "语言不限"
+  ].join(" · ");
+
   return (
     <div className="literature-filter-panel">
       <div className="literature-filter-head">
         <div>
-          <strong>推荐检索策略</strong>
-          <p className="muted">先选你缺的材料场景，系统会把关键词和筛选条件一起传给学术元数据源。</p>
+          <strong>选择检索目的</strong>
+          <p className="muted">系统会根据目的调整检索词，不需要一次设置所有筛选项。</p>
         </div>
-        <button className="ghost-btn" type="button" onClick={() => setLiteratureQuery(suggestedLiteratureQuery)}>
-          使用推荐词
-        </button>
       </div>
 
       <div className="intent-chip-grid">
@@ -497,67 +509,73 @@ function LiteratureSearchFilters({ filters, setFilters, suggestedLiteratureQuery
         ))}
       </div>
 
-      <div className="literature-filter-grid">
-        <div className="field">
-          <label>检索来源</label>
-          <div className="inline-checks">
-            {PROVIDER_OPTIONS.map((option) => (
-              <label className="inline-check" key={option.value}>
-                <input
-                  type="checkbox"
-                  checked={filters.providers.includes(option.value)}
-                  onChange={() => toggleProvider(option.value)}
-                />
-                {option.label}
-              </label>
-            ))}
+      <details className="literature-advanced-filters">
+        <summary>
+          <span><SlidersHorizontal size={16} aria-hidden="true" />高级筛选</span>
+          <small>{filterSummary}</small>
+        </summary>
+        <div className="literature-filter-grid">
+          <div className="field">
+            <label>站内来源</label>
+            <div className="inline-checks">
+              {PROVIDER_OPTIONS.map((option) => (
+                <label className="inline-check" key={option.value}>
+                  <input
+                    type="checkbox"
+                    checked={filters.providers.includes(option.value)}
+                    onChange={() => toggleProvider(option.value)}
+                  />
+                  {option.label}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="field">
+            <label>文献类型</label>
+            <div className="inline-checks">
+              {WORK_TYPE_OPTIONS.map((option) => (
+                <label className="inline-check" key={option.value}>
+                  <input
+                    type="checkbox"
+                    checked={filters.workTypes.includes(option.value)}
+                    onChange={() => toggleWorkType(option.value)}
+                  />
+                  {option.label}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="field">
+            <label>年份范围</label>
+            <div className="year-range-row">
+              <input
+                value={filters.yearFrom}
+                onChange={(event) => setFilters((current) => ({ ...current, yearFrom: event.target.value }))}
+                placeholder="起始年"
+                inputMode="numeric"
+              />
+              <span>至</span>
+              <input
+                value={filters.yearTo}
+                onChange={(event) => setFilters((current) => ({ ...current, yearTo: event.target.value }))}
+                placeholder="结束年"
+                inputMode="numeric"
+              />
+            </div>
+          </div>
+          <div className="field">
+            <label>语言倾向</label>
+            <select
+              value={filters.languageHint}
+              onChange={(event) => setFilters((current) => ({ ...current, languageHint: event.target.value }))}
+            >
+              <option value="">不限</option>
+              <option value="zh">优先中文</option>
+              <option value="en">优先英文</option>
+            </select>
           </div>
         </div>
-        <div className="field">
-          <label>文献类型</label>
-          <div className="inline-checks">
-            {WORK_TYPE_OPTIONS.map((option) => (
-              <label className="inline-check" key={option.value}>
-                <input
-                  type="checkbox"
-                  checked={filters.workTypes.includes(option.value)}
-                  onChange={() => toggleWorkType(option.value)}
-                />
-                {option.label}
-              </label>
-            ))}
-          </div>
-        </div>
-        <div className="field">
-          <label>年份范围</label>
-          <div className="year-range-row">
-            <input
-              value={filters.yearFrom}
-              onChange={(event) => setFilters((current) => ({ ...current, yearFrom: event.target.value }))}
-              placeholder="起始年"
-              inputMode="numeric"
-            />
-            <span>至</span>
-            <input
-              value={filters.yearTo}
-              onChange={(event) => setFilters((current) => ({ ...current, yearTo: event.target.value }))}
-              placeholder="结束年"
-              inputMode="numeric"
-            />
-          </div>
-        </div>
-        <div className="field">
-          <label>语言倾向</label>
-          <select
-            value={filters.languageHint}
-            onChange={(event) => setFilters((current) => ({ ...current, languageHint: event.target.value }))}
-          >
-            <option value="">不限</option>
-            <option value="zh">优先中文</option>
-            <option value="en">优先英文</option>
-          </select>
-        </div>
-      </div>
+      </details>
     </div>
   );
 }

@@ -672,8 +672,8 @@ export function AcademicDocumentsPage({
       <header className="academic-page-head">
         <div>
           <span className="eyebrow">Academic project workspace</span>
-          <h3>{workspace.title}</h3>
-          <p>项目材料与知识库共享，正文、章节版本、材料范围和 AI 使用记录按文档隔离。</p>
+          <h1>学术文档工作台</h1>
+          <p>{workspace.title} · 项目材料与知识库共享，正文、章节版本、材料范围和 AI 使用记录按文档隔离。</p>
         </div>
         <div className="button-row">
           <button className="ghost-btn icon-text-btn" type="button" onClick={() => setShowProfile((value) => !value)}>

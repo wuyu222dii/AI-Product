@@ -226,7 +226,7 @@ export function UploadPage({ workspace, onContinue, onError }) {
       <div className="upload-page-head">
         <div>
           <span className="eyebrow">Step 1 · 写作输入</span>
-          <h3 className="page-section-title">把会影响论文生成的资料放进来</h3>
+          <h1 className="page-section-title">把会影响论文生成的资料放进来</h1>
           <p className="section-help">
             可以只上传一种，也可以混合上传。提交后系统会自动做文字抽取、OCR、AI 语义解析和解析质量检查。
           </p>

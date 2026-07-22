@@ -118,7 +118,7 @@ export function SignInPage() {
         <div className="auth-narrative-noise" aria-hidden="true" />
         <div className="auth-narrative-inner reveal-up">
           <p className="eyebrow">Private research space</p>
-          <h1>你的材料与章节，只对当前账号可见</h1>
+          <h2>你的材料与章节，只对当前账号可见</h2>
           <p>登录后创建独立研究空间。项目、上传材料、章节草稿与导出记录按账号隔离，便于在学校或期刊规范下可追溯地使用 AI 辅助写作。</p>
           <ul className="auth-narrative-points">
             <li>每个研究项目拥有独立材料库与知识底座</li>

@@ -704,7 +704,7 @@
   color: #f3e4aa;
 }
 
-.auth-narrative h1 {
+.auth-narrative h2 {
   margin: 14px 0 18px;
   font-family: var(--font-document);
   font-size: clamp(30px, 3.7vw, 42px);
@@ -824,7 +824,7 @@
   align-items: center;
   gap: 12px;
   margin: 23px 0;
-  color: var(--muted-light);
+  color: var(--ink-soft);
   font-size: 12px;
 }
 
@@ -961,10 +961,11 @@
     min-height: auto;
     padding: 48px 28px 32px;
     border-right: 0;
-    border-bottom: 1px solid rgba(213, 220, 232, 0.65);
+    border-top: 1px solid rgba(213, 220, 232, 0.65);
   }
 
   .auth-panel-wrap {
+    order: -1;
     padding: 16px 16px 32px;
   }
 }

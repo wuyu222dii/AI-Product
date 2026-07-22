@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../services/api";
 
-export function KnowledgeBasePage({ workspace, draft, onContinue, onBackParsing, onError }) {
+export function KnowledgeBasePage({ workspace, draft, onContinue, onBackMaterials, onError }) {
   const [chunks, setChunks] = useState([]);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
@@ -82,14 +82,15 @@ export function KnowledgeBasePage({ workspace, draft, onContinue, onBackParsing,
     <section className="knowledge-page">
       <div className="page-card knowledge-hero-card">
         <div>
-          <h3 className="page-section-title">项目知识库</h3>
+          <span className="eyebrow">研究资产</span>
+          <h1 className="page-section-title">项目知识库</h1>
           <p className="section-help">
             知识库会把当前项目中已完成 AI 解析的材料整理成可检索证据片段，后续可用于正文共写、引用定位和审查补证。
           </p>
         </div>
         <div className="button-row">
-          <button className="secondary-btn" onClick={onBackParsing}>
-            回到解析页
+          <button className="secondary-btn" onClick={onBackMaterials}>
+            返回材料检查
           </button>
           <button className="primary-btn" onClick={onContinue}>
             进入学术文档与章节工作台

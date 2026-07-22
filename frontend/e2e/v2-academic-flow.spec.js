@@ -23,7 +23,8 @@ test("创建学术画像、上传材料并完成章节级生成与共写", async
 
   await page.getByRole("link", { name: "学术文档" }).click();
   await expect(page).toHaveURL(/\/documents(?:\/[^/]+)?$/);
-  await expect(page.getByRole("heading", { name: "硕士研究项目 E2E" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "学术文档工作台" })).toBeVisible();
+  await expect(page.getByText(/硕士研究项目 E2E · 项目材料与知识库共享/)).toBeVisible();
   await expect(page.getByRole("tab", { name: /硕士研究项目 E2E/ })).toBeVisible();
 
   await page.getByRole("button", { name: "新建文档" }).click();
