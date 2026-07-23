@@ -6,7 +6,7 @@
 
 当前项目已完成：
 
-`v1.x MVP 主流程 + v2.0 全学术人群升级 + v2.0.1 学术文档统一工作台 + v2.1 用户隔离工程交付 + v2.2 产品化界面升级`。
+`v1.x MVP 主流程 + v2.0 全学术人群升级 + v2.0.1 学术文档统一工作台 + v2.1 用户隔离工程交付 + v2.2 产品化界面升级 + v2.2.1 新用户研究导航`。
 
 更准确的阶段判断是：
 
@@ -25,11 +25,13 @@
 | v2.0.1 | 已完成 | `DocumentSection` 成为唯一正文源，可信审查、可控共写和整篇交付进入统一工作台 |
 | v2.1 | 工程与数据库已完成 | Supabase Auth、JWT、用户数据隔离、受保护文件与用户资料 API 已落地；真实 Google/Resend 双用户验收待凭据 |
 | v2.2 | 已完成第二轮 | 公共官网、登录页、Dashboard、项目概览、App Shell、工作流页面、响应式与无障碍检查已完成 |
+| v2.2.1 | 已完成 | 6 步首次向导、可跳过状态、顶栏指南、动态项目路线、路线调整和真实 Supabase guide 回填已完成 |
 
 ## 3. 当前用户主流程
 
 ```text
 Google / 邮箱 OTP 登录
+-> 新用户研究导航（可跳过）
 -> 研究项目 Dashboard
 -> 创建项目与学术画像
 -> 项目概览与建议下一步
@@ -82,8 +84,22 @@ Google / 邮箱 OTP 登录
 
 - `GET /api/v1/me`：获取当前账号和展示资料。
 - `PATCH /api/v1/me`：更新展示名称。
+- `PATCH /api/v1/me/onboarding`：保存完成或跳过状态。
 
-## 5. v2.2 产品界面完成项
+## 5. v2.2.1 新用户研究导航完成项
+
+- 无项目且 `onboardingStatus=NOT_STARTED` 的新用户自动进入 `/app/onboarding`。
+- 固定 6 步收集项目名称、学术阶段、文档类型、学科、研究范式、当前进度、已有内容、截止日期、篇幅和引用格式。
+- 完成接口在一个事务内创建 workspace、学术画像、初始文档、guide 并更新用户状态；重复提交返回既有首个项目。
+- 跳过后进入项目列表且不再自动弹出；顶栏“使用指南”可随时重新查看三阶段主线。
+- 动态路线固定覆盖建立项目、添加材料、确认解析、准备度、知识库、章节写作、审查交付。
+- 当前任务优先级为 `NEEDS_ATTENTION > CURRENT > IN_PROGRESS > OPTIONAL`，知识库保持推荐而非强制。
+- 项目概览允许调整进度、已有内容、截止日期和 `GUIDED / FLEXIBLE` 模式。
+- 访问他人 guide 沿 workspace 归属统一返回 `404`。
+- 真实 Supabase 已执行 `20260722103000_user_onboarding_and_project_guides.sql`；现有账号保持已完成，新账号默认未开始。
+- 数据库验收结果：`38` 个 workspace、`38` 个 guide、`0` 个缺失 guide，RLS 开启，公开角色授权为 `0`。
+
+## 6. v2.2 产品界面完成项
 
 - 公开路由：`/`、`/about`、`/sign-in`、`/auth/callback`、`/privacy`、`/terms`。
 - 登录路由：`/app/projects` 及项目上传、解析、材料、知识库、学术文档页面。
@@ -98,11 +114,11 @@ Google / 邮箱 OTP 登录
 - 知识库使用检索、结果、来源的清晰布局。
 - 学术文档保持章节树、正文编辑器、按需检查抽屉三栏结构。
 - 移动端使用精简页面位置、顶部导航和抽屉；登录表单优先出现在首屏，页面仅保留一个一级标题。
-- 全局 CSS 已拆为 6 个职责文件，视觉变量统一管理。
+- 全局 CSS 已拆为 7 个职责文件，新增独立 onboarding 样式并统一视觉变量。
 - E2E 会生成真实工作台截图到 `frontend/public/assets/workspace-product.png`，供官网和演示材料使用。
 - Vite 已对 React、Supabase、拖拽和图标库拆包，所有 JS chunk 均低于 500 kB。
 
-## 6. 核心产品能力
+## 7. 核心产品能力
 
 | 模块 | 当前状态 |
 | --- | --- |
@@ -122,25 +138,27 @@ Google / 邮箱 OTP 登录
 | Google + 邮箱 OTP 前端流程 | 已完成代码，待真实 Provider 验收 |
 | JWT 与所有业务资源隔离 | 已完成并通过自动化/数据库冒烟 |
 | 产品化公共站点和工作台 | 已完成首轮 |
+| 新用户研究导航与动态项目路线 | 已完成并通过桌面/手机 E2E |
 
-## 7. 最近验证结果
+## 8. 最近验证结果
 
 | 验证项 | 结果 |
 | --- | --- |
-| 后端测试 | `92` 个通过，0 失败、0 错误、0 跳过 |
+| 后端测试 | `103` 个通过，0 失败、0 错误、0 跳过 |
 | 前端单元测试 | `11` 个通过，覆盖安全返回路径、受保护路由、会话异常恢复、OTP 与 Google OAuth 参数 |
 | 前端构建与 smoke | 通过，稳定依赖已拆包，无大 chunk 告警 |
-| Playwright | `15` 个通过，覆盖认证、核心流程、项目概览、文献补充入口、桌面/平板/手机和基础无障碍 |
+| Playwright | `17` 个通过，新增首次引导、完成创建、跳过、重开指南和动态路线覆盖 |
 | npm audit | `0 vulnerabilities` |
 | 真实 Spring 启动 | 通过，可连接真实 Supabase PostgreSQL |
 | Supabase JWKS | `200` |
 | 未登录 API | `/api/v1/workspaces` 返回结构化 `401` |
-| 历史数据 | workspace 共 35 个，35 个未归属，0 个归属用户 |
+| 工作区与 guide | workspace 共 38 个，其中 35 个历史未归属、3 个归属用户；38 个 guide，无缺失 |
 | RLS / grants | workspaces 与 user_profiles RLS 开启；业务表公开角色授权数为 0 |
 | v2.1 migration history | `20260721002107:user_auth_and_workspace_isolation` 已登记 |
+| v2.2.1 migration history | `20260722103000:user_onboarding_and_project_guides` 已登记，远端已是最新 |
 | Supabase advisors | `No issues found` |
 
-## 8. 尚待外部环境验收
+## 9. 尚待外部环境验收
 
 - [ ] 在 Google Auth Platform 创建 OAuth Web Client。
 - [ ] 在 Supabase 启用 Google Provider 并配置 Redirect URLs。
@@ -151,7 +169,7 @@ Google / 邮箱 OTP 登录
 
 操作说明：[AUTH_SETUP.md](../guides/AUTH_SETUP.md)。
 
-## 9. 下一阶段优先级
+## 10. 下一阶段优先级
 
 P0：
 
@@ -172,6 +190,6 @@ P2：
 - 导师/合作者批注、分享与角色权限。
 - 管理员后台、配额、成本统计与监控告警。
 
-## 10. 最终判断
+## 11. 最终判断
 
 `项目已从可演示学术写作 MVP 升级为具备账号边界和统一产品界面的内测版本。代码、迁移和自动化验收已完成；完成 Google/Resend 私密配置与真实双用户验证后，可进入小规模封闭用户测试。`

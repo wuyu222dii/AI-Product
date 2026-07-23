@@ -10,6 +10,7 @@ import "./styles/public.css";
 import "./styles/app-shell.css";
 import "./styles/workflow.css";
 import "./styles/academic-workspace.css";
+import "./styles/onboarding.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

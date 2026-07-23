@@ -51,8 +51,8 @@ for (const viewport of VIEWPORTS) {
     });
     await page.goto("/app/projects/workspace-layout");
     await expect(page.getByRole("heading", { name: "智能校园研究项目", level: 1 })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "项目路径" })).toBeVisible();
-    await expect(page.getByText("研究准备", { exact: true })).toBeAttached();
+    await expect(page.getByRole("heading", { name: "个性化项目路线" })).toBeVisible();
+    await expect(page.getByText("研究准备", { exact: true }).first()).toBeAttached();
     if (viewport.width < 900) {
       await page.getByRole("button", { name: "打开导航" }).click();
       await expect(page.getByRole("link", { name: "项目概览" })).toBeVisible();

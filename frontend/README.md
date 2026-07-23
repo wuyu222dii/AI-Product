@@ -1,195 +1,98 @@
-# AI 论文共写工作台 v2.0 前端说明
+# AI 论文共写工作台 v2.2.1 前端说明
 
-## 1. 当前状态
+React 前端已经完成 Supabase Auth、产品化 App Shell、新用户研究导航、多文档章节工作台与可信交付主链路。
 
-当前前端已经基于现有产品文档、页面原型和后端真实接口，完成了主链路页面实现：
+## 当前入口
 
-- 项目首页
-- 上传页
-- 解析状态页
-- 材料充足性检查页
-- 项目知识库页
-- 学术多文档与章节工作台
-- 共写工作台主页面
-- 导出页
+公开页面：
 
-当前目标是：
+- `/`、`/about`
+- `/sign-in`、`/auth/callback`
+- `/privacy`、`/terms`
 
-`保留 v1.x 可信共写能力，并提供面向本科、硕士、博士与科研人员的多文档章节级研究工作台。`
+登录后页面：
 
----
+- `/app/onboarding`：首次 6 步研究导航；`?mode=tour` 为随时可重开的使用指南。
+- `/app/projects`：项目 Dashboard。
+- `/app/projects/{workspaceId}`：动态项目路线与项目画像。
+- `/app/projects/{workspaceId}/upload`：研究输入。
+- `/app/projects/{workspaceId}/parsing`：解析质量与补充重解析。
+- `/app/projects/{workspaceId}/materials`：动态 readiness 与文献补充。
+- `/app/projects/{workspaceId}/knowledge`：知识库。
+- `/app/projects/{workspaceId}/documents/{documentId?}`：学术文档统一工作台。
 
-## 2. 技术栈
+## 技术栈
 
-- React 18
+- React 18 + React Router
 - Vite 6
+- Supabase JS 2.110.7
 - Lucide React
-- Playwright
-- 原生 CSS
-- fetch API
+- dnd-kit
+- Vitest + Testing Library
+- Playwright + axe-core
+- 自托管 Noto Sans SC / Noto Sans Mono / Noto Serif SC
 
----
-
-## 3. 目录结构
+## 代码结构
 
 ```text
-frontend/
-├── index.html
-├── package.json
-├── playwright.config.js
-├── e2e
-│   └── v2-academic-flow.spec.js
-├── vite.config.js
-└── src
-    ├── App.jsx
-    ├── main.jsx
-    ├── components
-    │   ├── ErrorBanner.jsx
-    │   └── StatusBadge.jsx
-    │   ├── academic
-    │   │   ├── AcademicDocumentSwitcher.jsx
-    │   │   ├── AcademicSectionNavigator.jsx
-    │   │   ├── AcademicSectionEditor.jsx
-    │   │   └── AcademicReadinessPanel.jsx
-    │   └── workspace
-    │       ├── WorkspaceReviewSidebar.jsx
-    │       ├── WorkspaceReviewDrawer.jsx
-    │       ├── WorkspaceAppealModal.jsx
-    │       ├── WorkspaceEditorPanel.jsx
-    │       ├── WorkspaceAiPanel.jsx
-    │       └── WorkspaceVersionPanel.jsx
-    ├── pages
-    │   ├── ProjectListPage.jsx
-    │   ├── UploadPage.jsx
-    │   ├── ParsingStatusPage.jsx
-    │   ├── MaterialGatePage.jsx
-    │   ├── KnowledgeBasePage.jsx
-    │   ├── AcademicDocumentsPage.jsx
-    │   ├── WorkspacePage.jsx
-    │   └── ExportPage.jsx
-    ├── services
-    │   └── api.js
-    └── styles
-        └── global.css
+src/
+├── auth/                 Supabase 会话、受保护路由与 OAuth 回调
+├── components/
+│   ├── academic/         学术文档编辑、章节树、检查和共写预览
+│   ├── guide/            路线选项与状态文案
+│   └── workspace/        v1.x 兼容工作台组件
+├── pages/
+│   ├── OnboardingPage.jsx
+│   ├── ProjectListPage.jsx
+│   ├── ProjectOverviewPage.jsx
+│   ├── UploadPage.jsx
+│   ├── ParsingStatusPage.jsx
+│   ├── MaterialGatePage.jsx
+│   ├── KnowledgeBasePage.jsx
+│   └── AcademicDocumentsPage.jsx
+├── services/api.js       带 Bearer Token 的统一 API 客户端
+└── styles/
+    ├── tokens.css
+    ├── base.css
+    ├── public.css
+    ├── app-shell.css
+    ├── workflow.css
+    ├── academic-workspace.css
+    └── onboarding.css
 ```
 
----
+## v2.2.1 导航能力
 
-## 4. 当前已接后端接口
+- `GET /api/v1/me` 读取 `onboardingStatus`。
+- `PATCH /api/v1/me/onboarding` 保存完成或跳过状态。
+- `POST /api/v1/onboarding/complete` 事务创建首个项目。
+- `GET/PATCH /api/v1/workspaces/{id}/guide` 读取或调整动态路线。
+- 新用户无项目时自动进入向导；已有用户不会被强制跳转。
+- 项目路线来自后端真实材料、解析、准备度、知识库、章节和审查状态，不由前端自行猜测。
+- 路线只推荐下一步，不锁定页面；知识库明确为推荐步骤。
 
-已按当前后端骨架接入：
-
-- `GET /api/v1/workspaces`
-- `POST /api/v1/workspaces`
-- `POST /api/v1/workspaces/{id}/materials`
-- `GET /api/v1/workspaces/{id}/materials`
-- `POST /api/v1/workspaces/{id}/requirement-snapshot`
-- `GET /api/v1/workspaces/{id}/requirement-snapshot`
-- `POST /api/v1/workspaces/{id}/material-sufficiency-check`
-- `POST /api/v1/workspaces/{id}/generate-draft`
-- `POST /api/v1/workspaces/{id}/knowledge-base/build`
-- `GET /api/v1/workspaces/{id}/knowledge-base/chunks`
-- `POST /api/v1/workspaces/{id}/knowledge-base/search`
-- `GET /api/v1/workspaces/{id}/drafts`
-- `GET /api/v1/drafts/{id}`
-- `GET /api/v1/drafts/{id}/review-items`
-- `POST /api/v1/workspaces/{id}/co-write`
-- `POST /api/v1/review-items/{id}/appeal`
-- `POST /api/v1/drafts/{id}/export`
-- `GET/PATCH /api/v1/workspaces/{id}/academic-profile`
-- `POST/GET /api/v1/workspaces/{id}/documents`
-- `GET/PATCH /api/v1/documents/{id}`
-- `POST/GET /api/v1/documents/{id}/sections`
-- `POST /api/v1/documents/{id}/readiness-check`
-- `POST /api/v1/sections/{id}/readiness-check`
-- `POST /api/v1/sections/{id}/generate`
-- `POST /api/v1/sections/{id}/co-write/preview`
-- `POST /api/v1/section-co-write-previews/{id}/apply`
-- `POST /api/v1/documents/{id}/assemble`
-- `GET /api/v1/documents/{id}/ai-actions`
-
----
-
-## 5. 当前已接真的后端能力
-
-前端当前已连接的真实能力包括：
-
-- 真实数据库
-- 真实 AI 语义解析
-- 真实材料充足性检查
-- 真实初稿生成
-- 真实共写
-- 真实审查 / 复审
-- 真实导出
-- 真实文件解析与图片 OCR
-- 真实学术画像、多文档、可拖拽章节树和章节版本
-- 真实文档 / 章节动态 readiness
-- 真实文档材料范围与 AI 使用记录
-
-当前重点不再是“接通接口”，而是：
-
-`把这些真实后端能力组织成更完整、更顺滑的演示前端。`
-
----
-
-## 6. 本地开发
-
-### 前端启动
+## 本地开发
 
 ```bash
-cd frontend
+cp .env.example .env.local
 npm install
 npm run dev
 ```
 
-默认端口：
+默认前端地址：`http://localhost:5173`。Vite 将 `/api` 代理到 `VITE_API_PROXY_TARGET`，默认后端为 `http://localhost:8080`。
 
-- `http://localhost:5173`
-
-### 后端代理
-
-Vite 已配置：
-
-- `/api` -> `http://localhost:8080`
-- 可通过 `VITE_API_PROXY_TARGET=http://127.0.0.1:8082` 临时覆盖代理目标
-
-所以前端开发时无需额外改 API base URL。
-
----
-
-## 7. 联调建议顺序
-
-1. 先确认后端能启动
-2. 前端起 Vite
-3. 在项目首页创建 workspace
-4. 上传文本 / 文件 / 图片材料进入解析页
-5. 进入材料检查页，执行当前文档动态 readiness
-6. 进入知识库页，构建并检索项目证据片段
-7. 进入学术文档页，切换多文档、编辑章节、生成共写预览并组装导出
-8. 需要时进入兼容整篇工作台触发可信链、审查、申诉和导出链路
-
----
-
-## 8. 自动化验证
+## 自动化验证
 
 ```bash
-npm run test
-npm run test:e2e
 npm run test:all
+npm audit
 ```
 
-- `npm run test`：生产构建 + MVP smoke。
-- `npm run test:e2e`：使用本机 Chrome 跑 Playwright 用户流程，API 使用稳定 mock。
-- `npm run test:all`：依次执行两类前端验证。
-- 当前 E2E 覆盖学术画像、文字材料上传、多文档、章节拖拽排序、章节生成、共写预览与应用、AI 留痕、审查复查和导出。
+当前结果：
 
----
+- Vitest：`11` 个通过。
+- 生产构建与 MVP smoke：通过。
+- Playwright：`17` 个通过，覆盖向导创建、跳过、重开、认证、核心学术流程、桌面/平板/手机布局和基础无障碍。
+- npm audit：`0 vulnerabilities`。
 
-## 9. 下一步建议
-
-建议继续推进这几件事：
-
-1. 引入 React Query 或等价数据层
-2. 补充更完整的 loading / empty / success / error 收口
-3. 把更多状态通过 query params 或 route state 显式化
-4. 增加 Demo 首页引导与演示脚本入口
+完整启动与演示说明见 [DEMO_GUIDE.md](../docs/guides/DEMO_GUIDE.md)，当前状态以 [PRODUCT_COMPLETION_STATUS-6-16.md](../docs/project/PRODUCT_COMPLETION_STATUS-6-16.md) 为准。

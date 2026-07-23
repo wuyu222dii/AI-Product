@@ -2,6 +2,7 @@ package com.aipm.cowriting.interfaces.rest;
 
 import com.aipm.cowriting.application.dto.user.CurrentUserResponse;
 import com.aipm.cowriting.application.dto.user.UpdateCurrentUserRequest;
+import com.aipm.cowriting.application.dto.user.UpdateOnboardingRequest;
 import com.aipm.cowriting.application.service.UserProfileApplicationService;
 import com.aipm.cowriting.common.api.ApiResponse;
 import com.aipm.cowriting.common.web.RequestMetaUtil;
@@ -34,5 +35,16 @@ public class CurrentUserController {
             HttpServletRequest request
     ) {
         return ResponseEntity.ok(ApiResponse.success(service.update(body), RequestMetaUtil.meta(request)));
+    }
+
+    @PatchMapping(RestConstants.API_V1 + "/me/onboarding")
+    public ResponseEntity<ApiResponse<CurrentUserResponse>> updateOnboarding(
+            @Valid @RequestBody UpdateOnboardingRequest body,
+            HttpServletRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                service.updateOnboarding(body),
+                RequestMetaUtil.meta(request)
+        ));
     }
 }

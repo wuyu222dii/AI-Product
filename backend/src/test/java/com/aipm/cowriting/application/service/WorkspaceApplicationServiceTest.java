@@ -37,6 +37,8 @@ class WorkspaceApplicationServiceTest {
     @Mock
     private AcademicDocumentApplicationService academicDocumentService;
     @Mock
+    private ProjectGuideApplicationService projectGuideService;
+    @Mock
     private CurrentUserService currentUserService;
     @Mock
     private LegacyDemoAccessPolicy legacyDemoAccessPolicy;
@@ -67,6 +69,7 @@ class WorkspaceApplicationServiceTest {
 
         assertThat(response.title()).isEqualTo("AI 课程论文项目");
         assertThat(response.status()).isEqualTo(WorkspaceStatus.DRAFT);
+        verify(projectGuideService).createForWorkspace(saved.getId(), null);
     }
 
     @Test

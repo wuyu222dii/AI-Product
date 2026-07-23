@@ -13,6 +13,7 @@ import com.aipm.cowriting.application.dto.user.UpdateCurrentUserRequest;
 import com.aipm.cowriting.application.service.UserProfileApplicationService;
 import com.aipm.cowriting.common.web.GlobalExceptionHandler;
 import com.aipm.cowriting.config.SecurityConfig;
+import com.aipm.cowriting.domain.model.OnboardingStatus;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -48,7 +49,8 @@ class CurrentUserControllerTest {
                         .audience(List.of("authenticated")))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.id").value(USER_ID.toString()))
-                .andExpect(jsonPath("$.data.displayName").value("研究者"));
+                .andExpect(jsonPath("$.data.displayName").value("研究者"))
+                .andExpect(jsonPath("$.data.onboardingStatus").value("COMPLETED"));
     }
 
     @Test
@@ -62,8 +64,26 @@ class CurrentUserControllerTest {
                 .andExpect(jsonPath("$.data.displayName").value("新的名称"));
     }
 
+    @Test
+    void validJwtShouldSkipOnboarding() throws Exception {
+        when(service.updateOnboarding(any())).thenReturn(response("研究者", OnboardingStatus.SKIPPED));
+        mockMvc.perform(patch("/api/v1/me/onboarding")
+                        .with(jwt().jwt(token -> token.subject(USER_ID.toString()).audience(List.of("authenticated"))))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"SKIPPED\",\"onboardingVersion\":\"v1\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.onboardingStatus").value("SKIPPED"));
+    }
+
     private CurrentUserResponse response(String displayName) {
+        return response(displayName, OnboardingStatus.COMPLETED);
+    }
+
+    private CurrentUserResponse response(String displayName, OnboardingStatus status) {
         OffsetDateTime now = OffsetDateTime.now();
-        return new CurrentUserResponse(USER_ID, "user@example.com", displayName, null, now, now);
+        return new CurrentUserResponse(
+                USER_ID, "user@example.com", displayName, null,
+                status, "v1", now, now, now
+        );
     }
 }

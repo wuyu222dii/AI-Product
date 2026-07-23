@@ -8,6 +8,7 @@
 - v2.0 产品规格：[V2_ACADEMIC_UPGRADE.md](product/V2_ACADEMIC_UPGRADE.md)
 - v2.0.1 数据与接口：[v2_academic_workspace_api.md](engineering/v2_academic_workspace_api.md)
 - v2.1 Auth 配置：[AUTH_SETUP.md](guides/AUTH_SETUP.md)
+- v2.2.1 新用户导航与动态路线接口：[v2_academic_workspace_api.md](engineering/v2_academic_workspace_api.md#12-新用户研究导航与动态路线)
 - 当前交付清单：[FINAL_DELIVERY_CHECKLIST.md](project/FINAL_DELIVERY_CHECKLIST.md)
 - Demo 跑通指南：[DEMO_GUIDE.md](guides/DEMO_GUIDE.md)
 
@@ -46,6 +47,7 @@
 | [20260711065932_repair_document_section_versions.sql](../supabase/migrations/20260711065932_repair_document_section_versions.sql) | 修复章节当前版本与历史最大版本不一致 |
 | [20260711092831_academic_document_quality_scopes.sql](../supabase/migrations/20260711092831_academic_document_quality_scopes.sql) | v2.0.1 章节/文档分析作用域、审查生命周期和选择性共写迁移 |
 | [20260721002107_user_auth_and_workspace_isolation.sql](../supabase/migrations/20260721002107_user_auth_and_workspace_isolation.sql) | v2.1 Supabase Auth 用户资料、工作区归属、RLS 与权限收紧迁移 |
+| [20260722103000_user_onboarding_and_project_guides.sql](../supabase/migrations/20260722103000_user_onboarding_and_project_guides.sql) | v2.2.1 新用户状态、项目 guide、旧数据回填与权限迁移 |
 
 ## 使用与部署
 
@@ -78,6 +80,6 @@
 
 **前端：** AUTH_SETUP -> V2_ACADEMIC_UPGRADE -> v2_academic_workspace_api -> DEMO_GUIDE
 
-**后端：** AUTH_SETUP -> v2_academic_workspace_api -> Supabase v2/v2.1 migrations -> backend_service_spec
+**后端：** AUTH_SETUP -> v2_academic_workspace_api -> Supabase v2/v2.1/v2.2.1 migrations -> backend_service_spec
 
 **快速跑 Demo：** DEMO_GUIDE -> FINAL_DELIVERY_CHECKLIST

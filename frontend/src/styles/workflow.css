@@ -191,6 +191,12 @@
   background: var(--primary-soft);
 }
 
+.project-route-item.is-current {
+  border-color: #9fc7c1;
+  background: var(--primary-soft);
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+
 .project-route-item.is-attention {
   border-color: #e6d4a0;
   background: var(--warning-soft);
@@ -214,6 +220,12 @@
   color: var(--success);
 }
 
+.project-route-state.is-attention {
+  border-color: #e1c26d;
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
 .project-route-item > svg {
   color: var(--primary);
 }
@@ -228,11 +240,12 @@
   gap: 2px;
 }
 
-.project-route-copy strong,
-.project-route-copy small {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.project-route-phase {
+  color: var(--muted-light);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0;
 }
 
 .project-route-copy small,
@@ -243,6 +256,183 @@
 
 .project-route-meta {
   white-space: nowrap;
+}
+
+.project-route-title-line {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.project-route-title-line > strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-route-copy > p {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.guide-status {
+  flex: 0 0 auto;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--surface-subtle);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.guide-status.is-completed {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.guide-status.is-current,
+.guide-status.is-in_progress {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.guide-status.is-needs_attention {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.project-route-copy details {
+  margin-top: 4px;
+}
+
+.project-route-copy summary {
+  width: fit-content;
+  color: var(--primary);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.project-route-copy details dl {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0 2px;
+  padding: 8px 10px;
+  border-left: 2px solid var(--line-strong);
+  background: var(--surface-subtle);
+}
+
+.project-route-copy details dl > div {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr);
+  gap: 7px;
+}
+
+.project-route-copy details dt,
+.project-route-copy details dd {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.project-route-copy details dt {
+  color: var(--muted);
+}
+
+.project-route-action {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--primary);
+}
+
+.project-route-action:hover {
+  border-color: var(--primary);
+}
+
+.project-next-step.is-attention {
+  border-color: #e1c26d;
+  background: var(--warning-soft);
+}
+
+.project-next-step.is-attention .project-next-step-icon,
+.project-next-step.is-attention span {
+  color: var(--warning);
+}
+
+.compact-btn {
+  min-height: 34px;
+  padding: 0 10px;
+  font-size: 11px;
+}
+
+.project-guide-settings {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.project-guide-settings-head,
+.project-guide-settings-footer {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.project-guide-settings-head strong,
+.project-guide-settings-head p {
+  margin: 0;
+}
+
+.project-guide-settings-head p {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.project-guide-settings-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.project-guide-materials {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: 14px 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.project-guide-materials legend {
+  width: 100%;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.project-guide-materials label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.project-guide-settings-footer {
+  justify-content: flex-end;
+  margin-top: 14px;
 }
 
 .project-profile-summary dl {
@@ -1544,16 +1734,20 @@
   }
 
   .project-route-item {
-    grid-template-columns: 28px 22px minmax(0, 1fr) 18px;
+    grid-template-columns: 28px 22px minmax(0, 1fr) 34px;
   }
 
   .project-route-meta {
     grid-column: 3;
   }
 
-  .project-route-item > svg:last-child {
+  .project-route-action {
     grid-column: 4;
     grid-row: 1;
+  }
+
+  .project-guide-settings-grid {
+    grid-template-columns: 1fr;
   }
 
   .project-document-row {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, BookOpenText, ChevronRight, Database, FileCheck2, FileSearch, FolderKanban, LayoutDashboard, Library, LogOut, Menu, ShieldCheck, Upload, X } from "lucide-react";
+import { ArrowRight, BookOpenText, ChevronRight, CircleHelp, Database, FileCheck2, FileSearch, FolderKanban, LayoutDashboard, Library, LogOut, Menu, ShieldCheck, Upload, X } from "lucide-react";
 import { BrowserRouter, Link, Navigate, NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import { AuthProvider, useAuth } from "./auth/AuthProvider.jsx";
 import { OAuthCodeCatcher } from "./auth/OAuthCodeCatcher.jsx";
@@ -13,6 +13,7 @@ import { AuthCallbackPage } from "./pages/AuthCallbackPage.jsx";
 import { ExportPage } from "./pages/ExportPage.jsx";
 import { KnowledgeBasePage } from "./pages/KnowledgeBasePage.jsx";
 import { MaterialGatePage } from "./pages/MaterialGatePage.jsx";
+import { OnboardingPage } from "./pages/OnboardingPage.jsx";
 import { ParsingStatusPage } from "./pages/ParsingStatusPage.jsx";
 import { ProjectListPage } from "./pages/ProjectListPage.jsx";
 import { ProjectOverviewPage } from "./pages/ProjectOverviewPage.jsx";
@@ -152,13 +153,20 @@ function AuthenticatedApp() {
                 <span aria-current="page">{pageMeta.label}</span>
               </>
             )}
+            {!projectRoot && location.pathname !== "/app/projects" && (
+              <><ChevronRight size={14} aria-hidden="true" /><span aria-current="page">{pageMeta.label}</span></>
+            )}
           </nav>
-          <div className="user-menu-summary"><span className="user-avatar">{initial(profile?.displayName || user?.email)}</span><span><strong>{profile?.displayName || user?.email || "学术用户"}</strong><small>{user?.email}</small></span><button type="button" onClick={handleSignOut} title="退出登录" aria-label="退出登录"><LogOut size={17} /></button></div>
+          <div className="topbar-actions">
+            <button className="topbar-guide-button" type="button" onClick={() => navigate("/app/onboarding?mode=tour")} title="使用指南"><CircleHelp size={17} /><span>使用指南</span></button>
+            <div className="user-menu-summary"><span className="user-avatar">{initial(profile?.displayName || user?.email)}</span><span><strong>{profile?.displayName || user?.email || "学术用户"}</strong><small>{user?.email}</small></span><button type="button" onClick={handleSignOut} title="退出登录" aria-label="退出登录"><LogOut size={17} /></button></div>
+          </div>
         </header>
         {globalError && <ErrorBanner message={globalError} onClose={() => setGlobalError("")} />}
         <main className="product-content">
           <Routes>
-            <Route path="projects" element={<ProjectListRoute onError={setGlobalError} />} />
+            <Route path="onboarding" element={<OnboardingPage profile={profile} onProfileChange={setProfile} onError={setGlobalError} />} />
+            <Route path="projects" element={<ProjectListRoute profile={profile} onError={setGlobalError} />} />
             <Route path="projects/:workspaceId" element={<ProjectFlowRoute page="overview" onError={setGlobalError} />} />
             <Route path="projects/:workspaceId/upload" element={<ProjectFlowRoute page="upload" onError={setGlobalError} />} />
             <Route path="projects/:workspaceId/parsing" element={<ProjectFlowRoute page="parsing" onError={setGlobalError} />} />
@@ -176,12 +184,14 @@ function AuthenticatedApp() {
   );
 }
 
-function ProjectListRoute({ onError }) {
+function ProjectListRoute({ profile, onError }) {
   const navigate = useNavigate();
   return (
     <ProjectListPage
       onWorkspaceCreated={(workspace) => navigate(`/app/projects/${workspace.id}/upload`)}
       onWorkspaceSelected={(workspace) => navigate(`/app/projects/${workspace.id}`)}
+      onStartOnboarding={() => navigate("/app/onboarding")}
+      profile={profile}
       onError={onError}
     />
   );
@@ -221,7 +231,7 @@ function ProjectFlowRoute({ page, onError }) {
     return (
       <ProjectOverviewPage
         workspace={workspace}
-        onNavigate={(target) => navigate(`${root}/${target}`)}
+        onNavigate={(target) => navigate(target.startsWith("/") ? target : `${root}/${target}`)}
         onError={onError}
       />
     );
@@ -402,6 +412,7 @@ function titleForPath(pathname) {
   if (pathname === "/terms") return "服务条款 · AI 论文共写工作台";
   if (pathname === "/sign-in") return "登录研究空间 · AI 论文共写工作台";
   if (pathname === "/auth/callback") return "登录处理中 · AI 论文共写工作台";
+  if (pathname === "/app/onboarding") return "研究导航 · AI 论文共写工作台";
   if (pathname === "/app/projects") return "研究项目 · AI 论文共写工作台";
   if (/^\/app\/projects\/[^/]+$/.test(pathname)) return "项目概览 · AI 论文共写工作台";
   if (/^\/app\/projects\/[^/]+\/upload$/.test(pathname)) return "研究输入 · AI 论文共写工作台";
@@ -415,6 +426,7 @@ function titleForPath(pathname) {
 }
 
 function appPageMeta(pathname) {
+  if (pathname === "/app/onboarding") return { label: "使用指南" };
   if (pathname === "/app/projects") return { label: "研究项目" };
   if (/\/upload$/.test(pathname)) return { label: "研究输入" };
   if (/\/parsing$/.test(pathname)) return { label: "解析质量" };

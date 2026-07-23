@@ -1,4 +1,4 @@
-# AI 论文共写工作台 v1.6 接口字段级定义
+# AI 论文共写工作台 v2.2.1 接口字段级定义
 
 > 本文档保留 v1.x 字段定义。v2.0 当前新增字段与接口见 [v2_academic_workspace_api.md](v2_academic_workspace_api.md)。
 
@@ -7,7 +7,7 @@
 ## 1. 通用约定
 
 - API 前缀：`/api/v1`
-- 当前 MVP 不包含登录、租户隔离和令牌鉴权；权限体系属于后续产品化增强。
+- 所有业务接口必须携带 Supabase access token；资源按 JWT `sub` 隔离，访问他人资源统一返回 `404`。
 - 实际响应统一由 `ApiResponse` 包裹：`{ "success": true, "data": {}, "meta": {} }`。
 - 下文的响应体默认只展示 `data` 字段内容。
 - 时间字段使用 ISO 8601。
@@ -653,3 +653,53 @@
 | `errorMessage` | string/null | 错误信息 |
 | `createdAt` | datetime | 创建时间 |
 | `updatedAt` | datetime | 更新时间 |
+
+## 13. Onboarding And Project Guide
+
+### `GET /me`
+
+在用户资料基础上增加：
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `onboardingStatus` | string | `NOT_STARTED / COMPLETED / SKIPPED` |
+| `onboardingVersion` | string/null | 最近完成或跳过的向导版本 |
+| `onboardingCompletedAt` | datetime/null | 完成或跳过时间 |
+
+### `PATCH /me/onboarding`
+
+```json
+{
+  "status": "SKIPPED",
+  "onboardingVersion": "v1"
+}
+```
+
+`status` 只允许 `COMPLETED / SKIPPED`，不能由客户端重置为 `NOT_STARTED`。
+
+### `POST /onboarding/complete`
+
+请求体包含 `workspace` 和 `onboardingVersion`。`workspace` 在普通创建字段外增加：
+
+```json
+{
+  "guideProfile": {
+    "currentProgress": "MATERIALS_COLLECTING",
+    "availableMaterials": ["REFERENCES", "NOTES_DRAFT"],
+    "targetDeadline": "2026-12-20",
+    "preferredMode": "GUIDED"
+  }
+}
+```
+
+响应返回 `user / workspace / guide`。创建与用户状态更新在同一事务内完成，重复完成请求返回已有首个项目。
+
+### `GET /workspaces/{id}/guide`
+
+返回 guide 配置以及派生字段：`overallProgress / currentTaskId / tasks`。每项任务包含 `id / phase / title / description / reason / expectedOutcome / status / targetPath / blocking / progressLabel`。
+
+任务状态固定为：`COMPLETED / CURRENT / IN_PROGRESS / UPCOMING / OPTIONAL / NEEDS_ATTENTION`。
+
+### `PATCH /workspaces/{id}/guide`
+
+请求字段：`currentProgress / availableMaterials / targetDeadline / preferredMode`。修改 guide 只重新计算路线，不改变材料、正文或审查数据。

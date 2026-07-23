@@ -94,6 +94,12 @@ export const api = {
   updateCurrentUser(displayName) {
     return request("/me", { method: "PATCH", body: JSON.stringify({ displayName }) });
   },
+  updateOnboarding(body) {
+    return request("/me/onboarding", { method: "PATCH", body: JSON.stringify(body) });
+  },
+  completeOnboarding(body) {
+    return request("/onboarding/complete", { method: "POST", body: JSON.stringify(body) });
+  },
   listWorkspaces() {
     return request("/workspaces");
   },
@@ -104,6 +110,15 @@ export const api = {
     const body = typeof input === "string" ? { title: input } : input;
     return request("/workspaces", {
       method: "POST",
+      body: JSON.stringify(body)
+    });
+  },
+  getProjectGuide(workspaceId) {
+    return request(`/workspaces/${workspaceId}/guide`);
+  },
+  updateProjectGuide(workspaceId, body) {
+    return request(`/workspaces/${workspaceId}/guide`, {
+      method: "PATCH",
       body: JSON.stringify(body)
     });
   },

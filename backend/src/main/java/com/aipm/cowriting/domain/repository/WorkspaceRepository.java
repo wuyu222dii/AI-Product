@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface WorkspaceRepository extends JpaRepository<WorkspaceEntity, UUID> {
     List<WorkspaceEntity> findByUserIdOrderByUpdatedAtDesc(UUID userId);
+    Optional<WorkspaceEntity> findFirstByUserIdOrderByCreatedAtAsc(UUID userId);
     List<WorkspaceEntity> findByLegacyUnownedTrueOrderByUpdatedAtDesc();
     Optional<WorkspaceEntity> findByIdAndUserId(UUID id, UUID userId);
 }

@@ -1,4 +1,4 @@
-# AI 论文共写工作台 v2.2 OpenAPI 风格接口契约
+# AI 论文共写工作台 v2.2.1 OpenAPI 风格接口契约
 
 > 本文档保留 v1.x 兼容接口，并统一说明 v2.1 鉴权。v2 学术画像、多文档、章节、readiness 和 AI 留痕接口见 [v2_academic_workspace_api.md](v2_academic_workspace_api.md)。
 
@@ -48,6 +48,15 @@
 | --- | --- | --- | --- |
 | `GET` | `/me` | `200` | 获取当前用户身份和展示资料 |
 | `PATCH` | `/me` | `200` | 更新当前用户展示名称 |
+| `PATCH` | `/me/onboarding` | `200` | 标记首次引导已完成或已跳过 |
+
+### Onboarding And Project Guide
+
+| Method | Path | 状态码 | 说明 |
+| --- | --- | --- | --- |
+| `POST` | `/onboarding/complete` | `201` | 事务创建首个项目、画像、文档和 guide |
+| `GET` | `/workspaces/{id}/guide` | `200` | 获取动态任务路线与总体进度 |
+| `PATCH` | `/workspaces/{id}/guide` | `200` | 调整当前进度、已有内容、截止日期和模式 |
 
 ### Workspace
 

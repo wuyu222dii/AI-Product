@@ -1,12 +1,22 @@
-# AI 论文共写工作台 v2.2
+# AI 论文共写工作台 v2.2.1
 
 面向本科生、硕士生、博士生与科研人员的证据驱动型研究共创平台。系统以真实材料、章节版本、来源追溯和人工确认为基础，支持从研究输入到学术文档交付的完整流程；不承诺规避 AI 检测或论文查重。
 
-当前基线：`v1.x 可信写作能力 + v2.0 全学术人群升级 + v2.0.1 学术文档统一工作台 + v2.1 用户隔离 + v2.2 产品化界面`。
+当前基线：`v1.x 可信写作能力 + v2.0 全学术人群升级 + v2.0.1 学术文档统一工作台 + v2.1 用户隔离 + v2.2 产品化界面 + v2.2.1 新用户研究导航`。
 
 当前状态唯一事实来源：[PRODUCT_COMPLETION_STATUS-6-16.md](docs/project/PRODUCT_COMPLETION_STATUS-6-16.md)。Supabase Auth 控制台配置见 [AUTH_SETUP.md](docs/guides/AUTH_SETUP.md)。
 
 ## 最新交付
+
+### v2.2.1 新用户研究导航
+
+- 新用户且没有项目时自动进入 6 步研究向导，可跳过且不会重复弹出。
+- 向导基于学术阶段、文档类型、研究范式、当前进度、已有内容和截止日期创建首个项目。
+- 项目概览使用后端动态路线，聚合材料、解析、准备度、知识库、章节和审查真实状态。
+- 路线只提供推荐，不锁定页面；知识库为推荐步骤，原有材料和解析门槛继续生效。
+- 顶栏提供“使用指南”，项目概览可重新调整当前进度、已有内容、截止日期和推进模式。
+
+迁移文件：[20260722103000_user_onboarding_and_project_guides.sql](supabase/migrations/20260722103000_user_onboarding_and_project_guides.sql)。迁移已在真实 Supabase 执行，当前 `38/38` 个工作区均已生成 guide。
 
 ### v2.1 用户隔离
 
@@ -35,6 +45,7 @@
 
 ```text
 登录
+-> 首次研究导航与个性化路线
 -> 创建研究项目与学术画像
 -> 上传并 AI 解析真实材料
 -> 查看解析质量和动态 readiness
@@ -94,14 +105,14 @@ cd backend && mvn test
 cd frontend && npm run test:all
 ```
 
-最近一次验证（2026-07-21）：
+最近一次验证（2026-07-22）：
 
-- 后端 `92` 个测试通过，`0` 失败、`0` 错误、`0` 跳过。
-- 前端 `6` 个 Vitest 测试、生产构建和 smoke test 通过。
-- Playwright `10` 个场景通过，覆盖认证、核心流程、`1440x900 / 1024x768 / 390x844` 与基础无障碍检查。
+- 后端 `103` 个测试通过，`0` 失败、`0` 错误、`0` 跳过。
+- 前端 `11` 个 Vitest 测试、生产构建和 smoke test 通过。
+- Playwright `17` 个场景通过，覆盖首次引导、跳过、重开指南、动态路线、认证、核心流程、`1440x900 / 1024x768 / 390x844` 与基础无障碍检查。
 - `npm audit` 为 `0 vulnerabilities`。
 - Spring Boot 已连接真实 Supabase；JWKS 返回 `200`，未登录业务 API 返回结构化 `401`。
-- 真实数据库中 35 个历史工作区均为未归属；RLS 开启，`anon/authenticated` 对业务表授权数为 0。
+- 真实数据库已登记 v2.2.1 migration history；`38/38` 个工作区已回填 guide，RLS 开启，`anon/authenticated` 对 `project_guides` 授权数为 0。
 - `supabase db advisors` 返回 `No issues found`。
 
 ## 当前边界

@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class WorkspaceApplicationService {
@@ -24,6 +25,7 @@ public class WorkspaceApplicationService {
     private final WorkspaceRepository workspaceRepository;
     private final AcademicProfileApplicationService academicProfileService;
     private final AcademicDocumentApplicationService academicDocumentService;
+    private final ProjectGuideApplicationService projectGuideService;
     private final CurrentUserService currentUserService;
     private final LegacyDemoAccessPolicy legacyDemoAccessPolicy;
 
@@ -31,16 +33,19 @@ public class WorkspaceApplicationService {
             WorkspaceRepository workspaceRepository,
             AcademicProfileApplicationService academicProfileService,
             AcademicDocumentApplicationService academicDocumentService,
+            ProjectGuideApplicationService projectGuideService,
             CurrentUserService currentUserService,
             LegacyDemoAccessPolicy legacyDemoAccessPolicy
     ) {
         this.workspaceRepository = workspaceRepository;
         this.academicProfileService = academicProfileService;
         this.academicDocumentService = academicDocumentService;
+        this.projectGuideService = projectGuideService;
         this.currentUserService = currentUserService;
         this.legacyDemoAccessPolicy = legacyDemoAccessPolicy;
     }
 
+    @Transactional
     public WorkspaceResponse create(CreateWorkspaceRequest request) {
         WorkspaceEntity entity = new WorkspaceEntity();
         entity.setId(UUID.randomUUID());
@@ -59,6 +64,7 @@ public class WorkspaceApplicationService {
                 ? defaultInitialDocument(entity.getTitle(), profile.academicStage(), request.academicProfile() != null)
                 : request.initialDocument();
         academicDocumentService.create(entity.getId(), initialDocument);
+        projectGuideService.createForWorkspace(entity.getId(), request.guideProfile());
         return toResponse(workspaceRepository.findById(entity.getId()).orElse(entity));
     }
 

@@ -1,6 +1,6 @@
 # v2.0.1 学术文档统一工作台 API 契约
 
-更新时间：`2026-07-21`
+更新时间：`2026-07-22`
 
 统一前缀：`/api/v1`。响应继续使用现有 `ApiResponse<T>` 包装。
 
@@ -300,8 +300,36 @@ v2.0.1 统一质量作用域：[20260711092831_academic_document_quality_scopes.
 
 v2.1 用户隔离：[20260721002107_user_auth_and_workspace_isolation.sql](../../supabase/migrations/20260721002107_user_auth_and_workspace_isolation.sql)。
 
+v2.2.1 新用户导航：[20260722103000_user_onboarding_and_project_guides.sql](../../supabase/migrations/20260722103000_user_onboarding_and_project_guides.sql)。
+
 新增表：`academic_project_profiles / academic_documents / document_sections / document_section_versions / document_material_links / ai_action_logs / section_cowrite_previews`。
 
 v2.0.1 新增 `section_cowrite_preview_review_links`，并扩展 `evidence_bindings / review_items / review_recheck_logs / section_cowrite_previews`。`draft_version_id` 在作用域表中改为可空，旧数据保留为 `LEGACY_DRAFT`。
 
 运行时 `HIBERNATE_DDL_AUTO` 默认 `none`；禁止依赖 JPA 自动建表替代正式迁移。
+
+## 12. 新用户研究导航与动态路线
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| PATCH | `/me/onboarding` | 保存 `COMPLETED / SKIPPED` 状态 |
+| POST | `/onboarding/complete` | 事务创建首个 workspace、画像、文档和 guide |
+| GET | `/workspaces/{id}/guide` | 获取动态任务、当前任务和总体进度 |
+| PATCH | `/workspaces/{id}/guide` | 调整进度、已有内容、截止日期与引导模式 |
+
+`POST /onboarding/complete` 的 `workspace` 请求兼容普通 `POST /workspaces`，并可增加：
+
+```json
+{
+  "guideProfile": {
+    "currentProgress": "IDEA_ONLY",
+    "availableMaterials": ["REFERENCES"],
+    "targetDeadline": "2026-12-20",
+    "preferredMode": "GUIDED"
+  }
+}
+```
+
+路线固定包含：建立项目、添加材料、确认解析、检查准备度、构建知识库、章节写作、审查交付。知识库为 `OPTIONAL`，不影响写作门槛。当前任务按 `NEEDS_ATTENTION > CURRENT > IN_PROGRESS > OPTIONAL` 选择。
+
+guide 不保存 userId，归属继续沿 `workspace_id -> workspaces.user_id` 校验。访问他人 guide 与不存在资源统一返回 `404`。

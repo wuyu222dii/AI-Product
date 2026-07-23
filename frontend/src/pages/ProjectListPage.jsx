@@ -15,13 +15,14 @@ import {
   defaultDocumentForStage
 } from "../components/academic/academicOptions.js";
 
-export function ProjectListPage({ onWorkspaceCreated, onWorkspaceSelected, onError }) {
+export function ProjectListPage({ onWorkspaceCreated, onWorkspaceSelected, onStartOnboarding, profile, onError }) {
   const { user } = useAuth();
   const [form, setForm] = useState(() => initialForm());
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [search, setSearch] = useState("");
+  const [loaded, setLoaded] = useState(false);
 
   async function load() {
     try {
@@ -38,12 +39,20 @@ export function ProjectListPage({ onWorkspaceCreated, onWorkspaceSelected, onErr
       setItems(enriched);
     } catch (error) {
       onError(error.message);
+    } finally {
+      setLoaded(true);
     }
   }
 
   useEffect(() => {
     load();
   }, []);
+
+  useEffect(() => {
+    if (loaded && items.length === 0 && profile?.onboardingStatus === "NOT_STARTED") {
+      onStartOnboarding();
+    }
+  }, [items.length, loaded, onStartOnboarding, profile?.onboardingStatus]);
 
   async function handleCreate(event) {
     event.preventDefault();
@@ -203,7 +212,8 @@ export function ProjectListPage({ onWorkspaceCreated, onWorkspaceSelected, onErr
           <div className="project-empty-state">
             <GraduationCap size={28} aria-hidden="true" />
             <strong>还没有研究项目</strong>
-            <p>创建项目后，先上传真实研究材料，再进入多文档和章节级共写。</p>
+            <p>可以通过研究导航梳理目标和当前进度，也可以直接创建项目。</p>
+            <button className="secondary-btn icon-text-btn" type="button" onClick={onStartOnboarding}>打开研究导航<ArrowRight size={16} /></button>
           </div>
         ) : (
           visibleItems.length === 0 ? (
